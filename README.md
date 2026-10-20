@@ -55,8 +55,8 @@ script can drive a running Cobander over HTTP or a file-drop inbox).
 
 ## Buy Jeff a PBR 🍺
 
-Cobander is free and will stay free. If it's earning its keep, the tip jar is Venmo **@jdeuel44**
-(a link is in the app under ⚙ and on the Band page).
+Cobander is free and will stay free. If it's earning its keep, the tip jar is [Ko-fi](https://ko-fi.com/jdeuel44)
+or Venmo **@jdeuel44** (links are in the app under ⚙ and on the Band page).
 
 ## License
 
