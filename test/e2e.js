@@ -1258,7 +1258,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/lyrics', { add: [{ text: 'noodles in the colander tonight', bar: 1 }, { text: 'strain it out and let it ring', bar: 3 }, { text: 'every take is just a thing', bar: 5 }, { text: 'we never had a doubt', bar: 7 }] });
       await jeff.post('/practice', { open: true }); await sleep(400);
       await jeff.evalJs(`const v = document.querySelector('#k-view'); v.value = 'crawl'; v.dispatchEvent(new Event('change')); true`); await sleep(600);
-      assert.ok(await jeff.evalJs(`document.querySelectorAll('#k-plane .k-cl').length >= 3`), 'crawl lines on the plane');
+      assert.ok(await jeff.evalJs(`document.querySelectorAll('#k-plane .k-cw').length >= 8`), 'crawl words on the plane');
       assert.ok(await jeff.evalJs(`(() => { const k = document.querySelector('#karaoke').getBoundingClientRect(); const sb = document.querySelector('#sidebar').getBoundingClientRect(); return k.left >= sb.right - 1 && k.top > 40; })()`), 'practice covers only the song area');
       assert.ok(await jeff.evalJs(`!document.querySelector('#k-crawl').hidden`), 'crawl view shown');
       await jeff.shot('practice-crawl');

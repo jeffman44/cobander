@@ -873,3 +873,10 @@ body.tracks-thin .track-head .btns { flex: none; }
 .char-tiers .char.body { width: 40px; height: 46px; } .char-tiers .char.body img.pose { width: 30px; height: 40px; } .char-tiers .char.body .inst { width: 14px; height: 14px; left: -4px; bottom: -4px; } .char-tiers .char.body .inst .gi { width: 9px; height: 9px; }
 .body-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 6px 0 10px; }
 .body-pick img { width: 48px; height: 64px; object-fit: contain; }
+
+/* crawl: one flyer per word */
+.k-cw { position: absolute; bottom: 0; font-size: calc(30px * var(--ks)); font-weight: 700; line-height: 1.2; white-space: nowrap; will-change: transform, opacity; color: #e8e9ee; }
+.k-cw.meas { visibility: hidden; position: absolute; left: -9999px; }
+.k-cw.now { color: var(--xp); font-size: calc(36px * var(--ks)); text-shadow: 0 0 18px rgba(242,181,52,.6); }
+.k-cw.sung { color: var(--muted); }
+.k-cw .k-chord { display: block; font-size: .5em; color: var(--accent); font-weight: 600; }

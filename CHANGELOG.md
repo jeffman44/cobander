@@ -1,5 +1,8 @@
 # Cobander changelog
 
+## 0.15.4
+- 3D practice view: every word flies at you on its own, lands in its place on the line when it's time to sing it, and the line assembles as it arrives. The view menu switches back to classic karaoke (words + chords) any time.
+
 ## 0.15.3
 - Wordmark without the Japanese: COBANDER, a red noodle seal, (noodle together).
 - Only people who actually played (takes, parts, words, notes) show up as bandmates — an assistant that saved a mix through the API doesn't.

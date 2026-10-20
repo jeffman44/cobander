@@ -4135,16 +4135,28 @@
   const crawl = { key: '', nodes: new Map(), lookahead: 9, back: 1.6 };
   function karaCrawl(t, ls, a) {
     const plane = $('#k-plane'); if (!plane) return;
-    if (crawl.key !== kara.key) { crawl.key = kara.key; plane.innerHTML = ''; crawl.nodes.clear(); ls.forEach((l, i) => { const n = el('div', 'k-cl dim'); n.dataset.i = String(i); crawl.nodes.set(i, n); plane.append(n); }); }
+    // one flyer per WORD: each comes down the lane at its own time and lands in its place on the line, so the lyric
+    // assembles as it arrives. x = the word's slot in its line (measured once); y = how far off its time is.
+    if (crawl.key !== kara.key) {
+      crawl.key = kara.key; plane.innerHTML = ''; crawl.nodes.clear();
+      const meas = el('div', 'k-cw meas'); plane.append(meas);
+      ls.forEach((l, i) => {
+        const words = l.words && l.words.length ? l.words : [{ w: l.text || '', t: l.time, e: l.time + 2 }];
+        const widths = words.map((w) => { meas.textContent = w.w; return meas.offsetWidth; }); const gap = 14; const total = widths.reduce((n, w) => n + w, 0) + gap * (words.length - 1);
+        let x = -total / 2;
+        words.forEach((w, k) => { const n = el('div', 'k-cw'); n.textContent = w.w; const ch = (l.chords || []).filter((c) => c.wi === k); if (ch.length) { const c = el('span', 'k-chord', ch.map((x) => x.chord).join(' ')); n.prepend(c); } n.style.left = `calc(50% + ${x.toFixed(0)}px)`; n.dataset.t = String(w.t); n.dataset.e = String(w.e); n.dataset.line = String(i); crawl.nodes.set(`${i}:${k}`, n); plane.append(n); x += widths[k] + gap; });
+      });
+      meas.remove();
+    }
     const H = plane.clientHeight || 600; const px = H / crawl.lookahead;
-    for (const [i, n] of crawl.nodes) {
-      const l = ls[i]; const dt = l.time - t; const end = (l.words && l.words.length ? l.words[l.words.length - 1].e : l.time + 2);
-      if (dt > crawl.lookahead || end < t - crawl.back) { n.style.display = 'none'; continue; }
-      n.style.display = ''; const y = Math.max(-crawl.back, dt) * px;   // 0 = the hit line; negative = already sung, sliding under
-      const cur = a.cur && a.i === i; const isCur = cur || (dt <= 0 && end >= t);
-      const wasCur = n.classList.contains('cur'); n.className = 'k-cl' + (isCur ? ' cur' : dt < 0 ? ' dim' : '');
-      if (isCur || wasCur !== isCur || n.childElementCount === 0) karaRenderLine(n, l, isCur ? t : null, { big: isCur });
-      n.style.transform = `translateY(${(-y).toFixed(1)}px) translateY(50%)`; n.style.bottom = '0'; n.style.opacity = dt < 0 ? String(Math.max(0, 1 + dt / crawl.back)) : String(Math.min(1, 0.35 + (1 - dt / crawl.lookahead)));
+    for (const [, n] of crawl.nodes) {
+      const wt = Number(n.dataset.t), we = Number(n.dataset.e); const dt = wt - t;
+      if (dt > crawl.lookahead || we < t - crawl.back) { n.style.display = 'none'; continue; }
+      n.style.display = ''; const y = Math.max(-crawl.back, dt) * px;
+      const now = dt <= 0 && we >= t, sung = we < t;
+      n.className = 'k-cw' + (now ? ' now' : sung ? ' sung' : '');
+      n.style.transform = `translateY(${(-y).toFixed(1)}px) translateY(50%)`;
+      n.style.opacity = sung ? String(Math.max(0, 1 + (we - t) / crawl.back)) : String(Math.min(1, 0.3 + (1 - Math.max(0, dt) / crawl.lookahead)));
     }
   }
   function karaFrame() {
