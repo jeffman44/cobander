@@ -63,6 +63,11 @@ script can drive a running Cobander over HTTP or a file-drop inbox).
 Already have it and just want to say thanks? [Ko-fi](https://ko-fi.com/jdeuel44) or Venmo **@jdeuel44**
 (links are in the app under ⚙ and on the Band page).
 
+## Credits
+
+Icons by [OpenMoji](https://openmoji.org) (CC BY-SA 4.0) and [game-icons.net](https://game-icons.net) (CC BY 3.0 — Lorc, Delapouite,
+Caro Asercion); see `src/renderer/icons/CREDITS.md`. Speech-to-text by whisper.cpp / OpenAI Whisper (MIT).
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Made by Jeff Deuel for a band in a basement.

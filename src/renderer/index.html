@@ -11,13 +11,13 @@
   <div id="update-bar" hidden></div>
   <header id="topbar">
     <div class="row1">
-      <div class="brand" title="Cobander — noodle together.">Cobander</div>
-      <nav id="ws-tabs" title="Workspaces (Ctrl+1–5)">
-        <button data-ws="write" title="Write (Ctrl+1): the song — parts, takes, lyrics, chords, notes">✍ Write</button>
+      <div class="brand" title="Cobander — noodle together. (コバンダー: 麺を一緒に)"><span class="brand-kana">コバンダー</span><span class="brand-word">COBANDER</span><span class="brand-seal">麺</span><span class="brand-sub">(noodle together)</span></div>
+      <nav id="ws-tabs" title="Workspaces: Cobander is split into five screens, one for each stage of making a song — Write, Record, Mix, Practice and Band. Click a tab or press Ctrl+1 to Ctrl+5 to switch; nothing is lost when you move between them.">
+        <button data-ws="write" title="Write (Ctrl+1): the song — parts, takes, lyrics, chords, notes"><i class="om om-write"></i> Write</button>
         <button data-ws="record" title="Record (Ctrl+2): pick your input, hear yourself, punch in (fix one bit of a take), tune up, and see the takes on the selected track">● Record</button>
-        <button data-ws="mix" title="Mix (Ctrl+3): set each track's volume, left/right position and effects, or let Auto mix / Auto master do a first pass for you">🎚 Mix</button>
-        <button data-ws="practice" id="btn-karaoke" title="Practice (Ctrl+4 or K): full screen — lyrics and chords as they come, loop parts, slow down, take yourself out of the mix, the setlist, Show mode, your phone">🎙 Practice</button>
-        <button data-ws="band" title="Band (Ctrl+5): the band's level, setlist, who's done what, who's rehearsing">⚔ Band<span class="tab-badge" id="tb-band"></span></button>
+        <button data-ws="mix" title="Mix (Ctrl+3): set each track's volume, left/right position and effects, or let Auto mix / Auto master do a first pass for you"><i class="om om-faders"></i> Mix</button>
+        <button data-ws="practice" id="btn-karaoke" title="Practice (Ctrl+4 or K): full screen — lyrics and chords as they come, loop parts, slow down, take yourself out of the mix, the setlist, Show mode, your phone"><i class="om om-mic"></i> Practice</button>
+        <button data-ws="band" title="Band (Ctrl+5): the band's level, setlist, who's done what, who's rehearsing"><i class="om om-swords"></i> Band<span class="tab-badge" id="tb-band"></span></button>
       </nav>
       <div id="transport">
         <button id="btn-start" title="Jump to the start of the song, or to the loop start when looping (Home)">&#9198;</button>
@@ -32,32 +32,32 @@
         <div id="bars" class="mono" title="Where you are in the song as bar.beat — 1.1 is the very start">1.1</div>
       </div>
       <div class="right">
-        <button id="xp-chip" class="xp-chip" hidden title="Your level — click to see the band's progress"><span class="xp-lvl"></span><span class="xp-title"></span><span class="xp-bar"><i></i></span><span class="xp-num"></span></button>
+        <button id="xp-chip" class="xp-chip" hidden title="Your level: Cobander gives you points (XP) for recording takes, writing lyrics, finishing songs and so on, like a game. Click to open the Band tab and see how the whole band is doing."><span class="xp-lvl"></span><span class="xp-title"></span><span class="xp-bar"><i></i></span><span class="xp-num"></span></button>
         <span id="who" class="muted"></span>
         <button id="btn-help" title="Help mode: little ? marks on everything, tips show as soon as you hover. Press F1 twice for the glossary of words.">?</button><button id="btn-settings" title="Settings: your name, the shared band folder, mic and headphones, latency offset">&#9881;</button>
       </div>
     </div>
     <div class="row2">
-      <span class="grp" title="the song">
+      <span class="grp">
         <label class="chip">bpm <input type="number" id="bpm" title="BPM — how fast the song goes (beats per minute). 120 is a medium tempo." min="30" max="300" value="120"></label>
         <label class="chip"><select id="timesig" title="Time signature — how many beats in each bar. 4/4 is most songs; Other… for anything (13/7, 2+2+3/8)."><option>4/4</option><option>3/4</option><option>6/8</option><option>2/4</option><option>5/4</option><option>7/8</option><option>9/8</option><option>12/8</option><option value="custom">Other…</option></select></label>
-        <button id="key-chip" class="chip" title="Song key — click to set or detect it">key –</button>
+        <button id="key-chip" class="chip" title="Key: the home note of the song (G, Bm…). It names the chords and tells the pitch check what is in tune. Click to set it, or let Cobander hear it from the bass line / a take. A ⚠ means the takes disagree with the label.">key –</button>
       </span>
-      <span class="grp" title="playing">
-        <label class="chip"><input type="checkbox" id="click-on" title="Click: a metronome in your headphones so everyone plays in time"> click</label>
-        <label class="chip"><input type="checkbox" id="count-in" title="Count-in: a bar of clicks before recording starts so you know when to come in" checked> count-in</label>
-        <span class="chip loopchip"><label><input type="checkbox" id="loop-on" title="Loop: play the same bars over and over — handy for practising one part or recording several takes of it"> loop</label> bars <input type="number" id="loop-from" min="1" value="1" title="Loop starts at this bar"> – <input type="number" id="loop-to" min="1" value="4" title="Loop ends after this bar (this bar plays too)"> <button id="btn-loop-here" title="Loop 4 bars starting where the playhead is ([ and ] set the loop start / end)">here</button><button id="btn-loop-clip" title="Loop just the selected take">take</button></span>
+      <span class="grp">
+        <label class="chip" title="Click: a metronome (tick… tick… tick) you hear while the song plays and records, so everyone stays in time. It is NOT in the recording. Turn it on when you record to a bare song; turn it off when the drums are there. Shortcut: C in Practice. Volume: Settings → click level."><input type="checkbox" id="click-on"> click</label>
+        <label class="chip" title="Count-in: when you hit record, you get one bar of clicks (1-2-3-4) BEFORE recording starts, so you know exactly when to come in. Leave it on unless you are punching into the middle of a song."><input type="checkbox" id="count-in" checked> count-in</label>
+        <span class="chip loopchip" title="Loop: play the same stretch of bars over and over. Great for practising one tricky part, or recording it several times in a row (each pass becomes its own take — pick the best after). Set the bars here, or drag across the bar numbers at the top of the timeline. Shortcut: L loops the part you are in."><label><input type="checkbox" id="loop-on"> loop</label> bars <input type="number" id="loop-from" min="1" value="1" title="First bar of the loop (bar numbers run along the top of the timeline)"> – <input type="number" id="loop-to" min="1" value="4" title="Loop ends after this bar (this bar plays too)"> <button id="btn-loop-here" title="Loop 4 bars starting where the playhead is ([ and ] set the loop start / end)">here</button><button id="btn-loop-clip" title="Loop just the selected take: sets the loop start and end to exactly where the take you clicked starts and ends. Handy for hearing one take on repeat, or for punching in to re-record only that bit.">take</button></span>
       </span>
-      <span class="grp only-record" title="recording">
-        <label class="chip" title="Punch in: only record between the loop start and end, to fix one bit of a take. R starts one bar early so you can come in; only what falls inside the loop is kept in the song, and other takes on the track go quiet there."><input type="checkbox" id="punch-on"> punch</label>
-        <label class="chip"><input type="checkbox" id="monitor" title="Monitor: hear yourself through Cobander while you record. Turn it off if you hear yourself twice."> monitor</label>
-        <div id="input-meter" class="meter small" title="Input level: how loud your mic or instrument is coming in. Keep it out of the red."><div class="fill"></div></div>
-        <button id="btn-tuner" class="chip" title="Tuner (T): tune your instrument using whatever is plugged in">tuner</button>
-        <span id="midi-led" class="chip muted" title="MIDI activity: lights up when a MIDI keyboard sends notes">midi</span>
+      <span class="grp only-record">
+        <label class="chip" title="Punch in: fix ONE bit of a take without redoing the whole thing. Set the loop around the bad bars, turn this on, hit R: playback starts a bar early so you can come in, and only what you play inside the loop is kept — the old take stays everywhere else."><input type="checkbox" id="punch-on"> punch</label>
+        <label class="chip" title="Monitor: hear your own mic / instrument through Cobander (with the track's amp and effects) while you play. Use headphones or you will get feedback. If you hear yourself twice (once live, once late), turn this off — your interface already lets you hear yourself."><input type="checkbox" id="monitor"> monitor</label>
+        <div id="input-meter" class="meter small" title="Input level: how loud your mic or instrument is coming in right now. Keep it green or amber. If it hits red the recording crackles (clips) and that can never be fixed afterwards — turn the gain knob down on your interface, not in Cobander."><div class="fill"></div></div>
+        <button id="btn-tuner" class="chip" title="Tuner: play one string or note and Cobander shows which note it hears and whether it is flat or sharp, like a clip-on tuner. It listens to whatever input is picked in Settings. Tune up before every take — out-of-tune takes are the one thing a mix can't fix. Shortcut: T.">tuner</button>
+        <span id="midi-led" class="chip muted" title="MIDI activity: lights up every time a MIDI keyboard sends a note, so you can tell the keyboard is connected and talking to Cobander. If you play and it stays dark, pick the keyboard under MIDI input in Settings, or right-click this light.">midi</span>
       </span>
-      <span class="grp only-mix" title="mixing">
-        <button id="btn-automix" class="chip" title="Auto mix: sets each track's volume, left/right position, tone (EQ), evens out loud and quiet moments (compression) and adds room sound (reverb) from what's recorded — a rough mix to start from. Undo or A/B to compare.">🧂 Auto mix</button>
-        <button id="btn-automaster" class="chip" title="Auto master: makes the whole song as loud as a streaming release without distorting (a limiter catches the peaks)">🍽️ Auto master</button>
+      <span class="grp only-mix">
+        <button id="btn-automix" class="chip" title="Auto mix: sets each track's volume, left/right position, tone (EQ), evens out loud and quiet moments (compression) and adds room sound (reverb) from what's recorded — a rough mix to start from. Undo or A/B to compare."><i class="om om-spoon"></i> Auto mix</button>
+        <button id="btn-automaster" class="chip" title="Auto master: makes the whole song as loud as a streaming release without distorting (a limiter catches the peaks)"><i class="om om-plate"></i> Auto master</button>
         <button id="btn-mixab" class="chip" title="A/B (B): flip between how the mix sounded before and after Auto mix / Auto master" disabled>A/B</button>
         <span id="mix-ab-state" class="muted small"></span>
       </span>
@@ -67,13 +67,13 @@
   <div id="body">
     <aside id="sidebar">
       <div class="side-head">
-        <span>🍜 Songs</span>
-        <span><button id="btn-noodle" title="Noodle pad: your own scratch song to record random riffs and save the good ones to the Parts bin">🎸</button> <button id="btn-new-song" title="New song: start a fresh song from a style template">+</button></span>
+        <span><i class="om om-noodles"></i> Songs</span>
+        <span><button id="btn-noodle" title="Noodle pad: your own scratch song to record random riffs and save the good ones to the Parts bin"><i class="om om-guitar"></i></button> <button id="btn-new-song" title="New song: start a fresh song. You pick a style template (punk, folk, hip-hop…) and it sets up the tempo, time signature, section order and a starting set of tracks — everything can be changed later.">+</button></span>
       </div>
       <div id="folder-line" class="muted small"></div>
       <select id="song-stage-filter" title="Show only songs at this stage (idea, writing, demo, done)"><option value="">all songs</option><option value="idea">💡 ideas</option><option value="writing">✍️ writing</option><option value="demo">🎙 demos</option><option value="done">✅ done</option><option value="none">no stage yet</option></select>
       <ul id="song-list"></ul>
-      <div id="band-feed-head" class="side-head small" title="Everything the band did, across every song — live · click to minimize / expand"><span><span id="band-feed-caret">▾</span> 🍳 Band feed <span id="band-feed-new" class="bf-new" hidden></span></span><span id="band-feed-live" class="muted">live</span></div>
+      <div id="band-feed-head" class="side-head small" title="Everything the band did, across every song — live · click to minimize / expand"><span><span id="band-feed-caret">▾</span> <i class="om om-pan"></i> Band feed <span id="band-feed-new" class="bf-new" hidden></span></span><span id="band-feed-live" class="muted">live</span></div>
       <ul id="band-feed" class="small"></ul>
     </aside>
     <div class="vsplit" data-target="#sidebar" data-key="bp.sideW" data-min="160" data-max="520" data-side="left" title="drag to resize · double-click to reset"></div>
@@ -87,16 +87,16 @@
         <div class="bp-col bp-main">
           <div id="band-pane">
                 <div class="qb-head"><div class="qb-lvl"><b id="qb-lvl-n"></b><span id="qb-lvl-title"></span></div><div class="qb-xp"><span id="qb-xp"></span><div class="xp-bar big"><i id="qb-bar"></i></div><span id="qb-tonext" class="muted small"></span></div></div>
-                <div id="qb-boss" class="qb-boss" title="click to set the next boss battle (a practice, a show)"></div>
+                <div id="qb-boss" class="qb-boss" title="Boss battle: the next thing the band is working towards — a practice, a show, a recording day. Click to name it and give it a date; it shows here and the band's quest counts down to it."></div>
                 <div class="tab-tools small"><b>Band</b><span class="muted">click a bandmate for the breakdown</span></div>
                 <div id="qb-members"></div>
                 <div class="tab-tools small"><b id="qb-song-title">This song</b></div>
                 <div id="qb-song"></div>
-                <div class="tab-tools small"><b>🧶 Loose ends</b><span class="muted">band to-dos that aren't a song — book the gig, fix the PA, buy PBR (@Name assigns)</span></div>
+                <div class="tab-tools small"><b><i class="om om-yarn"></i> Loose ends</b><span class="muted">band to-dos that aren't a song — book the gig, fix the PA, buy PBR (@Name assigns)</span></div>
                 <div id="qb-todos" class="qb-tasks"></div>
-                <div class="tab-tools small"><b>📋 Setlist</b><button id="qb-chart-all" title="Open each song in turn, listen to its guitar / keys / bass takes and draft the chords it doesn't have yet (chords anyone typed are never touched). Songs someone else has open are skipped.">🎼 Chart every song</button><input id="qb-new" title="Type a song that isn't in Cobander yet (a cover) and press + to add it to the setlist" placeholder="add a song not in Cobander (a cover)…"><button id="qb-add" title="Add it to the setlist">+</button></div>
+                <div class="tab-tools small"><b><i class="om om-clipboard"></i> Setlist</b><button id="qb-chart-all" title="Open each song in turn, listen to its guitar / keys / bass takes and draft the chords it doesn't have yet (chords anyone typed are never touched). Songs someone else has open are skipped."><i class="om om-score"></i> Chart every song</button><input id="qb-new" title="Type a song that isn't in Cobander yet (a cover) and press + to add it to the setlist" placeholder="add a song not in Cobander (a cover)…"><button id="qb-add" title="Add a song that isn't in Cobander (a cover you play) so it counts on the setlist and in the quest">+</button></div>
                 <ul id="qb-setlist" class="small"></ul>
-                <div id="qb-next" class="muted small qb-next" title="click to edit"></div>
+                <div id="qb-next" class="muted small qb-next" title="What the band is aiming at after the boss battle — click to edit"></div>
               </div>
         </div>
         <div class="bp-col bp-side">
@@ -104,9 +104,9 @@
           <ul id="bp-live" class="small"></ul>
           <div class="panel-title">Practice this week</div>
           <ul id="bp-practice" class="small"></ul>
-          <div class="panel-title">🍳 Band feed</div>
+          <div class="panel-title"><i class="om om-pan"></i> Band feed</div>
           <ul id="bp-feed" class="small"></ul>
-          <div id="bp-pbr" class="small muted">Cobander is free and kept alive by bands who chip in: <button type="button" class="link-btn pbr" data-link="takeout" title="Pay what you want for the installers and updates — $12 a round for the band, $25 suggested, $60 Roadie (name in the credits)">🥡 Takeout</button> · or just <button type="button" class="link-btn pbr" data-link="venmo" title="Venmo @jdeuel44">🍺 buy Jeff a PBR</button><button type="button" class="link-btn pbr" data-link="kofi" hidden>or a Ko-fi</button></div>
+          <div id="bp-pbr" class="small muted">Cobander is free and kept alive by bands who chip in: <button type="button" class="link-btn pbr" data-link="takeout" title="Pay what you want for the installers and updates — $12 a round for the band, $25 suggested, $60 Roadie (name in the credits)"><i class="om om-takeout"></i> Takeout</button> · or just <button type="button" class="link-btn pbr" data-link="venmo" title="Venmo @jdeuel44"><i class="om om-beer"></i> buy Jeff a PBR</button><button type="button" class="link-btn pbr" data-link="kofi" hidden>or a Ko-fi</button></div>
         </div>
       </section>
       <div id="song" hidden>
@@ -117,15 +117,15 @@
           <div id="lock-badge" class="badge"></div>
           <div id="sync-badge" class="badge"></div>
           <div class="spacer"></div>
-          <button id="btn-unlock-all" title="Lock / unlock: who's allowed to change a track right now, so two people don't overwrite each other. This unlocks every track nobody else is using (they lock again after 10 min untouched).">🔓 Unlock all</button><button id="btn-writing" hidden>✍ Writing</button><button id="btn-undo" title="Undo (Ctrl/Cmd+Z)">Undo</button>
-          <button id="btn-redo" title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
-          <button id="btn-save" title="Save (Ctrl/Cmd+S)">Save</button>
+          <button id="btn-unlock-all" title="Lock / unlock: who's allowed to change a track right now, so two people don't overwrite each other. This unlocks every track nobody else is using (they lock again after 10 min untouched).">🔓 Unlock all</button><button id="btn-writing" hidden><i class="om om-write"></i> Writing</button><button id="btn-undo" title="Undo the last change (Ctrl/Cmd+Z). Everything in the song is undoable — move, trim, delete, mix changes, chords, lyrics.">Undo</button>
+          <button id="btn-redo" title="Redo what you just undid (Ctrl/Cmd+Shift+Z)">Redo</button>
+          <button id="btn-save" title="Save the song to the band folder (Ctrl/Cmd+S) — bandmates get it within seconds. Cobander also autosaves a short while after you stop editing.">Save</button>
           <button id="btn-share" title="Share: save the whole song as one audio file (bounce), share a part with its chord chart, hand off to a real studio program (DAW), or open it on your phone">Share ▾</button>
           <button id="btn-more" title="More: open the song's folder, bring back deleted takes, free up Drive space">⋯</button>
           <button id="btn-bounce" hidden>Bounce mix</button>
           <button id="btn-stems" hidden title="Writes a folder with a REAPER project, a MIDI file, stems and the raw takes, for anyone who wants to keep working in their own DAW">Hand off to a DAW</button>
-          <button id="btn-open-folder" hidden title="Show song folder">Folder</button>
-          <button id="btn-close" title="Close this song so bandmates can edit it">Close</button>
+          <button id="btn-open-folder" hidden title="Open this song's folder on your computer (the takes, bounces and versions live there)">Folder</button>
+          <button id="btn-close" title="Close the song. While you have it open for editing, bandmates can only record on tracks they unlock — closing hands it back.">Close</button>
         </div>
         <div id="banner" class="banner" hidden></div>
         <div id="practice-bar" hidden><b>Practice</b><span id="practice-info"></span><button id="btn-practice-stop" title="Stop the practice session and go back to the song">Stop practice</button></div>
@@ -133,7 +133,7 @@
         <div id="now-line" class="small" title="Where you are right now: section · chord · lyric"><span id="now-section"></span><span id="now-chord" class="mono"></span><span id="now-lyric"></span></div>
 
         <div id="arrange">
-          <div id="ruler-row"><div class="track-head ruler-head"><div class="lane-label" title="Song sections (Intro, Verse, Chorus…) — right-click the strip to add one">sections</div><div class="lane-label" title="Chords — click the strip to add a chord at that beat; the chart and Practice screen read from here">chords</div><div class="add-row"><button id="btn-add-track" title="+ track: add a track for a new instrument or voice — you pick what you're recording">+ track</button><button id="btn-track-h" title="Track height: thin / regular / thick (Alt+wheel over the tracks for any size)">↕</button><button id="btn-drums" title="Drums: write a drum part for a section — click it in hit by hit, or generate one in a click">🥁</button><button id="snap-ind" class="snap-ind" title="Snap: things you drag land on the beat grid Click to change the grid or turn it off.">snap 1/4</button><button id="btn-import-audio" title="Import audio files (WAV, MP3, M4A) — each becomes its own track. You can also drag files straight onto the timeline.">⤓ import</button></div></div><div id="lanes-col"><div id="section-lane" class="toplane"></div><div id="chord-lane" class="toplane"></div><canvas id="ruler"></canvas></div></div>
+          <div id="ruler-row"><div class="track-head ruler-head"><div class="lane-label" title="Song sections (Intro, Verse, Chorus…) — right-click the strip to add one">sections</div><div class="lane-label" title="Chords — click the strip to add a chord at that beat; the chart and Practice screen read from here">chords</div><div class="add-row"><button id="btn-add-track" title="+ track: add a track for a new instrument or voice — you pick what you're recording">+ track</button><button id="btn-track-h" title="Track height: thin / regular / thick (Alt+wheel over the tracks for any size)">↕</button><button id="btn-drums" title="Drums: write a drum part for a section — click it in hit by hit, or generate one in a click">🥁</button><button id="snap-ind" class="snap-ind" title="Snap: things you drag (takes, notes, chords, loop edges) land exactly on the beat grid instead of a hair off, so everything stays in time. Click to pick how fine the grid is or turn it off; hold Alt while dragging to ignore it just once.">snap 1/4</button><button id="btn-import-audio" title="Import audio files (WAV, MP3, M4A) — each becomes its own track. You can also drag files straight onto the timeline.">⤓ import</button></div></div><div id="lanes-col"><div id="section-lane" class="toplane"></div><div id="chord-lane" class="toplane"></div><canvas id="ruler"></canvas></div></div>
           <div id="tracks"></div>
           <div id="room-shade" hidden></div>
         </div>
@@ -155,10 +155,10 @@
               <button data-tab="chart" data-ws="write" title="Chords: the chord chart, plus chords Cobander hears in the recordings">Chords</button>
               <button data-tab="notes" data-ws="write record" class="active" title="Notes: comments pinned to the timeline, and scratch notes for this song">Notes<span class="tab-badge" id="tb-notes"></span></button>
               <button data-tab="needs" data-ws="write record" title="Needs: what this song is still missing (needs bass, needs a harmony…)">Needs<span class="tab-badge" id="tb-needs"></span></button>
-              <button data-tab="ideas" data-ws="write" title="Ideas: quick sketches and voice memos for this song, kept off the timeline">🥢 Ideas<span class="tab-badge" id="tb-ideas"></span></button>
-              <button data-tab="parts" data-ws="write" title="Parts: sections and riffs saved to reuse — in this song or any other">🥡 Parts</button>
+              <button data-tab="ideas" data-ws="write" title="Ideas: quick sketches and voice memos for this song, kept off the timeline"><i class="om om-chopsticks"></i> Ideas<span class="tab-badge" id="tb-ideas"></span></button>
+              <button data-tab="parts" data-ws="write" title="Parts: sections and riffs saved to reuse — in this song or any other"><i class="om om-takeout"></i> Parts</button>
               <button data-tab="feed" data-ws="write" title="History: every save of this song — click a row to roll back to it">History</button>
-              <button data-tab="versions" data-ws="write" title="Versions: snapshots of the song you tagged (compare them A/B), and bounces (the audio files you shared)">🍲 Versions</button>
+              <button data-tab="versions" data-ws="write" title="Versions: snapshots of the song you tagged (compare them A/B), and bounces (the audio files you shared)"><i class="om om-pot"></i> Versions</button>
             </div>
             <div class="side-tab" data-tab="takes" hidden>
               <div class="tab-tools"><b id="takes-track" class="small"></b><span class="spacer"></span><button id="btn-recover" hidden class="small" title="Deleted takes: bring back a take that was deleted (or lost when two people saved at once) — the audio is still in the song folder">Deleted takes</button></div>
@@ -166,13 +166,13 @@
             </div>
             <div class="side-tab" data-tab="notes">
               <div id="for-you" hidden></div>
-              <div class="panel-title row-title"><span id="note-list-title">Notes on the timeline</span><label class="small muted"><input type="checkbox" id="show-resolved" title="Also show notes that were marked resolved"> resolved</label></div>
+              <div class="panel-title row-title"><span id="note-list-title">Notes on the timeline</span><label class="small muted"><input type="checkbox" id="show-resolved" title="Also show notes someone marked resolved (done / answered)"> resolved</label></div>
               <ul id="note-list" class="small"></ul>
               <div class="panel-title">Scratch notes</div>
               <textarea id="notes" title="Scratch notes for this song — anything goes, everyone in the band sees them" placeholder="anything: lyrics drafts, gear, to-dos…"></textarea>
             </div>
             <div class="side-tab" data-tab="lyrics" hidden>
-              <div class="tab-tools"><button id="btn-melody" title="Melody: Cobander writes a tune for your lyrics — the syllables are spread across a part, in key, over your chords">🎵 Melody…</button><button id="btn-lyrics-paste" title="Add lyrics: paste or type the words, one line per row">Add lines…</button><button id="btn-lyric-pin" title="Pin next (P): marks where the next lyric line is sung — play the song and press P as each line comes in">Pin next (P)</button><button id="btn-lyrics-asr" title="From the vocals: Cobander listens to the vocal takes and types out the lyrics, each line pinned where it's sung. Runs on this computer; the speech model downloads once.">🎤 From the vocals</button></div>
+              <div class="tab-tools"><button id="btn-melody" title="Melody: Cobander writes a tune for your lyrics — the syllables are spread across a part, in key, over your chords">🎵 Melody…</button><button id="btn-lyrics-paste" title="Add lyrics: paste or type the words, one line per row">Add lines…</button><button id="btn-lyric-pin" title="Pin next (P): marks where the next lyric line is sung — play the song and press P as each line comes in">Pin next (P)</button><button id="btn-lyrics-asr" title="From the vocals: Cobander listens to the vocal takes and types out the lyrics, each line pinned where it's sung. Runs on this computer; the speech model downloads once."><i class="om om-karaoke"></i> From the vocals</button></div>
               <div class="small muted" id="lyrics-hint"></div>
               <ul id="lyric-list" class="small"></ul>
             </div>
@@ -189,7 +189,7 @@
               <ul id="feed-list" class="small"></ul>
             </div>
             <div class="side-tab" data-tab="parts" hidden>
-              <div class="tab-tools"><button id="btn-part-save" title="Save part: put the section under the playhead (or the selected take) in the band's parts bin, to reuse in any song">Save part…</button><input id="parts-filter" title="Filter the parts by name, tag, style, key or who made it" type="search" placeholder="filter: name, tag, style, key…"><select id="parts-sort" title="Sort the parts bin"><option value="new">newest</option><option value="style">by style</option><option value="name">A–Z</option><option value="bpm">tempo</option><option value="key">key</option><option value="who">by who</option></select></div>
+              <div class="tab-tools"><button id="btn-part-save" title="Save part: put the section under the playhead (or the selected take) in the band's parts bin, to reuse in any song">Save part…</button><input id="parts-filter" title="Filter the parts by name, tag, style, key or who made it" type="search" placeholder="filter: name, tag, style, key…"><select id="parts-sort" title="Sort the Parts bin: newest, by name, by style or by key"><option value="new">newest</option><option value="style">by style</option><option value="name">A–Z</option><option value="bpm">tempo</option><option value="key">key</option><option value="who">by who</option></select></div>
               <div class="pgroup-h">This song <span class="muted small">— drag a part onto the timeline to add another (linked) copy</span></div>
               <ul id="song-parts" class="small"></ul>
               <div class="pgroup-h">Band parts bin</div>
@@ -197,7 +197,7 @@
               <ul id="part-list" class="small"></ul>
             </div>
             <div class="side-tab" data-tab="chart" hidden>
-              <div class="tab-tools"><button id="btn-chords-detect" title="From the recordings: Cobander listens to the guitar / keys / bass takes and writes a draft of the chords — only where nobody has typed chords yet">🎸 From the recordings</button><button id="btn-chart-copy" title="Copy the chord chart and lyrics as plain text, to paste in the group chat">Copy text</button><button id="btn-chart-save" title="Save a printable chord chart into the song folder (opens in any browser)">Save printable</button><select id="chart-transpose" title="Transpose: show the chords moved up or down, to play the song in another key or with a capo"></select></div>
+              <div class="tab-tools"><button id="btn-chords-detect" title="From the recordings: Cobander listens to the guitar / keys / bass takes and writes a draft of the chords — only where nobody has typed chords yet"><i class="om om-guitar"></i> From the recordings</button><button id="btn-chart-copy" title="Copy the chord chart and lyrics as plain text, to paste in the group chat">Copy text</button><button id="btn-chart-save" title="Save a printable chord chart into the song folder (opens in any browser)">Save printable</button><select id="chart-transpose" title="Transpose: show the chords moved up or down, to play the song in another key or with a capo"></select></div>
               <pre id="chart-view" class="small"></pre>
             </div>
             <div class="side-tab" data-tab="versions" hidden>
@@ -225,7 +225,7 @@
   <form method="dialog">
     <h3>Settings</h3>
     <label>Your name (shown to bandmates on locks and takes)<input id="s-name" title="Your name — bandmates see it on locks and on the takes you record" type="text" placeholder="e.g. Kat"></label>
-    <label>Shared band folder (inside Google Drive, OneDrive, iCloud Drive or Dropbox)<div class="row"><input id="s-folder" title="The folder every bandmate points Cobander at. Pick one inside Google Drive, OneDrive, iCloud Drive or Dropbox so the whole band shares it." type="text" readonly><button type="button" id="s-pick" title="Choose the shared band folder">Choose…</button></div>
+    <label>Shared band folder (inside Google Drive, OneDrive, iCloud Drive or Dropbox)<div class="row"><input id="s-folder" title="The folder every bandmate points Cobander at. Pick one inside Google Drive, OneDrive, iCloud Drive or Dropbox so the whole band shares it." type="text" readonly><button type="button" id="s-pick" title="Pick the folder inside your cloud drive that the whole band shares. Everyone points Cobander at the same folder.">Choose…</button></div>
       <span id="s-cloud" class="small muted"></span>
       <span id="s-drive-warn" class="small warn-text" hidden>This doesn't look like a folder a cloud-sync app keeps on this computer (Google Drive for desktop, OneDrive, iCloud Drive, Dropbox). Cobander works in any folder, but the band only sees each other's noodles if every bandmate points Cobander at the same synced folder.</span>
       <span class="small muted">Tips: share the folder with the band from the provider's own app (Drive "Share", OneDrive "Share", iCloud "Collaborate", Dropbox "Share"), and turn on "always keep on this device" / "available offline" for it so takes aren't downloaded mid-song.</span></label>
@@ -237,8 +237,9 @@
     <label class="row"><input type="checkbox" id="s-monfx" title="Hear your live input with the track's amp sound and effects while you record. The take itself is still recorded clean, so you can change the effects later."> Monitor the live input through the armed track's amp / EQ / FX <span class="muted small">(takes still record dry)</span></label>
     <label>Click level (dB)<input id="s-click" title="How loud the click is in your headphones. 0 is loudest; -12 is a good start." type="number" min="-40" max="0" value="-12"></label>
     <label>Speech-to-text model (lyrics from vocals) <span class="muted small">— downloads once per computer, runs offline</span><select id="s-asr" title="Which speech-to-text model writes lyrics from the vocal takes. Bigger = more accurate, but a longer download and slower to run."></select><span id="s-asr-info" class="small muted"></span></label>
-    <div class="row small" id="s-version-row"><span id="s-version" class="muted"></span><button type="button" id="s-check-update" title="See if a newer Cobander is available">Check for updates</button></div>
-    <div class="row small" id="s-links"><span class="muted">Cobander is free and open source, kept alive by bands who chip in.</span><button type="button" class="link-btn pbr" data-link="takeout" title="Takeout: pay what you want for the ready-made installers and updates — a round for the band ($12), a round and the jukebox ($25), or Roadie ($60, your name in the credits). The source is free either way.">🥡 Takeout</button><button type="button" class="link-btn" data-link="repo" title="Open Cobander's source code on GitHub">GitHub</button><button type="button" class="link-btn" data-link="issues" title="Something broken? Open the bug tracker and tell Jeff">Report a bug</button><button type="button" class="link-btn pbr" data-link="venmo" title="Venmo @jdeuel44">🍺 Buy Jeff a PBR</button><button type="button" class="link-btn pbr" data-link="kofi" hidden>🍺 Ko-fi</button></div>
+    <div class="row small" id="s-version-row"><span id="s-version" class="muted"></span><button type="button" id="s-check-update" title="Check the band folder (and GitHub) for a newer Cobander right now — it also checks by itself every 10 minutes">Check for updates</button></div>
+    <div class="row small muted" id="s-credits" title="Where the pictures come from">Icons: <button type="button" class="link-btn" data-link="openmoji">OpenMoji</button> (CC BY-SA 4.0) · <button type="button" class="link-btn" data-link="gameicons">game-icons.net</button> (CC BY 3.0 — Lorc, Delapouite, Caro Asercion)</div>
+    <div class="row small" id="s-links"><span class="muted">Cobander is free and open source, kept alive by bands who chip in.</span><button type="button" class="link-btn pbr" data-link="takeout" title="Takeout: pay what you want for the ready-made installers and updates — a round for the band ($12), a round and the jukebox ($25), or Roadie ($60, your name in the credits). The source is free either way."><i class="om om-takeout"></i> Takeout</button><button type="button" class="link-btn" data-link="repo" title="Open Cobander's source code on GitHub">GitHub</button><button type="button" class="link-btn" data-link="issues" title="Something broken? Open the bug tracker and tell Jeff">Report a bug</button><button type="button" class="link-btn pbr" data-link="venmo" title="Venmo @jdeuel44"><i class="om om-beer"></i> Buy Jeff a PBR</button><button type="button" class="link-btn pbr" data-link="kofi" hidden><i class="om om-beer"></i> Ko-fi</button></div>
     <details><summary>Assistant / control API</summary>
       <p class="small muted">A local-only HTTP API lets an AI assistant read meters, change the mix, and bounce. Token lives in settings.json.</p>
       <div class="small mono" id="s-api"></div>
@@ -445,20 +446,20 @@
     <span class="k-sp"></span>
     <span id="k-setnav" class="k-group" hidden><button id="k-prevsong" title="Previous song in the setlist (Shift+↑)">⏮ song</button><button id="k-nextsong" title="Next song in the setlist (Shift+↓)">song ⏭</button><label class="chip" title="Pause between songs in the setlist — time to swap guitars or catch your breath"><select id="k-gap"><option value="0">no gap</option><option value="3">3 s gap</option><option value="5" selected>5 s gap</option><option value="10">10 s gap</option><option value="20">20 s gap</option></select></label></span>
     <span id="k-showbar" class="k-group" hidden><label class="chip" title="Show mode: what the band hears from Cobander on stage — just the click, or the backing tracks too"><select id="k-backing"><option value="click">click only</option><option value="backing">click + backing tracks</option></select></label><button id="k-pedal" class="chip" title="Teach Cobander your foot pedal: next song, previous song, start / stop (keyboard pedals and MIDI pedals both work)">🦶 pedal…</button></span>
-    <button id="k-show" title="Show mode: the setlist locked in order, big words and chords, next / previous song by pedal, nothing to edit by accident">🍽️ Show</button>
-    <button id="k-phone" title="Follow along on your phone (same Wi-Fi)">📱</button>
+    <button id="k-show" title="Show mode: the setlist locked in order, big words and chords, next / previous song by pedal, nothing to edit by accident"><i class="om om-plate"></i> Show</button>
+    <button id="k-phone" title="Phone page: scan a QR code and your phone shows the words and chords live, on the same Wi-Fi — prop it on the music stand"><i class="om om-phone"></i></button>
     <button id="k-set" title="Rehearse the setlist: every song back to back">▶▶ setlist</button>
-    <button id="k-close" title="Back (Esc)">✕</button>
+    <button id="k-close" title="Leave Practice and go back to the song editor (Esc). Nothing you played here is lost — any takes you recorded are on their track.">✕</button>
   </div>
   <div class="k-opts">
-    <label class="chip" title="Loop one part over and over to practise it (L loops the part you're in)">loop <select id="k-loopsel"><option value="">off</option></select></label>
-    <button id="k-mix" class="chip" title="Mix: who you hear — take your own part out and play along with the rest of the band (M)">🎚 mix: everyone</button>
+    <label class="chip" title="Loop: play one part (verse, chorus…) over and over so you can drill it until it's solid, instead of restarting the whole song. Pick the part here, or press L to loop whichever part you're in right now; press L again to stop looping.">loop <select id="k-loopsel"><option value="">off</option></select></label>
+    <button id="k-mix" class="chip" title="Mix: who you hear — take your own part out and play along with the rest of the band (M)"><i class="om om-faders"></i> mix: everyone</button>
     <label class="chip" title="Vocal tracks: hear them as a guide, or mute them and sing it yourself (V)"><select id="k-vox"><option value="guide">vocals: guide</option><option value="off">vocals: off (sing it)</option></select></label>
     <label class="chip" title="Speed: play it slower without changing the pitch — the whole song, or the part you're looping (- / +)"><select id="k-speed"><option value="100">100%</option><option value="95">95%</option><option value="90">90%</option><option value="85">85%</option><option value="80">80%</option><option value="75">75%</option><option value="70">70%</option><option value="60">60%</option><option value="50">50%</option></select></label>
-    <label class="chip" title="Click: a metronome while you practise, so you stay in time (C)"><input type="checkbox" id="k-click"> click <input type="range" id="k-clickvol" min="-30" max="0" step="1" title="How loud the click is"></label>
+    <label class="chip" title="Click: a metronome while you practise, so you stay in time (C)"><input type="checkbox" id="k-click"> click <input type="range" id="k-clickvol" min="-30" max="0" step="1" title="Click volume: how loud the metronome is in your headphones while you practise. 0 is loudest; drag left if it's drowning out the band."></label>
     <label class="chip" title="Count-in: a bar of clicks before it starts playing, so you know when to come in"><input type="checkbox" id="k-countin"> count-in</label>
     <label class="chip" title="Play along: a scrolling lane of what to play next, like a rhythm game — guitar chord shapes, the bass line as a tab (read off the bass takes), or a MIDI part as a tab. Follows the capo / transpose setting."><select id="k-along"><option value="">play along: off</option><option value="chords">🎸 guitar chords</option><option value="bass">🎸 bass line (tab)</option><option value="midi">🎹 MIDI part (tab)</option></select></label>
-    <label class="chip" title="What's on screen: words and chords, just the chords bar by bar, or just the words"><select id="k-view"><option value="both">words + chords</option><option value="chords">chords only (bars)</option><option value="words">words only</option></select></label>
+    <label class="chip" title="What's on screen: words and chords, just the chords bar by bar, or just the words"><select id="k-view"><option value="crawl">words flying at you (3D)</option><option value="both">words + chords</option><option value="chords">chords only (bars)</option><option value="words">words only</option></select></label>
     <label class="chip" title="Capo / transpose: show the chords moved up or down, for a capo or a different tuning (the sound doesn't change)"><select id="k-tp"></select></label>
     <button id="k-size" class="chip" title="Text size — bigger or smaller (↑ ↓)">A±</button>
     <button id="k-rec" class="rec" title="Record while you practise (R) — onto the armed track, the one you picked to record onto">● rec</button>
@@ -470,6 +471,7 @@
     <div id="k-next" class="k-line next"></div>
     <div id="k-next2" class="k-line next2"></div>
     <div id="k-bars" class="k-bars" hidden></div>
+    <div id="k-crawl" class="k-crawl" hidden><div class="k-plane" id="k-plane"></div><div class="k-hitline"></div><div id="k-crawl-empty" class="k-empty muted" hidden>No timed lyrics yet — Lyrics tab → <i class="om om-karaoke"></i> From the vocals, or add lines and pin them with P.</div></div>
     <div id="k-hw" class="k-hw" hidden><div id="k-hw-line" class="k-hw-line"></div><canvas id="k-highway"></canvas><div id="k-hw-msg" class="muted small"></div></div>
   </div>
   <div class="k-bottom">
@@ -480,7 +482,7 @@
       <button id="k-fwd" title="Forward a bar (→ or .)">▶▶</button>
       <button id="k-nextpart" title="Next part (Page Down)">⏭</button>
       <span id="k-time" class="mono muted"></span>
-      <div id="k-progress" class="k-scrub" title="click or drag to jump"><div id="k-parts"></div><i></i><b></b></div>
+      <div id="k-progress" class="k-scrub" title="Where you are in the song — click or drag to jump; the coloured blocks are the parts (verse, chorus…)"><div id="k-parts"></div><i></i><b></b></div>
       <span id="k-len" class="mono muted"></span>
     </div>
     <span id="k-hint" class="muted small"></span>

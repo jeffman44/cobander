@@ -30,7 +30,12 @@ input[type=number] { width: 64px; }
 #topbar { display: flex; flex-direction: column; gap: 4px; padding: 6px 12px; background: var(--bg2); border-bottom: 1px solid var(--line); }
 #topbar .row1, #topbar .row2 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 4px; }
 #midi-led.on { background: var(--ok); color: #000; }
-.brand { font-weight: 700; letter-spacing: .5px; }
+.brand { display: inline-grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: 6px; align-items: end; line-height: 1; cursor: default; user-select: none; }
+.brand-kana { grid-column: 1; grid-row: 1; font-size: 9px; letter-spacing: 3px; color: #f2f2f2; opacity: .85; font-family: "Yu Gothic", "Meiryo", "Hiragino Sans", "Noto Sans JP", sans-serif; }
+.brand-word { grid-column: 1; grid-row: 2; font-family: Impact, "Arial Narrow Bold", "Helvetica Neue", "Arial Black", sans-serif; font-weight: 900; font-size: 20px; letter-spacing: 1.5px; color: #fff; text-shadow: 0 0 0 #fff; -webkit-text-stroke: .4px #fff; transform: scaleY(1.08); transform-origin: bottom; }
+.brand-seal { grid-column: 2; grid-row: 1 / span 2; width: 22px; height: 22px; border: 2px solid #d8392b; border-radius: 4px; color: #d8392b; font-size: 14px; line-height: 18px; text-align: center; font-weight: 700; transform: rotate(-6deg); font-family: "Yu Mincho", "Hiragino Mincho ProN", "Noto Serif JP", serif; align-self: center; }
+.brand-sub { grid-column: 1 / span 2; grid-row: 3; font-size: 8px; letter-spacing: 2px; color: #cfd3dc; text-transform: uppercase; font-family: Impact, "Arial Narrow", sans-serif; opacity: .8; margin-top: 2px; }
+.brand:hover .brand-seal { background: #d8392b; color: #fff; }
 #transport { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; row-gap: 4px; }
 #transport button { font-size: 13px; min-width: 32px; padding: 5px 7px; }
 #btn-pause { font-size: 15px; min-width: 40px; }
@@ -52,7 +57,7 @@ input[type=number] { width: 64px; }
 .lock { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 10px; background: var(--warn); color: #000; margin-left: 6px; }
 .lock.mine { background: var(--ok); } .lock.stale { background: var(--line); color: var(--muted); }
 
-#main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+#main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
 .empty { margin: auto; text-align: center; max-width: 480px; }
 #song { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 #song-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; flex-wrap: wrap; row-gap: 6px; border-bottom: 1px solid var(--line); background: var(--bg2); }
@@ -559,7 +564,7 @@ body #toasts { z-index: 1050; }
 .qb-next { cursor: pointer; margin-top: 4px; } .qb-next:hover { color: var(--fg); }
 #band-feed .bf-xp { float: right; color: var(--xp); font-size: 10px; font-family: ui-monospace, Menlo, monospace; }
 /* ---------- karaoke / practice view ---------- */
-#karaoke { position: fixed; inset: 0; z-index: 800; background: var(--bg); display: flex; flex-direction: column; }
+#karaoke { position: absolute; inset: 0; z-index: 800;   /* covers the song area only — the top bar and the songs list stay */ background: var(--bg); display: flex; flex-direction: column; }
 .k-top { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--bg2); flex-wrap: wrap; }
 .k-top b { font-size: 15px; } .k-part { color: var(--xp); font-weight: 700; letter-spacing: .12em; font-size: 13px; } .k-sp { flex: 1; }
 #k-stage { --ks: 1; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: calc(18px * var(--ks)); padding: 20px 40px; overflow: hidden; text-align: center; }
@@ -716,13 +721,13 @@ body.help .track-head .btns button::after, body.help .add-row button::after, bod
 body.help .track-head .btns button, body.help .add-row button, body.help #transport button { box-shadow: inset 0 0 0 1px #f2b534; }
 
 /* Mix workspace = a console: the timeline goes away, the mixer fills the page */
-body.ws-mix #arrange, body.ws-mix #now-line, body.ws-mix #bottom-handle { display: none !important; }
-body.ws-mix #bottom { height: auto !important; flex: 1; min-height: 0; }
+/* Mix keeps the timeline (track heads turn into mini channel strips); the console sits below at its own height */
+body.ws-mix .strip input[type=range].fader { height: clamp(110px, 20vh, 200px); }
 .strip .mixonly { display: none; }
 body.ws-mix .strip .mixonly { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
 body.ws-mix .strip { width: 104px; min-width: 104px; padding: 8px 6px; gap: 6px; }
 body.ws-mix .strip .sname { font-size: 12px; }
-body.ws-mix .strip input[type=range].fader { height: clamp(150px, 34vh, 340px); width: 26px; }
+body.ws-mix .strip input[type=range].fader { width: 24px; }
 body.ws-mix .strip .meter { width: 12px; }
 body.ws-mix .strip input[type=range].pan { width: 84px; }
 body.ws-mix #mixer { padding: 12px; gap: 8px; }
@@ -738,3 +743,74 @@ body.ws-mix .strip.master { width: 120px; min-width: 120px; }
 .track-head .tinfo { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 body.ws-record .track-head button.arm { padding: 2px 10px; font-weight: 700; }
 body.ws-record .track-head button.arm.active::after { content: ' REC'; }
+
+/* Mix: track head = mini channel strip */
+.track-head .mixrow { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--muted); }
+.track-head .mixrow input[type=range] { flex: 1; min-width: 0; height: 14px; }
+.track-head .mixrow .db { width: 38px; text-align: right; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.track-head .mixrow .pan { width: 54px; flex: none; }
+.track-head .mixchips { display: flex; gap: 3px; align-items: center; }
+.track-head .mixchips .chip-fx { font-size: 9px; padding: 0 4px; border-radius: 3px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+.track-head .mixchips .chip-fx.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.track-head .mixchips button.quickfix { font-size: 10px; padding: 0 6px; margin-left: auto; }
+
+/* Practice: words flying at you (3D crawl) + the highway in perspective */
+.k-crawl { position: relative; width: min(1100px, 100%); flex: 1; min-height: 0; perspective: 520px; perspective-origin: 50% 20%; overflow: hidden; }
+.k-crawl[hidden] { display: none; }
+.k-plane { position: absolute; left: 0; right: 0; bottom: 16%; height: 160%; transform-origin: 50% 100%; transform: rotateX(58deg); transform-style: preserve-3d; }
+.k-cl { position: absolute; left: 0; right: 0; text-align: center; font-size: calc(30px * var(--ks)); font-weight: 700; line-height: 1.2; white-space: nowrap; will-change: transform, opacity; transform: translateY(50%); }
+.k-cl.dim { color: var(--muted); font-weight: 500; }
+.k-cl.cur { color: #fff; font-size: calc(34px * var(--ks)); }
+.k-cl .k-w.now .k-wt { color: var(--xp); }
+.k-cl .k-w.sung .k-wt { color: var(--xp); opacity: .7; }
+.k-cl .k-chord { display: block; font-size: .55em; color: var(--accent); font-weight: 600; }
+.k-hitline { position: absolute; left: 6%; right: 6%; bottom: 16%; height: 2px; background: rgba(242,181,52,.55); box-shadow: 0 0 12px rgba(242,181,52,.5); }
+.k-hw.persp #k-highway { transform: perspective(700px) rotateX(32deg); transform-origin: 50% 100%; }
+
+/* Mix: on-take handles */
+.clip .fh { position: absolute; top: 0; width: 12px; height: 12px; background: var(--noodle, #f2b534); border-radius: 0 0 6px 6px; opacity: .75; cursor: ew-resize; z-index: 3; }
+.clip .fh.in { left: 0; border-radius: 0 0 8px 0; } .clip .fh.out { right: 0; border-radius: 0 0 0 8px; }
+.clip .fh:hover { opacity: 1; }
+.clip .gl { position: absolute; left: 0; right: 0; height: 0; border-top: 2px solid rgba(255,255,255,.7); cursor: ns-resize; z-index: 3; }
+.clip .gl::before { content: ''; position: absolute; left: 0; right: 0; top: -5px; height: 12px; }
+.clip .gl:hover { border-color: #f2b534; }
+.k-crawl .k-empty { position: absolute; left: 0; right: 0; top: 40%; text-align: center; }
+.k-crawl .k-empty[hidden] { display: none; }
+
+/* Icons: OpenMoji (colour, as images) and game-icons (single colour via mask, so they take the text colour) */
+.om { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.2em; background: center / contain no-repeat; }
+.gi { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.2em; background: currentColor; -webkit-mask: center / contain no-repeat; mask: center / contain no-repeat; }
+.om-noodles { background-image: url(icons/om-1F35C.svg); } .om-takeout { background-image: url(icons/om-1F961.svg); } .om-chopsticks { background-image: url(icons/om-1F962.svg); }
+.om-pot { background-image: url(icons/om-1F372.svg); } .om-pan { background-image: url(icons/om-1F373.svg); } .om-spoon { background-image: url(icons/om-1F944.svg); }
+.om-plate { background-image: url(icons/om-1F37D.svg); } .om-dragon { background-image: url(icons/om-1F409.svg); } .om-beer { background-image: url(icons/om-1F37A.svg); }
+.om-pour { background-image: url(icons/om-1FAD7.svg); } .om-yarn { background-image: url(icons/om-1F9F6.svg); } .om-clipboard { background-image: url(icons/om-1F4CB.svg); }
+.om-guitar { background-image: url(icons/om-1F3B8.svg); } .om-mic { background-image: url(icons/om-1F399.svg); } .om-swords { background-image: url(icons/om-2694.svg); }
+.om-write { background-image: url(icons/om-270D.svg); } .om-faders { background-image: url(icons/om-1F39A.svg); } .om-rec { background-image: url(icons/om-23FA.svg); }
+.om-score { background-image: url(icons/om-1F3BC.svg); } .om-karaoke { background-image: url(icons/om-1F3A4.svg); } .om-phone { background-image: url(icons/om-1F4F1.svg); }
+.om-salt { background-image: url(icons/om-1F9C2.svg); } .om-spaghetti { background-image: url(icons/om-1F35D.svg); } .om-bento { background-image: url(icons/om-1F371.svg); }
+.gi-box { -webkit-mask-image: url(icons/gi-delapouite-cardboard-box.svg); mask-image: url(icons/gi-delapouite-cardboard-box.svg); }
+.gi-mic { -webkit-mask-image: url(icons/gi-delapouite-microphone.svg); mask-image: url(icons/gi-delapouite-microphone.svg); }
+.gi-guitar { -webkit-mask-image: url(icons/gi-lorc-guitar.svg); mask-image: url(icons/gi-lorc-guitar.svg); }
+.gi-star { -webkit-mask-image: url(icons/gi-delapouite-star-medal.svg); mask-image: url(icons/gi-delapouite-star-medal.svg); }
+.gi-trophy { -webkit-mask-image: url(icons/gi-delapouite-trophy-cup.svg); mask-image: url(icons/gi-delapouite-trophy-cup.svg); }
+.gi-curtains { -webkit-mask-image: url(icons/gi-delapouite-theater-curtains.svg); mask-image: url(icons/gi-delapouite-theater-curtains.svg); }
+.gi-bus { -webkit-mask-image: url(icons/gi-delapouite-bus.svg); mask-image: url(icons/gi-delapouite-bus.svg); }
+.gi-skull { -webkit-mask-image: url(icons/gi-lorc-crowned-skull.svg); mask-image: url(icons/gi-lorc-crowned-skull.svg); }
+.gi-laurel { -webkit-mask-image: url(icons/gi-lorc-laurel-crown.svg); mask-image: url(icons/gi-lorc-laurel-crown.svg); }
+.gi-dragon { -webkit-mask-image: url(icons/gi-lorc-dragon-head.svg); mask-image: url(icons/gi-lorc-dragon-head.svg); }
+.gi-noodles { -webkit-mask-image: url(icons/gi-delapouite-noodles.svg); mask-image: url(icons/gi-delapouite-noodles.svg); }
+.gi-fastnoodles { -webkit-mask-image: url(icons/gi-delapouite-fast-noodles.svg); mask-image: url(icons/gi-delapouite-fast-noodles.svg); }
+.gi-dumpling { -webkit-mask-image: url(icons/gi-caro-asercion-dumpling.svg); mask-image: url(icons/gi-caro-asercion-dumpling.svg); }
+.gi-stein { -webkit-mask-image: url(icons/gi-lorc-beer-stein.svg); mask-image: url(icons/gi-lorc-beer-stein.svg); }
+.gi-swords { -webkit-mask-image: url(icons/gi-lorc-crossed-swords.svg); mask-image: url(icons/gi-lorc-crossed-swords.svg); }
+.gi-fire { -webkit-mask-image: url(icons/gi-lorc-fire-ring.svg); mask-image: url(icons/gi-lorc-fire-ring.svg); }
+.gi-crown { -webkit-mask-image: url(icons/gi-lorc-crown.svg); mask-image: url(icons/gi-lorc-crown.svg); }
+.gi-flag { -webkit-mask-image: url(icons/gi-lorc-flying-flag.svg); mask-image: url(icons/gi-lorc-flying-flag.svg); }
+/* member level sprites on the Band page */
+.lvl-sprite { width: 34px; height: 34px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--bg3); flex: none; }
+.lvl-sprite .gi { width: 24px; height: 24px; }
+.lvl-sprite.l1 { color: #9aa0ad; } .lvl-sprite.l2 { color: #b8c2d6; } .lvl-sprite.l3 { color: #6fb3ff; } .lvl-sprite.l4 { color: #f2b534; } .lvl-sprite.l5 { color: #e6c15a; }
+.lvl-sprite.l6 { color: #d8392b; } .lvl-sprite.l7 { color: #4caf7d; } .lvl-sprite.l8 { color: #ff6a3d; background: #2d2230; } .lvl-sprite.l9 { color: #ffd666; background: #2f2a1a; } .lvl-sprite.l10 { color: #ff4d6d; background: #301a22; box-shadow: 0 0 10px rgba(255,77,109,.5); }
+.qb-boss .gi { width: 1.3em; height: 1.3em; color: #d8392b; } .qb-boss .gi-noodles { color: #f2b534; margin-left: -2px; margin-right: 2px; }
+.xp-chip .xp-lvl .gi { width: 1em; height: 1em; vertical-align: -0.15em; }
+.qb-mrow { align-items: center; }

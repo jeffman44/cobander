@@ -192,7 +192,7 @@
   bp.update.status().then(renderUpdate).catch(() => {});
   // public links: GitHub, bugs, the tip jar (Ko-fi shows once package.json names a page)
   for (const b of document.querySelectorAll('.link-btn[data-link]')) b.addEventListener('click', () => bp.shell.openLink(b.dataset.link).catch(fail));
-  bp.shell.links().then((l) => { for (const b of document.querySelectorAll('.link-btn[data-link]')) { const k = b.dataset.link; const has = k === 'kofi' ? !!l.kofi : k === 'venmo' ? !!l.venmo : k === 'takeout' ? !!l.takeout : !!l.repo; b.hidden = !has; } }).catch(() => {});
+  bp.shell.links().then((l) => { for (const b of document.querySelectorAll('.link-btn[data-link]')) { const k = b.dataset.link; const has = k === 'kofi' ? !!l.kofi : k === 'venmo' ? !!l.venmo : k === 'takeout' ? !!l.takeout : (k === 'openmoji' || k === 'gameicons') ? true : !!l.repo; b.hidden = !has; } }).catch(() => {});
   $('#s-check-update').addEventListener('click', async () => { const b = $('#s-check-update'); b.disabled = true; try { const st = await bp.update.check(); renderUpdate(st); if (!st.available) toast(st.latest ? `You're on the latest (${st.current}).` : 'No installers folder in the shared band folder yet.', { ms: 5000 }); } catch (err) { fail(err); } finally { b.disabled = false; } });
 
   var MT = window.BPMeter;   // hoisted: used from init-time renders
@@ -241,7 +241,7 @@
     const lock = s.lock; if (!lock) return null;
     const b = el('span', 'lock' + (s.lockMine ? ' mine' : lock.stale ? ' stale' : ''));
     b.textContent = s.lockMine ? 'you' : lock.stale ? `${lock.user} (stale)` : s.lockSameMachine ? 'you (old window)' : `${lock.user} has it open`;
-    b.title = `${lock.user}@${lock.host} since ${new Date(lock.since).toLocaleTimeString()}${lock.stale ? ' — no heartbeat for a while' : ''}`;
+    b.title = `Lock: ${lock.user} has had this song open for editing on ${lock.host} since ${new Date(lock.since).toLocaleTimeString()}. While they hold it, others can only record on tracks they unlock.${lock.stale ? ' Their Cobander has not checked in for a while (maybe closed without closing the song), so you can take over safely.' : ''}`;
     return b;
   }
 
@@ -324,7 +324,7 @@
   }
   function renderXpChip() {
     const c = $('#xp-chip'); if (!c) return; const m = myQuest(); if (!m) { c.hidden = true; return; }
-    c.hidden = false; c.querySelector('.xp-lvl').textContent = `Lv ${m.level.n}`; c.querySelector('.xp-title').textContent = m.level.title;
+    c.hidden = false; c.querySelector('.xp-lvl').innerHTML = ''; { const i = el('i', `gi ${m.level.sprite || 'gi-box'}`); c.querySelector('.xp-lvl').append(i, document.createTextNode(` Lv ${m.level.n}`)); } c.querySelector('.xp-title').textContent = m.level.title;
     c.querySelector('.xp-bar i').style.width = `${(100 * m.level.frac).toFixed(0)}%`; c.querySelector('.xp-num').textContent = `${m.xp} XP`;
     c.title = `${m.name} — level ${m.level.n} ${m.level.title} · ${m.xp} XP${m.level.next ? ` · ${m.level.toNext} to ${m.level.next}` : ''} · ${m.achievements.length} achievement${m.achievements.length === 1 ? '' : 's'}\n${quest.board.name}: level ${quest.board.level.n} ${quest.board.level.title}`;
     const tb = $('#tb-band'); if (tb) tb.textContent = quest.board.boss && quest.board.boss.date && bossDays(quest.board.boss) >= 0 && bossDays(quest.board.boss) <= 7 ? `${bossDays(quest.board.boss)}d` : '';
@@ -339,10 +339,10 @@
   const qKey = (s, rest) => `song:${s.qid}:${rest}`;
   const bossDays = (boss) => { if (!boss || !boss.date) return null; const d = Math.round((new Date(`${boss.date}T12:00:00`) - new Date()) / 86400000); return Number.isFinite(d) ? d : null; };
   function bossText(b) {
-    const boss = b.boss; if (!boss) return '🐉🍜 No boss battle set — click to aim at the next practice or show';
+    const boss = b.boss; if (!boss) return 'No boss battle set — click to aim at the next practice or show';
     const d = bossDays(boss); const when = d == null ? '' : d > 1 ? ` · in ${d} days` : d === 1 ? ' · tomorrow' : d === 0 ? ' · TODAY' : ` · ${-d} day${d === -1 ? '' : 's'} ago`;
     const targets = (boss.songs || []).map((id) => b.songs.find((s) => s.qid === id)).filter(Boolean); const ready = targets.filter((s) => s.goals.find((g) => g.id === 'show').done).length;
-    return `🐉🍜 ${boss.title}${when}${targets.length ? ` · ${ready}/${targets.length} show-ready` : ''}`;
+    return `${boss.title}${when}${targets.length ? ` · ${ready}/${targets.length} show-ready` : ''}`;
   }
   async function editBoss() {
     const b = quest.board; const cur = b.boss || {};
@@ -359,12 +359,12 @@
     $('#qb-lvl-n').textContent = `Lv ${b.level.n}`; $('#qb-lvl-title').textContent = `${b.name} · ${b.level.title}`;
     $('#qb-xp').textContent = `${b.xp} / ${b.max} XP`; $('#qb-bar').style.width = `${b.max ? (100 * b.xp / b.max).toFixed(1) : 0}%`;
     $('#qb-tonext').textContent = b.level.next ? `${b.level.toNext} XP to ${b.level.next}` : 'max level';
-    const boss = $('#qb-boss'); boss.textContent = bossText(b); boss.classList.toggle('soon', bossDays(b.boss) != null && bossDays(b.boss) >= 0 && bossDays(b.boss) <= 7);
+    const boss = $('#qb-boss'); boss.innerHTML = ''; const dr = el('i', 'gi gi-dragon'); boss.append(dr, el('i', 'gi gi-noodles'), document.createTextNode(' ' + bossText(b))); boss.classList.toggle('soon', bossDays(b.boss) != null && bossDays(b.boss) >= 0 && bossDays(b.boss) <= 7);
     // members
     const mw = $('#qb-members'); mw.innerHTML = '';
     for (const m of b.members.slice().sort((x, y) => y.xp - x.xp)) {
       const row = el('div', 'qb-member' + (m.isMe ? ' me' : '') + (quest.sel === m.name ? ' sel' : ''));
-      const top = el('div', 'qb-mrow'); top.append(el('span', 'qb-icon', m.icon), el('b', null, m.name), el('span', 'qb-role muted', m.role || ''), el('span', 'qb-mlvl', `Lv ${m.level.n} ${m.level.title}`), el('span', 'qb-mxp mono', `${m.xp}`));
+      const top = el('div', 'qb-mrow'); const sp = el('span', `lvl-sprite l${m.level.n}`); sp.append(el('i', `gi ${m.level.sprite || 'gi-box'}`)); sp.title = `Level ${m.level.n}: ${m.level.title}${m.level.next ? ` — ${m.level.toNext} XP to ${m.level.next}` : ' — max level'}`; top.append(sp, el('span', 'qb-icon', m.icon), el('b', null, m.name), el('span', 'qb-role muted', m.role || ''), el('span', 'qb-mlvl', `Lv ${m.level.n} ${m.level.title}`), el('span', 'qb-mxp mono', `${m.xp}`));
       row.append(top, xpBar(m.level.frac));
       const ach = el('div', 'qb-ach'); for (const a of m.achievements) { const t = el('span', 'qb-a', a.icon); t.title = `${a.title} — ${a.desc}`; ach.append(t); } if (!m.achievements.length) ach.append(el('span', 'muted small', 'no achievements yet'));
       row.append(ach);
@@ -402,7 +402,7 @@
       for (const t of sq.tasks) {
         const row = el('label', 'qb-task' + (t.done ? ' on' : '')); const cb = el('input'); cb.type = 'checkbox'; cb.checked = t.done; cb.disabled = ro();
         cb.addEventListener('change', () => { questWrite({ [`song:${t.qid}:task:${t.id}`]: { text: t.text, done: cb.checked, who: t.who } }).catch(fail); if (cb.checked) questPopRaw(Q.TASK_XP, 'task done'); });
-        const x = el('button', 'qb-x', '✕'); x.type = 'button'; x.title = 'remove'; x.addEventListener('click', (e) => { e.preventDefault(); questWrite({ [`song:${t.qid}:task:${t.id}`]: { text: t.text, done: t.done, deleted: true } }).catch(fail); });
+        const x = el('button', 'qb-x', '✕'); x.type = 'button'; x.title = 'Remove this task from the list — for things that got done another way or are not needed any more.'; x.addEventListener('click', (e) => { e.preventDefault(); questWrite({ [`song:${t.qid}:task:${t.id}`]: { text: t.text, done: t.done, deleted: true } }).catch(fail); });
         row.append(cb, el('span', null, t.text)); if (t.who) row.append(el('span', 'qb-who', `@${t.who}`)); row.append(x); tl.append(row);
       }
       // the song's own open "needs" (Needs tab) show here too, so the board is the one to-do list for the band
@@ -418,7 +418,7 @@
       for (const t of b.todos) {
         const row = el('label', 'qb-task' + (t.done ? ' on' : '')); const cb = el('input'); cb.type = 'checkbox'; cb.checked = t.done;
         cb.addEventListener('change', () => { questWrite({ [`band:todo:${t.id}`]: { text: t.text, who: t.who, done: cb.checked, doneBy: cb.checked ? me() : null } }).catch(fail); if (cb.checked) questPopRaw(Q.TASK_XP, 'loose end tied'); });
-        const x = el('button', 'qb-x', '✕'); x.type = 'button'; x.title = 'remove'; x.addEventListener('click', (e) => { e.preventDefault(); questWrite({ [`band:todo:${t.id}`]: { text: t.text, done: t.done, deleted: true } }).catch(fail); });
+        const x = el('button', 'qb-x', '✕'); x.type = 'button'; x.title = 'Remove this loose end from the band\'s list — for things that got done another way or are not needed any more.'; x.addEventListener('click', (e) => { e.preventDefault(); questWrite({ [`band:todo:${t.id}`]: { text: t.text, done: t.done, deleted: true } }).catch(fail); });
         row.append(cb, el('span', null, t.text)); if (t.who) row.append(el('span', 'qb-who', `@${t.who}`)); row.title = `added by ${t.by}${t.done && t.doneBy ? ` · done by ${t.doneBy}` : ''}`; row.append(x); tl.append(row);
       }
       const add = el('div', 'qb-addtask'); const inp = el('input'); inp.placeholder = 'add a loose end… (@Name assigns it)'; const ab = el('button', null, '+'); ab.type = 'button';
@@ -512,7 +512,7 @@
       li.appendChild(el('div', 'sub', `${s.tracks} track${s.tracks === 1 ? '' : 's'} · rev ${s.rev}${s.savedBy ? ` · ${s.savedBy}` : ''}${s.savedAt ? ` · ${timeAgo(s.savedAt)}` : ''}`));
       const chips = el('div', 'chips');
       if (s.mentions) { const c = el('span', 'chip-s ping', `@${s.mentions}`); c.title = `${s.mentions} note${s.mentions === 1 ? '' : 's'} mention you — open the song to read ${s.mentions === 1 ? 'it' : 'them'}`; chips.append(c); }
-      if (s.stage) { const c = el('span', `chip-s stage stage-${s.stage}`, STAGES[s.stage] || s.stage); c.title = 'song stage — right-click the song to change it'; chips.append(c); }
+      if (s.stage) { const c = el('span', `chip-s stage stage-${s.stage}`, STAGES[s.stage] || s.stage); c.title = 'Stage: how far along the song is — idea, writing, demo or done. Right-click the song to change it; the filter above the list sorts by it.'; chips.append(c); }
       if (s.needsMine) { const c = el('span', 'chip-s ping', `for you ${s.needsMine}`); c.title = `${s.needsMine} "needs" item${s.needsMine === 1 ? '' : 's'} assigned to you`; chips.append(c); }
       if (s.needsOpen) { const tot = s.needsOpen + (s.needsDone || 0); const c = el('span', 'chip-s needs', `needs ${s.needsOpen}${s.needsDone ? ` · ${Math.round(100 * s.needsDone / tot)}% done` : ''}`); c.title = (s.needs || []).join('\n'); chips.append(c); }
       for (const p of s.presence || []) { if (s.lock && !s.lock.stale && p.user === s.lock.user && p.mode !== 'listening') continue; const c = el('span', 'chip-s here', `${p.user} ${p.mode === 'waiting' ? '⏳ waiting to edit' : p.mode === 'recording' ? '● rec' : p.mode === 'practicing' ? '🎙 rehearsing' : p.playing ? '🎧 listening' : 'looking'}`); c.title = `${p.user} has this song open on ${p.host}`; chips.append(c); }
@@ -1785,6 +1785,7 @@
       { label: 'React to this take', sub: reactionItems(c.id, c.name) },
       { label: 'Note at playhead…', action: () => addNote(t.id, engine.playhead) },
       { label: 'Rename…', action: async () => { const n = await promptName('Take name', c.name); if (n) { change(() => { c.name = n; }, { label: `rename take to ${n}` }); renderAll(); } }, disabled: ro() },
+      ...(c.kind !== 'midi' ? [{ label: 'Normalize (peak to −1 dB)', hint: 'sets the take level so its loudest moment is just under full', action: () => { const buf = engine.buffers.get(audioId(c)); if (!buf) { status('That take hasn\'t loaded yet.'); return; } let p = 0; for (let ch = 0; ch < buf.numberOfChannels; ch++) { const d0 = buf.getChannelData(ch); for (let i = 0; i < d0.length; i++) { const a = Math.abs(d0[i]); if (a > p) p = a; } } if (p < 1e-6) { status('Silent take.'); return; } const g = Math.round((-1 - 20 * Math.log10(p)) * 2) / 2; change(() => { c.gainDb = Math.max(-24, Math.min(24, g)); }, { label: `normalize ${c.name}` }); renderAll(); status(`${c.name}: level set to ${g > 0 ? '+' : ''}${g} dB (peak was ${(20 * Math.log10(p)).toFixed(1)} dBFS).`, 6000); }, disabled: ro() }] : []),
       { label: 'Reset gain / trims / fades', action: () => { change(() => { c.gainDb = 0; c.trimStart = 0; c.trimEnd = 0; c.fadeIn = 0; c.fadeOut = 0; }, { label: `reset ${c.name}` }); renderAll(); }, disabled: ro() },
       { label: 'Delete', hint: 'Del', danger: true, action: () => deleteClip(t, c, { confirm: false }), disabled: ro() },
     ];
@@ -1972,7 +1973,7 @@
     const box = el('div', 'reactions' + (compact ? ' compact' : ''));
     const by = new Map(); for (const r of reactionsFor(target)) { if (!by.has(r.emoji)) by.set(r.emoji, []); by.get(r.emoji).push(r.by); }
     for (const [e, who] of by) { const c = el('span', 'reaction' + (who.includes(me()) ? ' mine' : ''), `${e}${who.length > 1 ? ` ${who.length}` : ''}`); c.title = `${who.join(', ')} — click to ${who.includes(me()) ? 'remove yours' : 'add yours'}`; c.addEventListener('click', (ev) => { ev.stopPropagation(); if (ro()) return; toggleReaction(target, e, what); }); box.append(c); }
-    if (!compact || !by.size) { const add = el('span', 'reaction add', by.size ? '+' : '+ react'); add.title = 'add a reaction'; add.addEventListener('click', (ev) => { ev.stopPropagation(); if (ro()) return; M.show(ev.clientX, ev.clientY, [{ title: `React to ${what}` }, ...reactionItems(target, what)]); }); box.append(add); }
+    if (!compact || !by.size) { const add = el('span', 'reaction add', by.size ? '+' : '+ react'); add.title = 'Add a reaction: drop an emoji on it so the band knows what you think — quicker than writing a note. Click yours again to take it back.'; add.addEventListener('click', (ev) => { ev.stopPropagation(); if (ro()) return; M.show(ev.clientX, ev.clientY, [{ title: `React to ${what}` }, ...reactionItems(target, what)]); }); box.append(add); }
     return box;
   }
   const newId = () => window.BPUtil.newId();
@@ -2021,7 +2022,7 @@
     const d = $('#thread'); const t = m.trackId ? engine.track(m.trackId) : null; const sc = CB.sectionAt(state.song, m.time);
     $('#thread-title').textContent = `${posLabel(m.time)}${sc ? ` · ${sc.name}` : ''} · ${t ? t.name : 'whole song'}${m.resolved ? ` · resolved by ${m.resolved.by}` : ''}`;
     const body = $('#thread-body'); body.innerHTML = '';
-    const msg = (x, first) => { const b = el('div', 'msg' + (first ? ' first' : '')); const who = el('div', 'who'); who.append(el('span', null, `${x.by || '?'} · ${x.at ? timeAgo(x.at) : ''}${x.editedBy ? ' · edited' : ''}`)); if (!first && CB.nameMatch(x.by, me()) && !ro()) { const del = el('button', 'del', '✕'); del.type = 'button'; del.title = 'delete your reply'; del.addEventListener('click', () => { cchange(() => { x.deleted = true; }, { label: 'delete reply' }); renderAll(); d.close('reopen'); }); who.append(del); } const tx = el('div', 'txt'); tx.append(withMentions(x.text)); b.append(who, tx); return b; };
+    const msg = (x, first) => { const b = el('div', 'msg' + (first ? ' first' : '')); const who = el('div', 'who'); who.append(el('span', null, `${x.by || '?'} · ${x.at ? timeAgo(x.at) : ''}${x.editedBy ? ' · edited' : ''}`)); if (!first && CB.nameMatch(x.by, me()) && !ro()) { const del = el('button', 'del', '✕'); del.type = 'button'; del.title = 'Delete this reply of yours from the thread (you can only delete your own).'; del.addEventListener('click', () => { cchange(() => { x.deleted = true; }, { label: 'delete reply' }); renderAll(); d.close('reopen'); }); who.append(del); } const tx = el('div', 'txt'); tx.append(withMentions(x.text)); b.append(who, tx); return b; };
     body.append(msg(m, true)); for (const r of CB.live(m.replies)) body.append(msg(r, false));
     const inp = $('#thread-input'); inp.value = ''; inp.disabled = false; inp.placeholder = ro() ? 'Reply… (sent to whoever has the song open; @Name pings a bandmate)' : 'Reply… (@Name pings a bandmate)';
     const pp = $('#thread-people'); pp.innerHTML = ''; const ppl = people(); if (ppl.length) { pp.append(el('span', 'muted', 'ping: ')); for (const n of ppl) { const c = el('span', 'chip-btn', `@${n}`); c.addEventListener('click', () => { const v = inp.value; inp.value = `${v}${v && !/\s$/.test(v) ? ' ' : ''}@${n} `; inp.focus(); }); pp.append(c); } }
@@ -2091,7 +2092,7 @@
       const ping = mine.some((x) => x.note === m);
       const li = el('li', 'note-row' + (m.resolved ? ' resolved' : '') + (ping ? ' ping' : ''));
       li.append(el('span', 'note-pos mono', posLabel(m.time)), el('span', 'meta', `${sc ? `${sc.name} · ` : ''}${t ? t.name : 'song'} · ${m.by || ''}`));
-      const tc = el('span', 'threadcount', n ? `💬 ${n}` : 'reply'); tc.title = 'open the thread'; tc.addEventListener('click', (e) => { e.stopPropagation(); openThread(m); }); li.append(tc);
+      const tc = el('span', 'threadcount', n ? `💬 ${n}` : 'reply'); tc.title = 'Open the thread: read the replies to this note and add your own. @Name in a reply pings that bandmate.'; tc.addEventListener('click', (e) => { e.stopPropagation(); openThread(m); }); li.append(tc);
       const tx = el('span', 'note-text'); tx.append(withMentions(m.text)); li.append(tx);
       li.title = 'click: go there · double-click or 💬: thread · right-click: options';
       li.addEventListener('click', () => { engine.seek(m.time); positionPlayhead(); });
@@ -2540,7 +2541,7 @@
   $('#ml-say').addEventListener('click', () => sayMelody().catch(fail));
   $('#ml-star').addEventListener('click', () => {
     const m = state.mel; if (!m || !m.gen) return; const g = cloneGen(m.gen); m.kept.push(g); const n = m.kept.length;
-    const b = el('button', null, `☆ ${n}: ${g.notes.slice(0, 5).map((x) => MU.noteName(x.n)).join(' ')}…`); b.type = 'button'; b.title = `seed ${g.seed} · score ${g.score.toFixed(1)} — click to bring it back`; b.addEventListener('click', () => { try { applyMelodyDraft(cloneGen(g)); } catch (err) { fail(err); } });
+    const b = el('button', null, `☆ ${n}: ${g.notes.slice(0, 5).map((x) => MU.noteName(x.n)).join(' ')}…`); b.type = 'button'; b.title = `A melody you kept earlier — click to bring it back into the editor (seed ${g.seed} · score ${g.score.toFixed(1)}; a higher score fits the words and chords better)`; b.addEventListener('click', () => { try { applyMelodyDraft(cloneGen(g)); } catch (err) { fail(err); } });
     $('#ml-kept').append(b);
   });
 
@@ -3938,7 +3939,7 @@
     const line = TMG.summaryText(rep, { fmtBar: (x) => `bar ${barOf(x)}` });
     // the panel: a bar chart + the worst bars, with Nudge / Tighten from there
     const node = el('li', 'timing-box'); node.append(el('b', null, `⏱ ${clip ? clip.name : t.name}: `), el('span', null, line));
-    const cv = document.createElement('canvas'); cv.width = 600; cv.height = 70; cv.style.width = '100%'; cv.style.height = '35px'; cv.title = 'one bar per song bar — tall = far off the click; amber late, blue early'; node.append(cv);
+    const cv = document.createElement('canvas'); cv.width = 600; cv.height = 70; cv.style.width = '100%'; cv.style.height = '35px'; cv.title = 'Timing map: one column per bar of the song. A tall column means that bar is well off the click; amber means it was played late, blue means early. Short columns everywhere = a tight take.'; node.append(cv);
     TMG.barChart(cv.getContext('2d'), rep, { w: 600, h: 70 });
     const worst = el('div', 'small muted', rep.overall.worstBars.map((w) => `bar ${w.bar}: ${Math.abs(w.meanMs).toFixed(0)} ms ${w.meanMs > 0 ? 'late' : 'early'}`).join(' · '));
     node.append(worst);
@@ -3994,6 +3995,7 @@
   // you're in, the next lines underneath. Vocals as a guide or muted, slower at the same pitch, loop the part, record
   // while you practice, or rehearse the whole setlist back to back.
   const KA = window.BPKaraoke;
+  try { $('#main').append($('#karaoke')); } catch (_) {}   // Practice lives in the song area (top bar + songs list stay put), not over the whole window
   const kara = { open: false, lines: [], key: '', raf: 0, size: 1, setlist: null, lastPos: 0, wasPlaying: false, prevLine: -2, partsKey: '', barsKey: '', mutes: new Set(), solo: null, starting: false, practiced: 0, lastTick: 0, wasPracticing: false };
   try { kara.mutes = new Set(JSON.parse(localStorage.getItem('bp.kMutes') || '[]')); kara.solo = localStorage.getItem('bp.kSolo') || null; } catch (_) {}
   function karaLines() {
@@ -4063,6 +4065,23 @@
     sel.value = cur;
     $('#k-len').textContent = fmtClock(end);
   }
+  // Words flying at you: every line sits on a 3D plane, far away when it's a while off, hitting the glowing line at
+  // the bottom when it's time to sing it, then sliding under you. Lines are DOM nodes reused frame to frame.
+  const crawl = { key: '', nodes: new Map(), lookahead: 9, back: 1.6 };
+  function karaCrawl(t, ls, a) {
+    const plane = $('#k-plane'); if (!plane) return;
+    if (crawl.key !== kara.key) { crawl.key = kara.key; plane.innerHTML = ''; crawl.nodes.clear(); ls.forEach((l, i) => { const n = el('div', 'k-cl dim'); n.dataset.i = String(i); crawl.nodes.set(i, n); plane.append(n); }); }
+    const H = plane.clientHeight || 600; const px = H / crawl.lookahead;
+    for (const [i, n] of crawl.nodes) {
+      const l = ls[i]; const dt = l.time - t; const end = (l.words && l.words.length ? l.words[l.words.length - 1].e : l.time + 2);
+      if (dt > crawl.lookahead || end < t - crawl.back) { n.style.display = 'none'; continue; }
+      n.style.display = ''; const y = Math.max(-crawl.back, dt) * px;   // 0 = the hit line; negative = already sung, sliding under
+      const cur = a.cur && a.i === i; const isCur = cur || (dt <= 0 && end >= t);
+      const wasCur = n.classList.contains('cur'); n.className = 'k-cl' + (isCur ? ' cur' : dt < 0 ? ' dim' : '');
+      if (isCur || wasCur !== isCur || n.childElementCount === 0) karaRenderLine(n, l, isCur ? t : null, { big: isCur });
+      n.style.transform = `translateY(${(-y).toFixed(1)}px) translateY(50%)`; n.style.bottom = '0'; n.style.opacity = dt < 0 ? String(Math.max(0, 1 + dt / crawl.back)) : String(Math.min(1, 0.35 + (1 - dt / crawl.lookahead)));
+    }
+  }
   function karaFrame() {
     kara.raf = 0; if (!kara.open || !state.song) return;
     const t = karaTime(); const ls = karaLines(); const a = KA.at(ls, t); const view = karaView();
@@ -4070,9 +4089,10 @@
     $('#k-part').textContent = sc ? sc.name.toUpperCase() : '';
     const setInfo = kara.setlist ? ` · set ${fmtClock((Date.now() - kara.setlist.startedAt) / 1000)} · song ${kara.setlist.i + 1}/${kara.setlist.order.length}` : '';
     $('#k-pos').textContent = `${posLabel(t)}${practice ? ` · ${practice.pct}%` : ''}${setInfo}`;
-    const along = $('#k-along').value; const chordsOnly = view === 'chords' && !along;
-    for (const id of ['#k-prev', '#k-cur', '#k-next', '#k-next2']) $(id).hidden = chordsOnly || !!along;
-    $('#k-bars').hidden = !chordsOnly; $('#k-hw').hidden = !along;
+    const along = $('#k-along').value; const chordsOnly = view === 'chords' && !along; const crawl = view === 'crawl';
+    for (const id of ['#k-prev', '#k-cur', '#k-next', '#k-next2']) $(id).hidden = chordsOnly || !!along || crawl;
+    $('#k-bars').hidden = !chordsOnly; $('#k-hw').hidden = !along; $('#k-hw').classList.add('persp'); $('#k-crawl').hidden = !crawl; $('#k-hw-line').hidden = crawl;
+    if (crawl) { karaCrawl(t, ls, a); const em = $('#k-crawl-empty'); if (em) em.hidden = !!ls.length; }
     const nextIdx = a.i + 1; const nl = ls[nextIdx]; const cnt = $('#k-count');
     if (along) { karaHighway(t, along); karaRenderLine($('#k-hw-line'), a.cur || null, t, { big: true }); }
     else if (chordsOnly) karaBars(t);
@@ -4434,7 +4454,7 @@
       const sec = n.sectionId && liveSections().find((x) => x.id === n.sectionId);
       if (n.who || sec) { const tg = el('span', 'ntag' + (n.who && CB.nameMatch(n.who, me()) ? ' mine' : ''), `${n.who ? `→ ${n.who}` : ''}${n.who && sec ? ' · ' : ''}${sec ? sec.name : ''}`); if (sec) { tg.title = `go to ${sec.name}`; tg.addEventListener('click', () => { engine.seek(sec.start); positionPlayhead(); }); } tx.append(' ', tg); }
       li.append(cb, tx, el('span', 'nby', n.done ? `✓ ${n.done.by}` : n.by || ''));
-      { const x = el('button', null, '✕'); x.title = 'remove'; x.addEventListener('click', () => { cchange(() => { n.deleted = true; n.deletedBy = me(); }, { label: `removed need: ${n.text}` }); renderAll(); }); li.append(x); }
+      { const x = el('button', null, '✕'); x.title = 'Remove this need from the list — it got done, or the song does not need it any more. Ctrl/Cmd+Z brings it back.'; x.addEventListener('click', () => { cchange(() => { n.deleted = true; n.deletedBy = me(); }, { label: `removed need: ${n.text}` }); renderAll(); }); li.append(x); }
       M.attach(li, () => [{ title: n.text }, { label: n.done ? 'Mark not done' : 'Mark done ✓', action: () => setNeedDone(n, !n.done) },
         { label: 'Assign to', sub: [...CB.knownPeople(collectSong(), [me()]).map((p) => ({ label: p, checked: !!n.who && CB.nameMatch(n.who, p), action: () => assignNeed(n, p) })), 'sep', { label: 'Someone else…', action: async () => { const v = await promptName('Assign to (their Cobander name)', n.who || ''); if (v) assignNeed(n, v.slice(0, 40)); } }, { label: 'Nobody', action: () => assignNeed(n, null) }], disabled: ro() },
         { label: 'For section', sub: [...liveSections().map((sc) => ({ label: sc.name, checked: n.sectionId === sc.id, action: () => needSection(n, sc.id) })), 'sep', { label: 'Whole song', action: () => needSection(n, null) }], disabled: ro() || !liveSections().length }, { label: 'Edit…', action: async () => { const v = await promptName('Needs…', n.text); if (v) { cchange(() => { n.text = v.slice(0, 120); }, { label: 'edit need' }); renderAll(); } }, disabled: ro() }, { label: 'Remove', danger: true, action: () => { cchange(() => { n.deleted = true; }, { label: `removed need: ${n.text}` }); renderAll(); }, disabled: ro() }]);
@@ -4522,7 +4542,7 @@
     if (!ideas.length) ul.append(el('li', 'muted', 'none yet'));
     for (const i of ideas) {
       const li = el('li');
-      if (i.kind === 'audio') { const p = el('button', null, ideaPlaying && ideaPlaying.id === i.id ? '■' : '▶'); p.title = 'listen'; p.addEventListener('click', () => playIdea(i).catch(fail)); li.append(p); }
+      if (i.kind === 'audio') { const p = el('button', null, ideaPlaying && ideaPlaying.id === i.id ? '■' : '▶'); p.title = 'Play this idea back so you can hear it (the song pauses). Press again to stop.'; p.addEventListener('click', () => playIdea(i).catch(fail)); li.append(p); }
       else li.append(el('span', null, '📝'));
       const tx = el('span', 'itext'); tx.append(withMentions(i.kind === 'text' ? i.text : i.title)); tx.title = i.kind === 'text' ? i.text : i.title; li.append(tx);
       li.append(el('span', 'imeta', `${i.by || ''} · ${i.at ? timeAgo(i.at) : ''}${i.seconds ? ` · ${Math.floor(i.seconds / 60)}:${String(Math.round(i.seconds % 60)).padStart(2, '0')}` : ''}`));
@@ -4703,10 +4723,10 @@
       const row = el('div', 'track'); row.dataset.id = t.id; if (t.id === state.selectedTrack) row.classList.add('selected');
       const head = el('div', 'track-head');
       const nameRow = el('div', 'name-row');
-      const sw = el('span', 'swatch'); sw.style.background = t.color; sw.title = 'click to change color';
+      const sw = el('span', 'swatch'); sw.style.background = t.color; sw.title = 'Track colour: click to pick another one. It only helps you tell tracks apart on the timeline — it changes nothing in the sound.';
       sw.addEventListener('click', (e) => { e.stopPropagation(); if (state.readOnly) return; pickColor(t, e.clientX, e.clientY); });
-      const nm = el('span', 'tname', t.name); nm.title = 'double-click to rename';
-      const ty = el('span', 'ttype', (t.instrument === 'drumkit' ? 'drum machine' : t.instrument.startsWith('synth:') ? t.instrument.slice(6) : t.type) + (t.preset ? ` · ${presetLabel(t)}` : '')); ty.title = 'type / preset (set in Track FX)';
+      const nm = el('span', 'tname', t.name); nm.title = 'Track name — double-click to rename it. Names like Bass, Vox or Kick help, because Auto mix and the quick fixes guess what the track is from its name.';
+      const ty = el('span', 'ttype', (t.instrument === 'drumkit' ? 'drum machine' : t.instrument.startsWith('synth:') ? t.instrument.slice(6) : t.type) + (t.preset ? ` · ${presetLabel(t)}` : '')); ty.title = 'What kind of track this is (guitar, vocals, drum machine…) and the sound preset on it (amp, vocal chain…). Change the preset in Track FX on the right.';
       nm.addEventListener('dblclick', async (e) => { e.stopPropagation(); if (state.readOnly) return; const n = await promptName('Track name', t.name); if (n) { change(() => engine.updateTrack(t.id, { name: n }), { label: `rename track to ${n}` }); fixTrackTypes({ quiet: false }); renderAll(); } });
       nameRow.append(sw, nm);
       const btns = el('div', 'btns');
@@ -4726,7 +4746,21 @@
       del.addEventListener('click', async (e) => { e.stopPropagation(); if (engine.recording || finishing) { status('Stop recording first.'); return; } if (state.readOnly) { status('Read-only — "Take over" (banner above) to edit.', 6000); return; } const a = await ask('Delete track', `Delete track "${t.name}" and its ${t.clips.length} take(s) from the song? The audio files stay in the folder and can be recovered; ${MOD}+Z undoes this.`, [['Delete', 'ok', 'danger'], ['Cancel', 'cancel', 'primary']]); if (a !== 'ok') return; change(() => { for (const c of t.clips) trashClip(t, c); state.song.trashTracks = { ...(state.song.trashTracks || {}), [t.id]: t.name }; engine.removeTrack(t.id); if (state.selectedTrack === t.id) state.selectedTrack = null; if (state.armedTrack === t.id) state.armedTrack = null; }, { label: `delete track ${t.name}` }); renderAll(); refreshUnreferenced(); });
       // what the head shows depends on the job: Write = what this track covers; Record = arm first, last take
       const info = el('div', 'tinfo'); const live = t.clips.filter((c) => !c.mute);
-      if (state.ws === 'record') {
+      if (state.ws === 'mix') {   // mini channel strip: volume, pan, the FX on/off chips, seasoning
+        const mr = el('div', 'mixrow'); const f = document.createElement('input'); f.type = 'range'; f.min = -60; f.max = 12; f.step = 0.5; f.value = t.gainDb; f.title = 'Volume (dB). 0 is as recorded; −6 is about half as loud. Double-click = 0.';
+        const db = el('span', 'db', `${t.gainDb} dB`); gestureUndo(f, () => `${t.name} fader`);
+        f.addEventListener('input', () => { if (state.readOnly) return; engine.updateTrack(t.id, { gainDb: Number(f.value) }); db.textContent = `${f.value} dB`; markDirty(); const st = document.querySelector(`#mixer .strip[data-id="${t.id}"] .fader`); if (st) st.value = f.value; });
+        f.addEventListener('change', () => { renderMixer(); if (t.id === state.selectedTrack) renderFx(); });
+        f.addEventListener('dblclick', () => { f.value = 0; f.dispatchEvent(new Event('input')); f.dispatchEvent(new Event('change')); });
+        f.addEventListener('mousedown', (e) => e.stopPropagation());
+        const pan = document.createElement('input'); pan.type = 'range'; pan.className = 'pan'; pan.min = -1; pan.max = 1; pan.step = 0.05; pan.value = t.pan; pan.title = 'Pan: left / right position. Double-click = centre.'; gestureUndo(pan, () => `${t.name} pan`);
+        pan.addEventListener('input', () => { if (state.readOnly) return; engine.updateTrack(t.id, { pan: Number(pan.value) }); markDirty(); }); pan.addEventListener('change', () => renderMixer()); pan.addEventListener('dblclick', () => { pan.value = 0; pan.dispatchEvent(new Event('input')); pan.dispatchEvent(new Event('change')); }); pan.addEventListener('mousedown', (e) => e.stopPropagation());
+        mr.append(f, db, pan);
+        const mc = el('div', 'mixchips');
+        for (const [k, label, tip] of [['hpf', 'LC', 'Low-cut (high-pass): takes out rumble and boom below the note — cleans up vocals and guitars'], ['eq', 'EQ', 'EQ: tone — low / mid / high'], ['comp', 'CMP', 'Compressor: evens out loud and quiet moments so the part sits steady']]) { const c = el('button', 'chip-fx' + (t.fx[k] && t.fx[k].on ? ' on' : ''), label); c.title = `${tip} — click to turn ${t.fx[k] && t.fx[k].on ? 'off' : 'on'}`; c.addEventListener('click', (e) => { e.stopPropagation(); if (ro()) return; change(() => engine.updateTrack(t.id, { fx: { [k]: { on: !(t.fx[k] && t.fx[k].on) } } }), { label: `${t.name} ${label}` }); state.selectedTrack = t.id; renderAll(); }); mc.append(c); }
+        const qf = el('button', 'quickfix'); qf.append(el('i', 'om om-spoon'), document.createTextNode(' fix')); qf.title = 'Quick fixes: common mixing moves in plain words (sit the vocal, less mud, more punch, brighter…). Each one is undoable.'; qf.addEventListener('click', (e) => { e.stopPropagation(); state.selectedTrack = t.id; menuAt(qf, quickFixMenu(t)); }); mc.append(mute, solo, qf);
+        head.append(nameRow, mr, mc);
+      } else if (state.ws === 'record') {
         btns.append(arm, lk, mute, solo);
         const last = t.clips.slice().sort((a, b) => String(b.takenAt || '').localeCompare(String(a.takenAt || '')))[0];
         info.textContent = !t.clips.length ? 'no takes yet — arm it and hit R' : `${t.clips.length} take${t.clips.length === 1 ? '' : 's'} · last: ${last.name}${last.takenBy ? ` · ${last.takenBy}` : ''}${last.takenAt ? ` · ${ago(last.takenAt)}` : ''}${state.armedTrack === t.id && engine.monitorInput ? ' · 🎧 monitoring' : ''}`;
@@ -4782,9 +4816,27 @@
     if (c.link) { d.classList.add('linked'); d.title = 'Linked — the same take plays in every copy of this part. Move, trim, delete or re-record it here and they all change. Right-click → Unlink to make just this one different.'; }
     requestAnimationFrame(() => (c.kind === 'midi' ? drawNotes(cv, c) : drawWave(cv, engine.buffers.get(audioId(c)), c)));
     M.attach(d, () => { state.selectedClip = c.id; state.selectedTrack = t.id; renderTracks(); renderFx(); return clipMenu(t, c); });
-    const hl = el('div', 'edge left'), hr = el('div', 'edge right'); hl.title = 'drag to trim the start'; hr.title = 'drag to trim the end'; d.append(hl, hr);
+    const hl = el('div', 'edge left'), hr = el('div', 'edge right'); hl.title = 'Drag to trim the start of the take — hides the bit before, nothing is deleted. Drag it back out to get it back.'; hr.title = 'Drag to trim the end of the take — hides the bit after, nothing is deleted. Drag it back out to get it back.'; d.append(hl, hr);
     if (c.fadeIn > 0) { const f = el('div', 'fade in'); f.style.width = `${c.fadeIn * state.pxPerSec}px`; d.appendChild(f); }
     if (c.fadeOut > 0) { const f = el('div', 'fade out'); f.style.width = `${c.fadeOut * state.pxPerSec}px`; d.appendChild(f); }
+    // Mix: the edits you make while mixing, right on the take — drag the top corners for fades, the gain line up/down for level
+    if (state.ws === 'mix' && c.kind !== 'midi' && canTouch(t)) {
+      const len = engine.clipLength(c);
+      for (const which of ['fadeIn', 'fadeOut']) {
+        const hd = el('div', `fh ${which === 'fadeIn' ? 'in' : 'out'}`); hd.title = `Drag: ${which === 'fadeIn' ? 'fade in' : 'fade out'} (${((c[which] || 0) * 1000).toFixed(0)} ms)`;
+        hd.addEventListener('mousedown', (e) => { if (e.button !== 0) return; e.stopPropagation(); e.preventDefault(); const x0 = e.clientX, v0 = c[which] || 0; let v = v0;
+          const mv = (ev) => { const dx = (ev.clientX - x0) / state.pxPerSec; v = Math.max(0, Math.min(len / 2, v0 + (which === 'fadeIn' ? dx : -dx))); c[which] = v; const f = d.querySelector(`.fade.${which === 'fadeIn' ? 'in' : 'out'}`) || d.appendChild(el('div', `fade ${which === 'fadeIn' ? 'in' : 'out'}`)); f.style.width = `${v * state.pxPerSec}px`; hd.title = `${which === 'fadeIn' ? 'fade in' : 'fade out'} ${(v * 1000).toFixed(0)} ms`; };
+          const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); c[which] = v0; if (Math.abs(v - v0) > 1e-4) { change(() => { c[which] = v; }, { label: `${c.name} ${which === 'fadeIn' ? 'fade in' : 'fade out'}` }); } renderAll(); };
+          window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up); });
+        d.appendChild(hd);
+      }
+      const gl = el('div', 'gl'); const gY = (db) => `${Math.round(100 - ((Math.max(-24, Math.min(12, db)) + 24) / 36) * 100)}%`; gl.style.top = gY(c.gainDb || 0); gl.title = `Take level ${c.gainDb > 0 ? '+' : ''}${c.gainDb || 0} dB — drag up / down (on top of the track's fader)`;
+      gl.addEventListener('mousedown', (e) => { if (e.button !== 0) return; e.stopPropagation(); e.preventDefault(); const y0 = e.clientY, v0 = c.gainDb || 0; let v = v0;
+        const mv = (ev) => { v = Math.round((v0 - (ev.clientY - y0) * 36 / Math.max(40, d.clientHeight)) * 2) / 2; v = Math.max(-24, Math.min(12, v)); gl.style.top = gY(v); gl.title = `${v > 0 ? '+' : ''}${v} dB`; const lb = d.querySelector('.label'); if (lb) lb.textContent = `${c.name} ${v > 0 ? '+' : ''}${v} dB`; };
+        const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); if (v !== v0) { change(() => { c.gainDb = v; }, { label: `${c.name} level ${v > 0 ? '+' : ''}${v} dB` }); } renderAll(); };
+        window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up); });
+      d.appendChild(gl);
+    }
     let drag = null;
     d.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
@@ -5189,12 +5241,12 @@
     const s = el('div', 'strip' + (t ? '' : ' master')); s.dataset.id = t ? t.id : 'master';
     M.attach(s, () => stripMenu(t));
     s.appendChild(el('div', 'sname', t ? t.name : 'MASTER'));
-    if (t) { const pan = document.createElement('input'); pan.type = 'range'; pan.className = 'pan'; pan.min = -1; pan.max = 1; pan.step = 0.05; pan.value = t.pan; pan.title = 'pan (double-click to center)';
+    if (t) { const pan = document.createElement('input'); pan.type = 'range'; pan.className = 'pan'; pan.min = -1; pan.max = 1; pan.step = 0.05; pan.value = t.pan; pan.title = 'Pan: left / right position in the speakers. Double-click = centre.';
       gestureUndo(pan, () => `${t.name} pan`);
       const panTxt = (v) => (Math.abs(v) < 0.025 ? 'C' : `${v < 0 ? 'L' : 'R'}${Math.round(Math.abs(v) * 100)}`); const pv = el('div', 'val', panTxt(t.pan));
       pan.addEventListener('input', () => { if (state.readOnly) return; engine.updateTrack(t.id, { pan: Number(pan.value) }); pv.textContent = panTxt(Number(pan.value)); markDirty(); }); pan.addEventListener('dblclick', () => { pan.value = 0; pan.dispatchEvent(new Event('input')); pan.dispatchEvent(new Event('change')); }); s.append(pan, pv); }
     const row = el('div', 'fader-row');
-    const f = document.createElement('input'); f.type = 'range'; f.className = 'fader'; f.min = -60; f.max = 12; f.step = 0.5; f.value = t ? t.gainDb : engine.master.gainDb; f.title = 'gain dB (double-click = 0)';
+    const f = document.createElement('input'); f.type = 'range'; f.className = 'fader'; f.min = -60; f.max = 12; f.step = 0.5; f.value = t ? t.gainDb : engine.master.gainDb; f.title = 'Volume (dB). 0 is as recorded; −6 is about half as loud. Double-click = 0.';
     const val = el('div', 'val', `${f.value} dB`);
     gestureUndo(f, () => `${t ? t.name : 'master'} fader`);
     f.addEventListener('input', () => { if (state.readOnly) return; const v = Number(f.value); if (t) engine.updateTrack(t.id, { gainDb: v }); else engine.setMaster({ gainDb: v }); val.textContent = `${v} dB`; markDirty(); });
@@ -5204,8 +5256,8 @@
     row.append(f, meter); s.append(row, val);
     if (!t) {
       const cl = el('div', 'cliplight' + (clipHeld ? ' on' : ''), clipHeld ? 'CLIP' : 'ok'); cl.title = 'red = the mix went over 0 dBFS with the limiter off (click or stop to reset); amber = the limiter is working hard, turn the loud tracks down'; cl.addEventListener('click', () => { clipHeld = false; cl.classList.remove('on'); cl.textContent = 'ok'; });
-      const pk = el('div', 'peak', '−∞'); pk.title = 'loudest master peak in the last 2 s, dBFS (before the limiter)';
-      const lim = el('label', 'lim'); const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = engine.master.limiter !== false; cb.title = 'safety limiter on the master: stops stacked presets from clipping the output'; cb.addEventListener('change', () => { if (state.readOnly) { cb.checked = !cb.checked; return; } change(() => engine.setMaster({ limiter: cb.checked })); }); lim.append(cb, el('span', null, 'limit'));
+      const pk = el('div', 'peak', '−∞'); pk.title = 'Peak: the loudest moment of the whole mix in the last 2 seconds, in dBFS (0 is the ceiling), measured before the limiter. If it keeps touching 0, turn the loud tracks down.';
+      const lim = el('label', 'lim'); const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = engine.master.limiter !== false; cb.title = 'Limiter: a safety net on the whole mix that catches the loudest peaks so they never clip (crackle), even with lots of effects stacked up. Leave it on unless you are checking peaks on purpose.'; cb.addEventListener('change', () => { if (state.readOnly) { cb.checked = !cb.checked; return; } change(() => engine.setMaster({ limiter: cb.checked })); }); lim.append(cb, el('span', null, 'limit'));
       s.append(cl, pk, lim);
       const lu = el('div', 'lufs mixonly', '— LUFS'); lu.title = 'Loudness of the mix right now (short-term LUFS). Streaming "normal" is about −14; loud rock sits around −9. Auto master gets you there.'; s.append(lu);
     }
@@ -5223,7 +5275,7 @@
         chips.append(c);
       }
       mx.append(chips);
-      const qf = el('button', 'quickfix', '🧂 fix'); qf.title = 'Quick fixes: common mixing moves in plain words (sit the vocal, less mud, more punch, brighter…). Each one is undoable.'; qf.addEventListener('click', (e) => { e.stopPropagation(); state.selectedTrack = t.id; menuAt(qf, quickFixMenu(t)); }); mx.append(qf);
+      const qf = el('button', 'quickfix'); qf.append(el('i', 'om om-spoon'), document.createTextNode(' fix')); qf.title = 'Quick fixes: common mixing moves in plain words (sit the vocal, less mud, more punch, brighter…). Each one is undoable.'; qf.addEventListener('click', (e) => { e.stopPropagation(); state.selectedTrack = t.id; menuAt(qf, quickFixMenu(t)); }); mx.append(qf);
       s.append(mx);
     }
     if (t) { const b = el('div', 'btns'); const mu = el('button', 'mute' + (t.mute ? ' active' : ''), 'M'); mu.addEventListener('click', () => { change(() => engine.updateTrack(t.id, { mute: !t.mute }), { undoable: false }); renderAll(); }); const so = el('button', 'solo' + (t.solo ? ' active' : ''), 'S'); so.addEventListener('click', () => { change(() => engine.updateTrack(t.id, { solo: !t.solo }), { undoable: false }); renderAll(); }); b.append(mu, so); s.appendChild(b); s.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') { state.selectedTrack = t.id; renderTracks(); renderFx(); } }); }
@@ -5354,8 +5406,8 @@
         cg.querySelectorAll('input[type=range]').forEach((r) => r.addEventListener('change', () => renderTracks()));
         const row = el('div', 'toast-btns');
         if (c.kind === 'midi') { const q = el('button', null, 'Quantize to 1/16'); q.addEventListener('click', () => { change(() => engine.quantizeClip(c, 0.25, 1)); renderAll(); }); const q8 = el('button', null, 'Quantize to 1/8'); q8.addEventListener('click', () => { change(() => engine.quantizeClip(c, 0.5, 1)); renderAll(); }); row.append(q, q8, el('span', 'small muted', ` ${c.notes.length} notes`)); }
-        const mu = el('button', c.mute ? 'active' : null, c.mute ? 'Muted — un-mute' : 'Mute'); mu.title = 'a muted take stays in the song but does not play'; mu.addEventListener('click', () => { change(() => { c.mute = !c.mute; }, { label: `${c.mute ? 'un-mute' : 'mute'} ${c.name}` }); renderAll(); });
-        const so = el('button', null, 'Solo (mute the others here)'); so.title = 'mute every other take on this track that overlaps this one'; so.addEventListener('click', () => { const others = t.clips.filter((x) => x !== c && x.start < c.start + (engine.clipLength(c) || 1) && x.start + (engine.clipLength(x) || 1) > c.start); change(() => { c.mute = false; for (const x of others) x.mute = true; }, { label: `solo ${c.name}` }); renderAll(); });
+        const mu = el('button', c.mute ? 'active' : null, c.mute ? 'Muted — un-mute' : 'Mute'); mu.title = 'Mute: keep this take in the song but do not play it — handy for comparing takes without deleting the ones you are unsure about.'; mu.addEventListener('click', () => { change(() => { c.mute = !c.mute; }, { label: `${c.mute ? 'un-mute' : 'mute'} ${c.name}` }); renderAll(); });
+        const so = el('button', null, 'Solo (mute the others here)'); so.title = 'Solo: mute every other take on this track that overlaps this one, so only this take plays here. Un-mute the others to change your mind.'; so.addEventListener('click', () => { const others = t.clips.filter((x) => x !== c && x.start < c.start + (engine.clipLength(c) || 1) && x.start + (engine.clipLength(x) || 1) > c.start); change(() => { c.mute = false; for (const x of others) x.mute = true; }, { label: `solo ${c.name}` }); renderAll(); });
         const rn = el('button', null, 'Rename'); rn.addEventListener('click', async () => { const n = await promptName('Take name', c.name); if (n) { change(() => { c.name = n; }); renderAll(); } });
         const lp = el('button', null, 'Loop this take'); lp.addEventListener('click', () => $('#btn-loop-clip').click());
         const del = el('button', 'danger', 'Delete take'); del.addEventListener('click', () => deleteClip(t, c).catch(fail));
@@ -5620,9 +5672,9 @@
     for (const b of state.bounces.slice(0, 20)) {
       if (b.dir) { const li = el('li', 'bounce-row'); const nm = el('span', 'bname', `📁 ${b.name.replace(new RegExp(`^${state.song ? state.song.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : ''} ?- ?`), '')}`); nm.title = b.path; const show = el('button', null, 'open'); show.addEventListener('click', () => bp.shell.showInFolder(b.path)); li.append(nm, show); M.attach(li, () => bounceMenu(b)); ul.appendChild(li); continue; }
       const li = el('li', 'bounce-row'); const short = b.name.replace(/\.wav$/i, '').replace(new RegExp(`^${state.song ? state.song.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : ''} ?`), '').replace(/^- /, '').replace(/(\d{4})-(\d\d)-(\d\d) (\d\d)(\d\d)\d\d/, '$2/$3 $4:$5'); const nm = el('span', 'bname', short || b.name); nm.title = `${b.name}\n${b.path}`;
-      const play = el('button', null, '▶'); play.title = 'listen'; play.addEventListener('click', () => previewBounce(b, play).catch(fail));
-      const show = el('button', null, 'folder'); show.title = 'show in folder'; show.addEventListener('click', () => bp.shell.showInFolder(b.path));
-      const copy = el('button', null, 'copy msg'); copy.title = 'copy a message for the group chat'; copy.addEventListener('click', () => navigator.clipboard.writeText(`"${state.song.name}" bounce is in the band folder: ${state.song.name}/bounces/${b.name}`).then(() => { status('Copied.'); toast('Copied — paste it in the group chat.', { kind: 'ok', ms: 2500 }); }));
+      const play = el('button', null, '▶'); play.title = 'Play this bounce (the finished audio file) so you can check it. Press again to stop.'; play.addEventListener('click', () => previewBounce(b, play).catch(fail));
+      const show = el('button', null, 'folder'); show.title = 'Show this file in its folder on your computer, so you can attach it to a message or copy it somewhere.'; show.addEventListener('click', () => bp.shell.showInFolder(b.path));
+      const copy = el('button', null, 'copy msg'); copy.title = 'Copy a ready-made message saying where this bounce is in the band folder — paste it in the group chat.'; copy.addEventListener('click', () => navigator.clipboard.writeText(`"${state.song.name}" bounce is in the band folder: ${state.song.name}/bounces/${b.name}`).then(() => { status('Copied.'); toast('Copied — paste it in the group chat.', { kind: 'ok', ms: 2500 }); }));
       li.append(play, nm, show, copy); M.attach(li, () => bounceMenu(b)); ul.appendChild(li);
     }
     if (!state.bounces.length) ul.appendChild(el('li', 'muted', 'none yet — "Bounce mix" makes a WAV of the whole song here'));
@@ -5700,7 +5752,7 @@
     menuAt($('#btn-more'), [{ title: state.song ? state.song.name : 'Song' },
       { label: 'Show the song folder', action: () => $('#btn-open-folder').click() },
       { label: nDel ? `Deleted takes (${nDel}) — restore…` : 'Deleted takes: none', action: () => recoverTakes().catch(fail), disabled: !nDel || state.readOnly },
-      { label: '🫗 Lighten the folder… (FLAC + clear unused audio)', action: () => compactDrive().catch(fail) },
+      { label: '🥣 Lighten the folder… (FLAC + clear unused audio)', action: () => compactDrive().catch(fail) },
       { label: `Clear parked takes…${state.unreferenced && state.unreferenced.length ? ` (${state.unreferenced.length}, ${mb(state.unreferenced.reduce((n, u) => n + (u.size || 0), 0))})` : ''}`, hint: 'audio nothing in this song uses', action: () => clearParked().catch(fail), disabled: state.readOnly || !(state.unreferenced && state.unreferenced.length) },
       'sep',
       { label: 'What the words mean (glossary)', hint: 'F1', action: showGlossary }, { label: 'Keyboard shortcuts', hint: '?', action: showShortcuts }]);
@@ -6432,7 +6484,9 @@
   }
   function helpHide() { clearTimeout(HELP.timer); HELP.timer = 0; HELP.cur = null; if (HELP.el) HELP.el.style.display = 'none'; }
   document.addEventListener('mouseover', (e) => {
-    const t = e.target && e.target.closest ? e.target.closest('[title], [data-tip]') : null;
+    let t = e.target && e.target.closest ? e.target.closest('[title], [data-tip]') : null;
+    // a chip's text next to a titled checkbox / select: use that control's tip
+    if (e.target && e.target.closest) { const lab = e.target.closest('label, .chip'); if (lab && (!t || t.contains(lab)) && lab !== t) { const inner = lab.querySelector('[title], [data-tip]'); if (inner) t = inner; } }
     if (!t || t.closest('#help-tip')) return;
     if (t.getAttribute('title')) { t.dataset.tip = t.getAttribute('title'); t.removeAttribute('title'); }
     if (t === HELP.cur) return;

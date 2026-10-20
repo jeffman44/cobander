@@ -1227,6 +1227,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/quest', { todo: { id: td.id, done: true } }); q = await jeff.get('/quest'); assert.ok(q.todos.find((t) => t.id === td.id).done, 'checked off');
       assert.ok(q.members.some((m) => m.name === 'Jeff' && m.xp > 0), 'XP to the doer');
       await jeff.shot('band-todos');
+      assert.ok(await jeff.evalJs(`document.querySelectorAll('#qb-members .lvl-sprite .gi').length >= 1 && !!document.querySelector('#qb-boss .gi-dragon')`), 'level sprites + boss dragon');
       await jeff.post('/quest', { todo: { id: td.id, delete: true } }); q = await jeff.get('/quest'); assert.ok(!q.todos.find((t) => t.id === td.id), 'removed');
       await jeff.post('/workspace', { ws: 'write' });
       { const names = (await jeff.get('/songs')).map((x) => x.folder); if (!names.includes('Fourteen')) { await jeff.post('/song/create', { name: 'Fourteen', bpm: 120 }); await jeff.post('/song/patch', { addTrack: { kind: 'guitar', name: 'Gtr' } }); } else await jeff.post('/song/open', { folder: 'Fourteen' }); await sleep(600); }
@@ -1236,10 +1237,21 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.shot('track-height'); await jeff.evalJs(`document.querySelector('#btn-track-h').click(); document.querySelector('#btn-track-h').click()`);
       // Mix = a console: timeline hidden, strips carry role / send / FX chips / quick fixes; Record heads show takes
       await jeff.post('/workspace', { ws: 'mix' }); await sleep(400);
-      assert.equal(await jeff.evalJs(`getComputedStyle(document.querySelector('#arrange')).display`), 'none', 'timeline hidden in Mix');
       assert.ok(await jeff.evalJs(`document.querySelectorAll('#mixer .strip .quickfix').length >= 1 && document.querySelector('#master-area .lufs') !== null`), 'console strips');
       { const before = await jeff.evalJs(`window.bandpadDebug.engine.tracks[0].fx.hpf.on`); await jeff.evalJs(`document.querySelector('#mixer .strip .chip-fx').click(); true`); await sleep(200); assert.notEqual(await jeff.evalJs(`window.bandpadDebug.engine.tracks[0].fx.hpf.on`), before, 'LC chip toggles the high-pass'); }
       await jeff.shot('mix-console');
+      assert.ok(await jeff.evalJs(`!!document.querySelector('.track-head .mixrow input[type=range]')`), 'mix head has a volume slider');
+      assert.ok(await jeff.evalJs(`getComputedStyle(document.querySelector('#arrange')).display !== 'none'`), 'timeline visible in Mix');
+      assert.ok(await jeff.evalJs(`!document.querySelector('.clip:not(.drumlane)') || (!!document.querySelector('.clip .gl') && !!document.querySelector('.clip .fh.in'))`), 'on-take gain line + fade handles');
+      // practice: words flying at you (3D crawl)
+      await jeff.post('/lyrics', { add: [{ text: 'noodles in the colander tonight', bar: 1 }, { text: 'strain it out and let it ring', bar: 3 }, { text: 'every take is just a thing', bar: 5 }, { text: 'we never had a doubt', bar: 7 }] });
+      await jeff.post('/practice', { open: true }); await sleep(400);
+      await jeff.evalJs(`const v = document.querySelector('#k-view'); v.value = 'crawl'; v.dispatchEvent(new Event('change')); true`); await sleep(600);
+      assert.ok(await jeff.evalJs(`document.querySelectorAll('#k-plane .k-cl').length >= 3`), 'crawl lines on the plane');
+      assert.ok(await jeff.evalJs(`(() => { const k = document.querySelector('#karaoke').getBoundingClientRect(); const sb = document.querySelector('#sidebar').getBoundingClientRect(); return k.left >= sb.right - 1 && k.top > 40; })()`), 'practice covers only the song area');
+      assert.ok(await jeff.evalJs(`!document.querySelector('#k-crawl').hidden`), 'crawl view shown');
+      await jeff.shot('practice-crawl');
+      await jeff.post('/practice', { open: false }); await sleep(200);
       await jeff.post('/workspace', { ws: 'record' }); await sleep(300);
       assert.ok(await jeff.evalJs(`/take|arm it/.test(document.querySelector('.track-head .tinfo').textContent)`), 'record head info');
       await jeff.post('/workspace', { ws: 'write' }); await sleep(300);

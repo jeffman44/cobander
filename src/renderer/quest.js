@@ -38,7 +38,8 @@
   // band level by share of the setlist's possible XP; member level by their own XP
   // band levels: a pot of noodles coming together (the band's whole-catalog progress)
   const BAND_LEVELS = [[0, 'Dry Noodles'], [0.1, 'Water\'s Boiling'], [0.3, 'Al Dente'], [0.5, 'Saucy'], [0.7, 'Chef\'s Kiss'], [0.9, 'Never a Doubt']];
-  const MEMBER_LEVELS = [[0, 'Roadie'], [60, 'Open Mic'], [200, 'Garage Hero'], [450, 'Basement Star'], [800, 'Local Legend'], [1300, 'Headliner'], [2000, 'Touring Act'], [3000, 'Rock Star'], [4500, 'Hall of Famer'], [6500, 'Never a Doubt']];
+  // [xp, title, sprite] — sprites are game-icons.net classes (see icons/CREDITS.md)
+  const MEMBER_LEVELS = [[0, 'Roadie', 'gi-box'], [60, 'Open Mic', 'gi-mic'], [200, 'Garage Hero', 'gi-guitar'], [450, 'Basement Star', 'gi-star'], [800, 'Local Legend', 'gi-trophy'], [1300, 'Headliner', 'gi-curtains'], [2000, 'Touring Act', 'gi-bus'], [3000, 'Rock Star', 'gi-skull'], [4500, 'Hall of Famer', 'gi-laurel'], [6500, 'Never a Doubt', 'gi-dragon']];
   const ACHIEVEMENTS = [
     ['first-take', '🎙', 'First Take', 'recorded a take', (m) => m.takes + m.midi >= 1],
     ['ten-takes', '🔟', 'Double Digits', '10 takes', (m) => m.takes >= 10],
@@ -129,7 +130,7 @@
   const isCover = (s) => /\((official\s+)?cover\)/i.test(String(s || ''));
   const clampPct = (x) => Math.max(0, Math.min(100, Math.round(Number(x) || 0)));
   function memberFor(members, user) { const u = String(user || '').trim().toLowerCase(); if (!u) return null; return (members || []).find((mb) => mb.name.toLowerCase() === u || (mb.aliases || []).some((a) => String(a).toLowerCase() === u)) || null; }
-  function levelOf(xp, levels) { let i = 0; for (let k = 0; k < levels.length; k++) if (xp >= levels[k][0]) i = k; const hi = i + 1 < levels.length ? levels[i + 1][0] : null; return { n: i + 1, title: levels[i][1], next: hi != null ? levels[i + 1][1] : null, lo: levels[i][0], hi, toNext: hi != null ? Math.max(0, Math.ceil(hi - xp)) : 0, frac: hi != null ? Math.max(0, Math.min(1, (xp - levels[i][0]) / (hi - levels[i][0]))) : 1 };
+  function levelOf(xp, levels) { let i = 0; for (let k = 0; k < levels.length; k++) if (xp >= levels[k][0]) i = k; const hi = i + 1 < levels.length ? levels[i + 1][0] : null; return { n: i + 1, title: levels[i][1], sprite: levels[i][2] || null, next: hi != null ? levels[i + 1][1] : null, lo: levels[i][0], hi, toNext: hi != null ? Math.max(0, Math.ceil(hi - xp)) : 0, frac: hi != null ? Math.max(0, Math.min(1, (xp - levels[i][0]) / (hi - levels[i][0]))) : 1 };
   }
 
   // ---- the board: songs from Cobander (each with .quest = songStats output, from listSongs) + the shared fields ----

@@ -1,8 +1,16 @@
 # Cobander changelog
 
+## 0.15.2
+- New wordmark up top in the tofu-shop stencil spirit: コバンダー · COBANDER · 麺 seal · (noodle together).
+- Real icons instead of system emoji: OpenMoji for the kitchen (noodles, takeout, chopsticks, pot…) and game-icons sprites for the Band page — so nothing shows as a box on Windows. Credits under ⚙.
+- Every bandmate has a level sprite on the Band page: box → mic → guitar → star → trophy → curtains → tour bus → crowned skull → laurels → dragon, coloured by level; the boss battle is a dragon with noodles.
+- Mix keeps the timeline: track heads become mini channel strips (volume, pan, LC / EQ / CMP, M / S, fix) with the console below, and the takes get mixing handles — drag the top corners for fades, the line up / down for take level; right-click → Normalize sets a take's level from its loudest moment.
+- Practice: "words flying at you (3D)" — lyrics approach from the horizon and hit the line when it's time to sing them; the play-along highway is in perspective too. Practice now lives in the song area (top bar and songs list stay).
+- Tooltips rewritten for total beginners: click, count-in, loop, punch, monitor, key, lock, and ~40 more say what, when and what happens; hovering a chip's label shows its control's tip.
+
 ## 0.15.1
 - 🥡 Takeout: Cobander's installers are pay-what-you-want (a round for the band $12 · a round and the jukebox $25 · Roadie $60), one time, per band; the source stays free. Link under ⚙ and on the Band page.
-- Kitchen icons next to the names (names unchanged): 🍜 Songs, 📋 Setlist, 🐉🍜 boss battle, 🥡 Parts, 🥢 Ideas, 🍲 Versions, 🍳 Band feed, 🍽️ Show, 🧂 Auto mix / fix, 🍽️ Auto master, 🥡 Bounce, 🫗 Lighten the folder.
+- Kitchen icons next to the names (names unchanged): 🍜 Songs, 📋 Setlist, 🐉🍜 boss battle, 🥡 Parts, 🥢 Ideas, 🍲 Versions, 🍳 Band feed, 🍽️ Show, 🥄 Auto mix / fix, 🍽️ Auto master, 🥡 Bounce, 🥣 Lighten the folder.
 - 🍺 Ko-fi joins Venmo in the tip jar (⚙ and the Band page).
 
 ## 0.15.0
