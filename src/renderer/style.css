@@ -837,7 +837,7 @@ body.ws-record .track-head button.arm.active::after { content: ' REC'; }
 @keyframes char-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
 .char.big { width: 120px; height: 120px; border-width: 4px; } .char.big .gi { width: 70px; height: 70px; } .char.big .badge { width: 44px; height: 44px; right: -8px; bottom: -8px; } .char.big .badge .gi { width: 28px; height: 28px; }
 /* choose your character */
-.char-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0; }
+.char-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 10px 0; }
 .char-pick { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg3); cursor: pointer; text-align: center; }
 .char-pick:hover { border-color: var(--accent); } .char-pick.sel { border-color: #f2b534; box-shadow: 0 0 0 2px rgba(242,181,52,.35); }
 .char-pick b { font-size: 13px; } .char-pick small { color: var(--muted); font-size: 11px; }
@@ -864,15 +864,33 @@ body.tracks-short .track-head .tinfo, body.tracks-short .track-head .reactions, 
 body.tracks-thin .track-head .tinfo, body.tracks-thin .track-head .mixrow, body.tracks-thin .track-head .mixchips { display: none; }
 body.tracks-thin .track-head .btns { flex: none; }
 
-/* Kenney bodies */
+/* LPC bodies (lpc.js): a 64px frame drawn pixel-perfect on a canvas */
 .char.body { width: 56px; height: 64px; border-radius: 12px; overflow: visible; }
-.char.body img.pose { width: 42px; height: 56px; object-fit: contain; image-rendering: auto; }
+.char.body canvas.lpc { width: 56px; height: 56px; image-rendering: pixelated; }
 .char.body .inst { position: absolute; left: -6px; bottom: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: inherit; }
 .char.body .inst .gi { width: 14px; height: 14px; }
-.char.body.big { width: 160px; height: 180px; border-radius: 24px; } .char.body.big img.pose { width: 120px; height: 160px; } .char.body.big .inst { width: 44px; height: 44px; left: -10px; bottom: -8px; } .char.body.big .inst .gi { width: 28px; height: 28px; }
-.char-tiers .char.body { width: 40px; height: 46px; } .char-tiers .char.body img.pose { width: 30px; height: 40px; } .char-tiers .char.body .inst { width: 14px; height: 14px; left: -4px; bottom: -4px; } .char-tiers .char.body .inst .gi { width: 9px; height: 9px; }
-.body-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 6px 0 10px; }
-.body-pick img { width: 48px; height: 64px; object-fit: contain; }
+.char.body.big { width: 200px; height: 200px; border-radius: 24px; } .char.body.big canvas.lpc { width: 192px; height: 192px; } .char.body.big .inst { width: 44px; height: 44px; left: -10px; bottom: -8px; } .char.body.big .inst .gi { width: 28px; height: 28px; }
+.char-tiers .char.body { width: 40px; height: 46px; } .char-tiers .char.body canvas.lpc { width: 40px; height: 40px; } .char-tiers .char.body .inst { width: 14px; height: 14px; left: -4px; bottom: -4px; } .char-tiers .char.body .inst .gi { width: 9px; height: 9px; }
+/* the builder */
+dialog#charpick { max-width: 1100px; width: min(1100px, 96vw); max-height: 96vh; overflow: auto; }
+.cb-wrap { display: flex; gap: 16px; align-items: flex-start; }
+.cb-left { flex: none; width: 220px; display: flex; flex-direction: column; align-items: center; gap: 8px; position: sticky; top: 0; }
+.cb-right { flex: 1; min-width: 0; }
+.cb-preview { padding: 8px; }
+.cb-surprise { padding: 6px 12px; }
+.cb-rows { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 10px; }
+.cb-row { display: flex; align-items: center; gap: 8px; } .cb-row.off { opacity: .35; pointer-events: none; }
+.cb-label { flex: none; width: 84px; font-size: 12px; color: var(--muted); text-align: right; }
+.cb-opts { display: flex; flex-wrap: wrap; gap: 3px; min-width: 0; }
+.cb-opt { padding: 0; width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg3); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
+.cb-opt:hover { border-color: var(--accent); } .cb-opt.sel { border-color: #f2b534; box-shadow: 0 0 0 2px rgba(242,181,52,.35); }
+.cb-opt canvas.lpc { width: 48px; height: 48px; image-rendering: pixelated; margin-top: -10px; flex: none; }
+/* zoomed thumbnails: 2× frame, shifted so the part that changes fills the cell */
+.cb-opt { position: relative; } .cb-opt[class*=" z-"] canvas.lpc { position: absolute; width: 128px; height: 128px; margin: 0; left: -44px; }
+.cb-opt.z-head canvas.lpc { top: -24px; } .cb-opt.z-torso canvas.lpc { top: -56px; } .cb-opt.z-legs canvas.lpc { top: -84px; }
+.cb-swatch { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(0,0,0,.4); }
+.cb-none { color: var(--muted); font-size: 16px; }
+.char-grid .char-pick .char { width: 36px; height: 36px; } .char-grid .char-pick .char .gi { width: 22px; height: 22px; }
 
 /* crawl: one flyer per word */
 .k-cw { position: absolute; bottom: 0; font-size: calc(30px * var(--ks)); font-weight: 700; line-height: 1.2; white-space: nowrap; will-change: transform, opacity; color: #e8e9ee; }
@@ -880,3 +898,8 @@ body.tracks-thin .track-head .btns { flex: none; }
 .k-cw.now { color: var(--xp); font-size: calc(36px * var(--ks)); text-shadow: 0 0 18px rgba(242,181,52,.6); }
 .k-cw.sung { color: var(--muted); }
 .k-cw .k-chord { display: block; font-size: .5em; color: var(--accent); font-weight: 600; }
+
+/* the kitchen band (illustrations) */
+.empty .art-wait { width: min(520px, 90%); height: auto; border-radius: 12px; display: block; margin: 0 auto 18px; opacity: .95; }
+#band-page .art-banner { width: 100%; height: auto; border-radius: 10px; margin-bottom: 12px; display: block; }
+#levelup .lu-art { position: absolute; width: min(70vh, 640px); height: auto; opacity: .35; pointer-events: none; animation: lu-pop .8s cubic-bezier(.2,1.6,.4,1) both; }

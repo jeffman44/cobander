@@ -80,11 +80,13 @@
 
     <main id="main">
       <div id="no-song" class="empty">
+        <img class="art-wait" src="art/waiting.jpg" alt="" width="1200" height="800">
         <h2>Pick a song on the left, or make a new one.</h2>
         <p class="muted">Everything lives in the band's shared folder. Hit <b>R</b> to record onto the armed track, <b>Space</b> to play.</p>
       </div>
       <section id="band-page" hidden>
         <div class="bp-col bp-main">
+          <img class="art-banner" src="art/band-banner.jpg" alt="" width="1400" height="700">
           <div id="band-pane">
                 <div class="qb-head"><div class="qb-lvl"><b id="qb-lvl-n"></b><span id="qb-lvl-title"></span></div><div class="qb-xp"><span id="qb-xp"></span><div class="xp-bar big"><i id="qb-bar"></i></div><span id="qb-tonext" class="muted small"></span></div></div>
                 <div id="qb-boss" class="qb-boss" title="Boss battle: the next thing the band is working towards — a practice, a show, a recording day. Click to name it and give it a date; it shows here and the band's quest counts down to it."></div>
@@ -239,7 +241,7 @@
     <label>Click level (dB)<input id="s-click" title="How loud the click is in your headphones. 0 is loudest; -12 is a good start." type="number" min="-40" max="0" value="-12"></label>
     <label>Speech-to-text model (lyrics from vocals) <span class="muted small">— downloads once per computer, runs offline</span><select id="s-asr" title="Which speech-to-text model writes lyrics from the vocal takes. Bigger = more accurate, but a longer download and slower to run."></select><span id="s-asr-info" class="small muted"></span></label>
     <div class="row small" id="s-version-row"><span id="s-version" class="muted"></span><button type="button" id="s-check-update" title="Check the band folder (and GitHub) for a newer Cobander right now — it also checks by itself every 10 minutes">Check for updates</button></div>
-    <div class="row small muted" id="s-credits" title="Where the pictures come from">Icons: <button type="button" class="link-btn" data-link="openmoji">OpenMoji</button> (CC BY-SA 4.0) · <button type="button" class="link-btn" data-link="gameicons">game-icons.net</button> (CC BY 3.0 — Lorc, Delapouite, Caro Asercion) · characters by <button type="button" class="link-btn" data-link="kenney">Kenney</button> (CC0)</div>
+    <div class="row small muted" id="s-credits" title="Where the pictures come from">Icons: <button type="button" class="link-btn" data-link="openmoji">OpenMoji</button> (CC BY-SA 4.0) · <button type="button" class="link-btn" data-link="gameicons">game-icons.net</button> (CC BY 3.0 — Lorc, Delapouite, Caro Asercion) · characters: <button type="button" class="link-btn" data-link="lpc">Liberated Pixel Cup</button> (CC-BY-SA 3.0)</div>
     <div class="row small" id="s-links"><span class="muted">Cobander is free and open source, kept alive by bands who chip in.</span><button type="button" class="link-btn pbr" data-link="takeout" title="Takeout: pay what you want for the ready-made installers and updates — a round for the band ($12), a round and the jukebox ($25), or Roadie ($60, your name in the credits). The source is free either way."><i class="om om-takeout"></i> Takeout</button><button type="button" class="link-btn" data-link="repo" title="Open Cobander's source code on GitHub">GitHub</button><button type="button" class="link-btn" data-link="issues" title="Something broken? Open the bug tracker and tell Jeff">Report a bug</button><button type="button" class="link-btn pbr" data-link="venmo" title="Venmo @jdeuel44"><i class="om om-beer"></i> Buy Jeff a PBR</button><button type="button" class="link-btn pbr" data-link="kofi" hidden><i class="om om-beer"></i> Ko-fi</button></div>
     <details><summary>Assistant / control API</summary>
       <p class="small muted">A local-only HTTP API lets an AI assistant read meters, change the mix, and bounce. Token lives in settings.json.</p>
@@ -510,6 +512,7 @@
 <script src="tighten.js"></script>
 <script src="timing.js"></script>
 <script src="highway.js"></script>
+<script src="lpc.js"></script>
 <script src="pitchcheck.js"></script>
 <script src="changes.js"></script>
 <script src="chart.js"></script>

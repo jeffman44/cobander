@@ -192,7 +192,7 @@
   bp.update.status().then(renderUpdate).catch(() => {});
   // public links: GitHub, bugs, the tip jar (Ko-fi shows once package.json names a page)
   for (const b of document.querySelectorAll('.link-btn[data-link]')) b.addEventListener('click', () => bp.shell.openLink(b.dataset.link).catch(fail));
-  bp.shell.links().then((l) => { for (const b of document.querySelectorAll('.link-btn[data-link]')) { const k = b.dataset.link; const has = k === 'kofi' ? !!l.kofi : k === 'venmo' ? !!l.venmo : k === 'takeout' ? !!l.takeout : (k === 'openmoji' || k === 'gameicons' || k === 'kenney') ? true : !!l.repo; b.hidden = !has; } }).catch(() => {});
+  bp.shell.links().then((l) => { for (const b of document.querySelectorAll('.link-btn[data-link]')) { const k = b.dataset.link; const has = k === 'kofi' ? !!l.kofi : k === 'venmo' ? !!l.venmo : k === 'takeout' ? !!l.takeout : (k === 'openmoji' || k === 'gameicons' || k === 'lpc') ? true : !!l.repo; b.hidden = !has; } }).catch(() => {});
   $('#s-check-update').addEventListener('click', async () => { const b = $('#s-check-update'); b.disabled = true; try { const st = await bp.update.check(); renderUpdate(st); if (!st.available) toast(st.latest ? `You're on the latest (${st.current}).` : 'No installers folder in the shared band folder yet.', { ms: 5000 }); } catch (err) { fail(err); } finally { b.disabled = false; } });
 
   var MT = window.BPMeter;   // hoisted: used from init-time renders
@@ -364,7 +364,7 @@
     const mw = $('#qb-members'); mw.innerHTML = '';
     for (const m of b.members.slice().sort((x, y) => y.xp - x.xp)) {
       const row = el('div', 'qb-member' + (m.isMe ? ' me' : '') + (quest.sel === m.name ? ' sel' : ''));
-      const top = el('div', 'qb-mrow'); const sp = charSprite(m); if (m.isMe) sp.addEventListener('click', (e) => { e.stopPropagation(); chooseCharacter(m).catch(fail); }); { const img = sp.querySelector('img.pose'); if (img) { let tm = 0, k = 0; sp.addEventListener('mouseenter', () => { tm = setInterval(() => { img.src = poseSrc(bodyOf(m), `walk${k++ % 4}`); }, 140); }); sp.addEventListener('mouseleave', () => { clearInterval(tm); img.src = poseSrc(bodyOf(m), Q.TIER_POSE[(m.level.tier || 1) - 1]); }); } } top.append(sp, el('span', 'qb-icon', m.icon), el('b', null, m.name), el('span', 'qb-role muted', m.role || ''), el('span', 'qb-mlvl', `Lv ${m.level.n} ${m.level.title}`), el('span', 'qb-mxp mono', `${m.xp}`));
+      const top = el('div', 'qb-mrow'); const sp = charSprite(m, { live: true }); if (m.isMe) sp.addEventListener('click', (e) => { e.stopPropagation(); chooseCharacter(m).catch(fail); }); top.append(sp, el('span', 'qb-icon', m.icon), el('b', null, m.name), el('span', 'qb-role muted', m.role || ''), el('span', 'qb-mlvl', `Lv ${m.level.n} ${m.level.title}`), el('span', 'qb-mxp mono', `${m.xp}`));
       row.append(top, xpBar(m.level.frac));
       const ach = el('div', 'qb-ach'); for (const a of m.achievements) { const t = el('span', 'qb-a', a.icon); t.title = `${a.title} — ${a.desc}`; ach.append(t); } if (!m.achievements.length) ach.append(el('span', 'muted small', 'no achievements yet'));
       row.append(ach);
@@ -449,37 +449,63 @@
   // ---- characters & level sprites ----
   const charOf = (m) => Q.CHARACTERS.find(([id]) => id === (m && m.character)) || Q.CHARACTERS.find(([id]) => id === roleGuess(m)) || Q.CHARACTERS[0];
   function roleGuess(m) { const r = String((m && m.role) || '').toLowerCase(); if (/bass/.test(r)) return 'lowend'; if (/drum/.test(r)) return 'thumper'; if (/vo(x|cal)|sing/.test(r)) return 'howler'; if (/key|piano|synth/.test(r)) return 'wizard'; if (/sax|horn|trumpet|brass/.test(r)) return 'horn'; if (/banjo|mandolin/.test(r)) return 'picker'; if (/guitar|gtr/.test(r)) return 'shredder'; return 'noodle'; }
-  // everyone gets a body from the start (picked from their name) until they choose one
-  const bodyOf = (m) => { if (m && m.body && Q.BODIES.some(([id]) => id === m.body)) return m.body; const n = String((m && m.name) || ''); let h = 0; for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0; return Q.BODIES[h % Q.BODIES.length][0]; };
-  const poseSrc = (body, pose) => `sprites/${body}/${pose}.png`;
-  function charSprite(m, { tier = null, big = false, title = true, pose = null } = {}) {
-    const ch = charOf(m); const lv = m && m.level ? m.level : { tier: 1, n: 1, title: Q.TIERS[0] }; const t = tier || lv.tier || 1; const body = bodyOf(m);
-    const box = el('span', `char t${t}${big ? ' big' : ''}${body ? ' body' : ''}`);
-    if (body) { const img = document.createElement('img'); img.className = 'pose'; img.src = poseSrc(body, pose || Q.TIER_POSE[t - 1] || 'idle'); img.alt = ''; img.draggable = false; box.append(img); const ins = el('span', 'inst'); ins.append(el('i', `gi ${ch[2]}`)); box.append(ins); }
+  // everyone gets a look from the start (rolled from their name) until they build one; tiers pick the animation
+  const LPC = window.BPLPC; LPC.load().then(() => { if (state.ws === 'band') renderBandPane(); }).catch((e) => console.warn('lpc', e));
+  const lookOf = (m) => (LPC.ready() ? LPC.sanitize(m && m.look ? m.look : LPC.defaultLook(m && m.name)) : null);
+  const animOf = (t) => Q.TIER_ANIM[t - 1] || 'idle';
+  // a canvas that draws frame 0 now, animates while hovered, and (live) while it is on screen; a 'big' hero plays `anims` nonstop
+  function lpcCanvas(look, { anim = 'idle', scale = 1, live = false, anims = null, hover = true } = {}) {
+    const c = document.createElement('canvas'); c.className = 'lpc'; c.width = c.height = 64 * scale; if (!look) return c;
+    LPC.render(c, look, { anim, scale }).catch(() => {}); let stop = null; const go = () => { if (!stop) stop = LPC.animate(c, look, { anim, scale, anims }); }; const halt = () => { if (stop) { stop(); stop = null; LPC.render(c, look, { anim, scale }).catch(() => {}); } };
+    if (anims) { go(); return c; }
+    if (hover) { c.addEventListener('mouseenter', go); c.addEventListener('mouseleave', () => { if (!c.dataset.vis) halt(); }); }
+    if (live && 'IntersectionObserver' in window) { const io = new IntersectionObserver((es) => { for (const e of es) { if (e.isIntersecting) { c.dataset.vis = '1'; go(); } else { delete c.dataset.vis; halt(); } if (!c.isConnected) io.disconnect(); } }); io.observe(c); }
+    return c;
+  }
+  function charSprite(m, { tier = null, big = false, title = true, anim = null, live = false, look = null } = {}) {
+    const ch = charOf(m); const lv = m && m.level ? m.level : { tier: 1, n: 1, title: Q.TIERS[0] }; const t = tier || lv.tier || 1; const lk = look || lookOf(m);
+    const box = el('span', `char t${t}${big ? ' big' : ''}${lk ? ' body' : ''}`);
+    if (lk) { box.append(lpcCanvas(lk, { anim: anim || animOf(t), scale: big ? 3 : 1, live })); const ins = el('span', 'inst'); ins.append(el('i', `gi ${ch[2]}`)); box.append(ins); }
     else box.append(el('i', `gi ${ch[2]}`));
     const badge = Q.TIER_BADGE[t - 1]; if (badge) { const b = el('span', 'badge'); b.append(el('i', `gi ${badge}`)); box.append(b); }
     if (title && m) box.title = `${ch[1]} — level ${lv.n}, ${lv.title}${lv.next ? ` · ${lv.toNext} XP to ${lv.next === lv.title ? `level ${lv.n + 1}` : lv.next}` : ' · max level'}${m.isMe ? ' · click to choose your character' : ''}`;
     return box;
   }
+  // the builder: a live preview, a row of choices per slot (each a tiny canvas of the current look with that one thing
+  // swapped, or a colour swatch), the instrument, and "That's me" writes `look` + `character` into band:members
   async function chooseCharacter(mb) {
-    let d = $('#charpick'); if (d) d.remove();
+    let d = $('#charpick'); if (d) d.remove(); if (!LPC.ready()) await LPC.load();
     d = document.createElement('dialog'); d.id = 'charpick'; const f = document.createElement('form'); f.method = 'dialog';
-    f.append(el('h3', null, 'Choose your character'), el('p', 'muted small', 'Your sprite on the Band page. It levels up with you: a badge, a ring and a glow at every new name (every 10 levels). Change it any time.'));
-    let selBody = bodyOf(mb) || 'madv'; const bodies = el('div', 'body-grid');
-    const refreshTiers = () => { tiers.innerHTML = ''; for (let t = 1; t <= 10; t++) tiers.append(charSprite({ ...mb, character: sel, body: selBody }, { tier: t, title: false })); };
-    for (const [id, name] of Q.BODIES) { const c = el('div', 'char-pick body-pick' + (selBody === id ? ' sel' : '')); const img = document.createElement('img'); img.src = poseSrc(id, 'idle'); img.alt = name; c.append(img, el('b', null, name)); c.addEventListener('click', () => { selBody = id; for (const x of bodies.children) x.classList.toggle('sel', x === c); for (const x of grid.children) { const im = x.querySelector('.char'); if (im) im.replaceWith(charSprite({ ...mb, character: x.dataset.id, body: selBody }, { title: false })); } refreshTiers(); }); bodies.append(c); }
-    const grid = el('div', 'char-grid'); let sel = (charOf(mb) || [])[0];
-    for (const [id, name, , blurb] of Q.CHARACTERS) {
-      const c = el('div', 'char-pick' + (sel === id ? ' sel' : '')); c.dataset.id = id; c.append(charSprite({ ...mb, character: id, body: selBody }, { title: false }), el('b', null, name), el('small', null, blurb));
-      c.addEventListener('click', () => { sel = id; for (const x of grid.children) x.classList.toggle('sel', x === c); refreshTiers(); });
-      grid.append(c);
-    }
-    const tiers = el('div', 'char-tiers'); refreshTiers();
+    f.append(el('h3', null, 'Choose your character'), el('p', 'muted small', 'Your person on the Band page. The badge, ring and glow grow with every new name (every 10 levels), and so does the move. Change it any time.'));
+    let look = lookOf(mb), sel = (charOf(mb) || [])[0]; const O = LPC.options();
+    const wrap = el('div', 'cb-wrap'); const left = el('div', 'cb-left'); const right = el('div', 'cb-right'); wrap.append(left, right);
+    const preview = el('div', 'cb-preview'); const tiers = el('div', 'char-tiers'); const surprise = el('button', 'cb-surprise', '🎲 Surprise me'); surprise.type = 'button';
+    left.append(preview, surprise, el('div', 'muted small', 'How it grows (every ten levels):'), tiers);
+    const refreshPreview = () => { preview.innerHTML = ''; preview.append(charSprite({ ...mb, character: sel }, { big: true, title: false, look, anim: 'idle', live: true })); tiers.innerHTML = ''; for (let t = 1; t <= 10; t++) tiers.append(charSprite({ ...mb, character: sel }, { tier: t, title: false, look })); };
+    // one row per slot: [label, key, choices (id/name list or colour names), colour material or null, allow none]
+    const ROWS = [['Body', 'body', O.body.map((b) => ({ id: b, name: b })), null, false, ''], ['Skin', 'skin', O.skin, 'body', false], ['Head', 'head', O.head, null, false, 'head'], ['Hair', 'hair', O.hair, null, true, 'head'], ['Hair colour', 'hairColor', O.hairColor, 'hair', false], ['Beard', 'beard', O.beard, null, true, 'head'], ['Face', 'face', O.face, null, true, 'head'],
+      ['Top', 'top', O.top, null, true, 'torso'], ['Top colour', 'topColor', O.cloth, 'cloth', false], ['Jacket', 'jacket', O.jacket, null, true, 'torso'], ['Legs', 'legs', O.legs, null, true, 'legs'], ['Legs colour', 'legsColor', O.cloth, 'cloth', false], ['Shoes', 'shoes', O.shoes, null, true, 'legs'], ['Shoes colour', 'shoesColor', O.cloth, 'cloth', false], ['Hat', 'hat', O.hat, null, true, 'head'], ['Hat colour', 'hatColor', O.cloth, 'cloth', false]];
+    const rows = el('div', 'cb-rows');
+    const swatch = (mat, name) => { const r = LPC.ramp(mat, name) || []; const sw = el('span', 'cb-swatch'); sw.style.background = `linear-gradient(135deg, ${r[1] || '#000'}, ${r[3] || '#888'} 50%, ${r[4] || '#fff'})`; return sw; };
+    const buildRow = (label, key, choices, mat, none, zoom = '') => {
+      const row = el('div', 'cb-row'); row.dataset.key = key; const opts = el('div', 'cb-opts'); row.append(el('div', 'cb-label', label), opts);
+      const items = none ? [{ id: null, name: 'none' }, ...choices] : choices; const dis = (k) => (k === 'beard' || k === 'face') && !(look.head === 'heads_human_male' || look.head === 'heads_human_female');   // only human heads take faces / beards
+      for (const ch of items) { const id = typeof ch === 'string' ? ch : ch.id, name = typeof ch === 'string' ? ch : ch.name; const o = el('button', 'cb-opt' + (look[key] === id ? ' sel' : '') + (zoom && id !== null ? ` z-${zoom}` : '')); o.type = 'button'; o.title = name.replace(/_/g, ' ');
+        if (mat) o.append(swatch(mat, id)); else if (id === null) o.append(el('span', 'cb-none', '∅')); else o.append(lpcCanvas(LPC.sanitize({ ...look, [key]: id }), { anim: 'idle', hover: false, scale: zoom ? 2 : 1 }));
+        o.addEventListener('click', () => { look = LPC.sanitize({ ...look, [key]: id }); refreshAll(key); }); opts.append(o); }
+      row.classList.toggle('off', dis(key)); return row;
+    };
+    const refreshAll = (changed) => { for (const r of [...rows.children]) { const key = r.dataset.key; const spec = ROWS.find((x) => x[1] === key); const colour = !!spec[3]; if (colour && changed !== key) { for (const o of r.querySelectorAll('.cb-opt')) o.classList.toggle('sel', (o.title === 'none' ? null : o.title.replace(/ /g, '_')) === look[key]); } else r.replaceWith(buildRow(...spec)); } refreshPreview(); };
+    for (const spec of ROWS) rows.append(buildRow(...spec));
+    surprise.addEventListener('click', () => { look = LPC.defaultLook(`${mb.name}:${Date.now()}:${Math.random()}`); refreshAll(); });
+    const grid = el('div', 'char-grid');
+    for (const [id, name, icon, blurb] of Q.CHARACTERS) { const c = el('div', 'char-pick' + (sel === id ? ' sel' : '')); c.dataset.id = id; const ic = el('span', 'char t1'); ic.append(el('i', `gi ${icon}`)); c.append(ic, el('b', null, name), el('small', null, blurb)); c.addEventListener('click', () => { sel = id; for (const x of grid.children) x.classList.toggle('sel', x === c); refreshPreview(); }); grid.append(c); }
+    right.append(el('div', 'muted small', 'Who you are:'), rows, el('div', 'muted small', 'What you play:'), grid);
     const menu = document.createElement('menu'); const ok = el('button', 'primary', 'That\'s me'); ok.value = 'ok'; const cancel = el('button', 'cancel', 'Cancel'); cancel.value = 'cancel'; cancel.setAttribute('formnovalidate', ''); menu.append(cancel, ok);
-    f.append(el('div', 'muted small', 'Who you are:'), bodies, el('div', 'muted small', 'What you play:'), grid, el('div', 'muted small', 'How it grows (every ten levels):'), tiers, menu); d.append(f); document.body.append(d);
+    f.append(wrap, menu); d.append(f); document.body.append(d); refreshPreview();
     const r = await new Promise((res) => { d.addEventListener('close', () => res(d.returnValue), { once: true }); d.showModal(); });
     d.remove(); if (r !== 'ok') return;
-    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, body: x.body || null })).map((x) => (x.name === mb.name ? { ...x, character: sel, body: selBody } : x));
+    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, look: x.look || null })).map((x) => (x.name === mb.name ? { ...x, character: sel, look } : x));
     await questWrite({ 'band:members': list }); toast(`You are ${Q.CHARACTERS.find(([id]) => id === sel)[1]}. 🤘`, { kind: 'ok', ms: 5000 });
   }
   // LEVEL UP: the full obnoxious show — unless a take is rolling
@@ -500,7 +526,8 @@
     if (!force && (engine.recording || finishing || sketchRec || (state.settings && state.settings.fanfare === false))) { toast(`⚔ Level up — you're level ${m.level.n}: ${m.level.title}`, { kind: 'ok', ms: 9000 }); return; }
     const old = $('#levelup'); if (old) old.remove();
     const o = el('div'); o.id = 'levelup'; const newName = (m.level.n - 1) % 10 === 0;
-    const hero = charSprite(m, { big: true, title: false }); if (bodyOf(m)) { const img = hero.querySelector('img.pose'); const frames = ['cheer0', 'cheer1', 'jump', 'cheer1', 'cheer0', 'wide']; let k = 0; const tm = setInterval(() => { if (!o.isConnected) { clearInterval(tm); return; } img.src = poseSrc(bodyOf(m), frames[k++ % frames.length]); }, 220); }
+    const hero = el('span', `char t${m.level.tier} big${lookOf(m) ? ' body' : ''}`); { const lk = lookOf(m); if (lk) { hero.append(lpcCanvas(lk, { scale: 3, anims: ['jump', 'emote'] })); const ins = el('span', 'inst'); ins.append(el('i', `gi ${charOf(m)[2]}`)); hero.append(ins); } else hero.append(el('i', `gi ${charOf(m)[2]}`)); const badge = Q.TIER_BADGE[m.level.tier - 1]; if (badge) { const b = el('span', 'badge'); b.append(el('i', `gi ${badge}`)); hero.append(b); } }
+    const art = document.createElement('img'); art.className = 'lu-art'; art.src = 'art/levelup.jpg'; art.alt = ''; o.append(art);
     o.append(el('div', 'lu-title', 'LEVEL UP'), hero, el('div', 'lu-n', `LEVEL ${m.level.n}${newName ? ' — NEW NAME' : ''}`), el('div', 'lu-name', `${m.name} the ${m.level.title}`), el('div', 'lu-hint', 'click anywhere'));
     const cols = ['#f2b534', '#d8392b', '#fff', '#5b8def', '#4caf7d', '#ff4d6d']; const N = 70 + m.level.tier * 10;
     for (let i = 0; i < N; i++) { const p = el('span', 'p'); const a = Math.random() * Math.PI * 2, r = 180 + Math.random() * 520; p.style.setProperty('--dx', `${Math.cos(a) * r}px`); p.style.setProperty('--dy', `${Math.sin(a) * r + 200}px`); p.style.background = cols[i % cols.length]; p.style.animationDelay = `${(Math.random() * 0.35).toFixed(2)}s`; p.style.width = p.style.height = `${8 + Math.random() * 12}px`; if (i % 7 === 0) { p.className = 'p gi gi-noodles'; p.style.background = '#f2b534'; p.style.width = p.style.height = '26px'; } o.append(p); }
@@ -514,12 +541,12 @@
   async function editMember(mb) {
     const v = await promptName('Name · role · icon (e.g. "Zach · Drums · 🥁")', `${mb.name} · ${mb.role} · ${mb.icon}`); if (!v) return;
     const [name, role, icon] = v.split('·').map((x) => x.trim());
-    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, body: x.body || null })).map((x) => (x.name === mb.name ? { ...x, name: name || x.name, role: role ?? x.role, icon: icon || x.icon } : x));
+    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, look: x.look || null })).map((x) => (x.name === mb.name ? { ...x, name: name || x.name, role: role ?? x.role, icon: icon || x.icon } : x));
     await questWrite({ 'band:members': list });
   }
   async function editAliases(mb) {
     const v = await promptName(`${mb.name} shows up in Cobander as… (comma-separated display names, e.g. FossTheBoss)`, (mb.aliases || []).join(', ')); if (v === null) return;
-    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, body: x.body || null })).map((x) => (x.name === mb.name ? { ...x, aliases: v.split(',').map((a) => a.trim()).filter(Boolean).slice(0, 6) } : x));
+    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, look: x.look || null })).map((x) => (x.name === mb.name ? { ...x, aliases: v.split(',').map((a) => a.trim()).filter(Boolean).slice(0, 6) } : x));
     await questWrite({ 'band:members': list });
   }
   $('#qb-boss').addEventListener('click', () => editBoss().catch(fail));
@@ -6847,7 +6874,7 @@
       case 'changes': return computeChanges(args.since || state.lastSeenAtOpen);
       case 'sharePart': { const sc = liveSections().find((x) => x.id === args.section || x.name === args.section); if (!sc) throw new Error(`no part ${args.section}`); return sharePart(sc, { copy: false }); }
       case 'comp': { const f = findClip(args.clipId); if (!f) throw new Error(`no take ${args.clipId}`); const r = compTake(f.t, f.c, Number(args.from), Number(args.to), args.what || 'the range'); return { changed: r ? r.changed : 0 }; }
-      case 'quest': { await loadQuest(); if (!quest.board) throw new Error('no shared folder'); const b = quest.board; return { name: b.name, level: b.level, xp: b.xp, max: b.max, boss: b.boss, next: b.next, practice: b.practice, todos: b.todos, members: b.members.map((m) => ({ name: m.name, role: m.role, character: m.character || null, body: m.body || null, xp: m.xp, level: m.level, achievements: m.achievements, takes: m.takes, midi: m.midi, notes: m.notes, replies: m.replies, chords: m.chords, lyrics: m.lyrics, sections: m.sections, needsDone: m.needsDone, perSong: m.perSong })), songs: b.songs.map((s) => ({ qid: s.qid, name: s.name, folder: s.folder, xp: s.xp, max: s.max, goals: s.goals, parts: s.prog.map((p) => ({ member: p.member, pct: p.pct, written: p.written, takes: p.takes, midi: p.midi, xp: p.xp, manual: p.manual })), tasks: s.tasks, milestones: s.milestones })) }; }
+      case 'quest': { await loadQuest(); if (!quest.board) throw new Error('no shared folder'); const b = quest.board; return { name: b.name, level: b.level, xp: b.xp, max: b.max, boss: b.boss, next: b.next, practice: b.practice, todos: b.todos, members: b.members.map((m) => ({ name: m.name, role: m.role, character: m.character || null, look: m.look || null, xp: m.xp, level: m.level, achievements: m.achievements, takes: m.takes, midi: m.midi, notes: m.notes, replies: m.replies, chords: m.chords, lyrics: m.lyrics, sections: m.sections, needsDone: m.needsDone, perSong: m.perSong })), songs: b.songs.map((s) => ({ qid: s.qid, name: s.name, folder: s.folder, xp: s.xp, max: s.max, goals: s.goals, parts: s.prog.map((p) => ({ member: p.member, pct: p.pct, written: p.written, takes: p.takes, midi: p.midi, xp: p.xp, manual: p.manual })), tasks: s.tasks, milestones: s.milestones })) }; }
       case 'questSet': {
         await loadQuest(); if (!quest.board) throw new Error('no shared folder'); const b = quest.board; const patch = {};
         const songOf = (x) => { const s = b.songs.find((y) => y.folder === x || y.name === x || y.qid === x); if (!s) throw new Error(`no song "${x}" on the board`); return s; };

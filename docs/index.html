@@ -94,6 +94,10 @@
   .carton .fine { color: #5e564a; font-size: 14px; }
   .stamp { position: absolute; top: -18px; right: 24px; transform: rotate(6deg); border: 3px solid var(--chili); color: var(--chili); border-radius: 8px; padding: 6px 12px; font-family: var(--display); font-weight: 900; font-size: 20px; letter-spacing: 2px; line-height: 1.05; text-align: center; background: rgba(243,236,221,.9); }
 
+  .banner { margin: 40px 0 0; } .banner img { width: 100%; height: auto; display: block; border-radius: 14px; }
+  .menu-row { display: grid; grid-template-columns: minmax(0, 760px) 1fr; gap: 24px; align-items: center; }
+  .menu-row .jump { width: 100%; max-width: 320px; height: auto; border-radius: 14px; justify-self: center; }
+  @media (max-width: 900px) { .menu-row { grid-template-columns: 1fr; } .menu-row .jump { max-width: 260px; } }
   /* setup + faq */
   .setup { padding: 20px 0 40px; }
   .setup ol { padding-left: 22px; max-width: 62ch; } .setup li { margin: 6px 0; }
@@ -166,7 +170,10 @@
     </ul>
   </section>
 
+  <figure class="banner"><img src="img/band-banner.jpg" alt="The kitchen band on a basement stage: colander on bass, takeout box on drums, ramen bowl singing, salt shaker on keys" loading="lazy"></figure>
+
   <section class="menu" id="menu">
+    <div class="menu-row">
     <div class="carton">
       <div class="stamp">NO SERVER<br>NO ACCOUNTS<br>NO SUBSCRIPTION</div>
       <h2>Takeout</h2>
@@ -178,6 +185,8 @@
         <a class="btn hot" id="buy" href="https://ko-fi.com/jdeuel44" target="_blank" rel="noopener">Get Cobander for $25</a>
         <span class="fine">Windows 10+ · macOS 13+ · Apple silicon and Intel</span>
       </div>
+    </div>
+    <img class="jump" src="img/levelup.jpg" alt="The colander leaping with a bass guitar, confetti everywhere" loading="lazy">
     </div>
   </section>
 
