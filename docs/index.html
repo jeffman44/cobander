@@ -58,6 +58,13 @@
   .shots figcaption { color: var(--steel); font-size: 14px; margin-top: 8px; }
   .shots .tall { display: grid; gap: 14px; }
 
+  /* the clever bits */
+  .novel { padding: 50px 0 10px; }
+  .novel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 36px; }
+  .novel-grid > div { padding: 18px 0; border-top: 2px solid var(--noodle); }
+  .novel-grid h3 { font-size: 30px; letter-spacing: 1px; margin-bottom: 10px; }
+  .novel-grid p { color: #cfd3dc; font-size: 16px; max-width: none; }
+  @media (max-width: 760px) { .novel-grid { grid-template-columns: 1fr; } }
   /* what it does */
   .does { padding: 54px 0 30px; }
   .does ul { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 10px 28px; }
@@ -107,7 +114,7 @@
 <div class="wrap">
   <nav>
     <a class="mark" href="#"><b>COBANDER</b><span class="seal"><img class="gi" src="icons/gi-delapouite-noodles.svg" alt=""></span></a>
-    <div class="links"><a href="#does">What it does</a><a href="#menu">Takeout</a><a href="#setup">Setup</a><a href="#faq">Questions</a></div>
+    <div class="links"><a href="#novel">Why it's different</a><a href="#does">What it does</a><a href="#menu">Takeout</a><a href="#setup">Setup</a><a href="#faq">Questions</a></div>
   </nav>
 
   <header class="hero">
@@ -127,6 +134,16 @@
     <div class="shots two">
       <figure><img src="img/practice.jpg" alt="Practice: lyrics flying toward you in 3D over the song" loading="lazy"><figcaption>Practice: the words fly at you and hit the line when it's time to sing them.</figcaption></figure>
       <figure><img src="img/band.jpg" alt="The Band page: levels, loose ends, the setlist, the band feed" loading="lazy"><figcaption>Band: levels, achievements, the setlist, the next show, the to-do list that isn't a song.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="novel" id="novel">
+    <h2>The parts nobody else does</h2>
+    <div class="novel-grid">
+      <div><h3>It writes the lyrics down for you</h3><p>Sing the take. Cobander listens to the vocal, types the words, and pins each one to the moment you sang it — so the lyric sheet, the karaoke view and the chart all exist before anyone opens a notes app.</p></div>
+      <div><h3>It hears the chords and builds the tabs</h3><p>Record the guitar or the bass and it drafts the chord chart from the audio — bar by bar, with the bass line naming the roots. Guitar grips, capo-shifted, show up as a scrolling play-along lane so the rest of the band can learn it by watching.</p></div>
+      <div><h3>It knows what key you're in, and can move it</h3><p>The key is heard from the takes, not typed. Need it a step down for the singer? Transpose the whole song: the recordings, the MIDI, the chords and the chart move together, and the band hears the new key at the next sync.</p></div>
+      <div><h3>Practice is a game, not a PDF</h3><p>Words fly at you and land on the line when it's time to sing them. Loop the part you keep blowing, slow it down without changing pitch, take your own part out and play along with the rest, and let your phone follow on the music stand. Minutes count toward your level.</p></div>
     </div>
   </section>
 
