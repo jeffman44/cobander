@@ -25,8 +25,14 @@ if [[ "$WHAT" == all || "$WHAT" == mac ]]; then
     app="$dir/Cobander.app"
     [[ -d "$app" ]] || { echo "missing $app" >&2; exit 1; }
     if [[ -x "$RCODESIGN" ]]; then "$RCODESIGN" sign "$app" >/dev/null; else echo "WARNING: rcodesign not found; mac build is unsigned" >&2; fi
-    out="release/Cobander-${VER}-mac-${arch}.zip"; rm -f "$out"
+    out="release/Cobander-${VER}-mac-${arch}.zip"; rm -f "$out" "release/BandPad-${VER}-mac-${arch}.zip"
     (cd "$dir" && zip -qry "../$(basename "$out")" Cobander.app)
+    # MAC_COMPAT=1: the band folder's copy keeps the old bundle name so the BandPad (≤0.14.1) updater, which looks
+    # for BandPad.app inside the zip, can still install this version. Inside it is Cobander. Drop once everyone is on 0.15+.
+    if [[ "${MAC_COMPAT:-0}" == 1 ]]; then
+      rm -rf "$dir/BandPad.app"; cp -R "$dir/Cobander.app" "$dir/BandPad.app"
+      cout="release/BandPad-${VER}-mac-${arch}.zip"; rm -f "$cout"; (cd "$dir" && zip -qry "../$(basename "$cout")" BandPad.app); rm -rf "$dir/BandPad.app"
+    fi
   done
 fi
 

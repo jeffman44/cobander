@@ -1,4 +1,24 @@
-# BandPad changelog
+# Cobander changelog
+
+## 0.15.0
+- Hover anything for a plain-English tip (no studio jargon). F1 (or the ? button) turns on help mode — little ? marks on everything, tips show instantly — and F1 again opens a glossary of the words that trip people up.
+- BandPad is now **Cobander — noodle together.** New name, new icon (noodles in a colander), same app, same band folder, same settings. Windows: after this update open Cobander from the Start menu once (the BandPad shortcut goes away). Mac: the app keeps working from wherever it is.
+- 🎚 Mix is a real mixing console now: no timeline — big faders, pan, reverb send and a meter for every track, the master strip with a loudness readout, Auto mix / Auto master / A/B across the top. Each strip has one-click FX on/off (LC · EQ · CMP · AMP · DLY) and ✨ fix: common mixing moves in plain words (sit the vocal, less mud, more punch, brighter, copy the sound from another track…).
+- Track heads show what each job needs: Write shows which parts a track covers; Record shows the arm button first and the last take (who, when).
+- ↕ Track height (next to + track, or Alt+wheel over the tracks): thin / regular / thick noodles, so more tracks fit on screen. Remembered per computer. (Dan's ask.)
+- Loose ends on the Band page: the band's to-do list for things that aren't a song — book the gig, fix the PA, buy PBR. @Name assigns, checking one off earns XP, it shows in the feed. (Dan's ask.)
+- 🎼 Chart every song (Band page, by the setlist): opens each song in turn, listens to its guitar / keys / bass takes and drafts the chords it doesn't have yet. Chords anyone typed are never touched; songs someone else has open are skipped.
+- Chords from the recordings now run once per linked part and leave silent bars blank; the song's key is heard from the bass line first and only set by itself when it's sure.
+- Key chip: ⚠ on the key when the takes disagree with the label — click it to see what the bass line says and set it.
+- Track types set themselves from the name (bass, drums, vox…) — a type you picked by hand stays.
+- Deleted takes stay listed on their track until the track is locked again, then they're gone for good — unless the song or a tagged version still uses them (those stay in Deleted takes). One-time offer to clear old parked takes.
+- 🛣 Note highway in Practice (Play along): a scrolling lane of what to play — chord grips for guitar (capo-aware), the bass line pulled from the bass takes, or a MIDI track's notes.
+- ⏱ Timing report for every take (Record → Takes): how early / late each bar is, the worst bars, a one-click Nudge when it's a fixed offset or Tighten when it isn't.
+- Pitch check recalibrated on real takes: short notes ignored, slightly-off notes shown grey instead of flagged, wobbly only when the vibrato is wide.
+- The band folder can be in Google Drive, OneDrive, iCloud Drive or Dropbox (or any folder every bandmate syncs). Cobander names the provider in Settings and asks iCloud for takes it has evicted.
+- Cobander is free and open source: GitHub, Report a bug and 🍺 Buy Jeff a PBR (Venmo @jdeuel44) under ⚙ and on the Band page. Once it's on GitHub, updates can also come from the release there when there's no band folder.
+- Tuner: Done really stops listening — the mic the tuner opened is closed when the dialog closes (it used to stay open). (Dan's find.)
+- Band levels renamed for the pot: Dry Noodles → Water's Boiling → Al Dente → Saucy → Chef's Kiss → Never a Doubt. New achievements: Noodler, Tied Up.
 
 ## 0.14.1
 - Chords from the recordings, tried on a real song: the bass line now names the roots (pitch-tracked bar by bar) and the key it implies names major / minor — on American Appetites that turns a smear of Db / Gb / Ab guesses into B · G#m · E · F#. One chord a bar unless the bass moves mid-bar. A key label the bass disagrees with is overruled, and BandPad offers to fix the song's key.

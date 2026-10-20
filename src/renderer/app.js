@@ -167,7 +167,7 @@
     bar.hidden = false;
     const text = el('span', 'grow');
     const add = (label, fn, cls) => { const b = el('button', cls || '', label); b.addEventListener('click', () => { if (upd.busy) return; fn().catch(fail); }); bar.append(b); return b; };
-    if (st.state === 'downloading') { text.textContent = `Getting Cobander ${st.latest} from ${cloudName()}…`; bar.append(text); const p = el('div', 'bar'); const f = el('div'); f.style.width = `${Math.round((st.progress || 0) * 100)}%`; p.append(f); bar.append(p); return; }
+    if (st.state === 'downloading') { text.textContent = `Getting Cobander ${st.latest} from ${st.source === 'github' ? 'GitHub' : cloudName()}…`; bar.append(text); const p = el('div', 'bar'); const f = el('div'); f.style.width = `${Math.round((st.progress || 0) * 100)}%`; p.append(f); bar.append(p); return; }
     if (st.state === 'verifying') { text.textContent = `Checking Cobander ${st.latest}…`; bar.append(text); return; }
     if (st.state === 'installing') { text.textContent = `Installing Cobander ${st.latest} — Cobander will close and reopen by itself.`; bar.append(text); return; }
     if (st.state === 'error') { bar.className = 'err'; text.textContent = `Update failed: ${st.error}`; bar.append(text); add('Try again', async () => { const s2 = await bp.update.check(); renderUpdate(s2); if (s2.ready) await installUpdate(); else status(s2.reason ? `Update not ready yet: ${s2.reason}` : 'No update waiting.', 8000); }); add('Later', snoozeUpdate, 'quiet'); return; }
@@ -416,7 +416,7 @@
     { const tl = $('#qb-todos'); tl.innerHTML = '';
       if (!b.todos.length) tl.append(el('div', 'muted small', 'Nothing loose. Add one below.'));
       for (const t of b.todos) {
-        const row = el('label', 'qb-task' + (t.done ? ' on' : '')); const cb = el('input'); cb.type = 'checkbox'; cb.checked = t.done; cb.disabled = ro();
+        const row = el('label', 'qb-task' + (t.done ? ' on' : '')); const cb = el('input'); cb.type = 'checkbox'; cb.checked = t.done;
         cb.addEventListener('change', () => { questWrite({ [`band:todo:${t.id}`]: { text: t.text, who: t.who, done: cb.checked, doneBy: cb.checked ? me() : null } }).catch(fail); if (cb.checked) questPopRaw(Q.TASK_XP, 'loose end tied'); });
         const x = el('button', 'qb-x', '✕'); x.type = 'button'; x.title = 'remove'; x.addEventListener('click', (e) => { e.preventDefault(); questWrite({ [`band:todo:${t.id}`]: { text: t.text, done: t.done, deleted: true } }).catch(fail); });
         row.append(cb, el('span', null, t.text)); if (t.who) row.append(el('span', 'qb-who', `@${t.who}`)); row.title = `added by ${t.by}${t.done && t.doneBy ? ` · done by ${t.doneBy}` : ''}`; row.append(x); tl.append(row);
@@ -466,25 +466,28 @@
     if (chartAllBusy) { status('Already charting — one moment.'); return chartAllBusy; }
     chartAllBusy = (async () => {
       const back = state.folder; const out = { charted: [], skipped: [] };
-      if (back && state.dirty && !state.readOnly) await save();
+      if (engine.recording || finishing) throw new Error('finish the take first');
+      if (back && state.dirty && !state.readOnly) { const r = await save(); if (r !== 'ok') throw new Error(`save the open song first (${r})`); }
+      if (back && state.dirty) throw new Error('the open song has unsaved changes it can\'t keep (read-only) — deal with those first');
       const list = (state.songs || []).filter((s) => s.folder && !/^Noodle pad/.test(s.folder));
       const close = toast(`Charting ${list.length} songs…`, { ms: 600000 });
       try {
         for (const s of list) {
           if (s.lock && !s.lock.stale && !s.lockMine && !s.lockSameMachine) { out.skipped.push(`${s.name} (${s.lock.user} has it open)`); continue; }
           try {
-            await openSong(s.folder); if (state.readOnly) { out.skipped.push(`${s.name} (read-only)`); continue; }
+            await openSong(s.folder, { interactive: false, quiet: true }); if (state.folder !== s.folder) { out.skipped.push(`${s.name} (couldn't open it)`); break; }
+            if (state.readOnly) { out.skipped.push(`${s.name} (read-only)`); continue; }
             const n = await chordsFromTracks(null, { replaceDrafts: true });
-            if (n > 0) { await save(); out.charted.push(`${s.name} (+${n})`); } else out.skipped.push(`${s.name} (nothing new to hear)`);
+            if (n > 0) { const r = await save(); if (r !== 'ok') { out.skipped.push(`${s.name} (save: ${r})`); break; } out.charted.push(`${s.name} (+${n})`); } else out.skipped.push(`${s.name} (nothing new to hear)`);
           } catch (e) { out.skipped.push(`${s.name} (${e.message || e})`); }
         }
       } finally {
         close();
-        if (state.folder !== back) { if (state.folder) await closeSong({ interactive: false }).catch(() => {}); if (back) await openSong(back).catch(() => {}); }
+        if (state.folder !== back) { if (state.folder) await closeSong({ interactive: false }).catch(() => {}); if (back) await openSong(back, { interactive: false, quiet: true }).catch(() => {}); }
         chartAllBusy = null;
       }
+      if (out.charted.length) logActivity(`charted ${out.charted.length} songs`);
       if (interactive) toast(`Charted ${out.charted.length}: ${out.charted.join(', ') || '—'}${out.skipped.length ? ` · skipped ${out.skipped.length}: ${out.skipped.join(', ')}` : ''}`, { kind: 'ok', ms: 15000 });
-      logActivity(`charted ${out.charted.length} songs`);
       return out;
     })();
     return chartAllBusy;
@@ -989,13 +992,13 @@
     opening = _openSong(folder, opts).finally(() => { opening = null; });
     return opening;
   }
-  async function _openSong(folder, { force = false, interactive = true } = {}) {
+  async function _openSong(folder, { force = false, interactive = true, quiet = false } = {}) {   // quiet: a batch pass (chart every song) — don't mark it seen or show what changed
     if (state.folder === folder) { if (force) return takeOver(); return; }
     if (!(await closeSong({ interactive }))) return;
     showLoading(`Opening ${folder}…`, 0.03); let r0;
     try {
       await engine.init();
-      r0 = await bp.song.open(folder, { force }); showLoading(`Opening ${folder}… loading takes`, 0.1);
+      r0 = await bp.song.open(folder, { force, quiet }); showLoading(`Opening ${folder}… loading takes`, 0.1);
       state.loadProgress = (d, n) => showLoading(n ? `Opening ${folder}… takes ${d}/${n}` : `Opening ${folder}…`, 0.1 + 0.85 * (n ? d / n : 1));
       await applyLoaded(folder, r0, { fresh: true });
     } finally { state.loadProgress = null; hideLoading(); }
@@ -1005,7 +1008,7 @@
     if (!r.readOnly && !(r.song.tracks || []).length && !state.quietEmpty) toast('Empty song. Click "+ track" (top left of the timeline) or just hit R to record your first take.', { kind: '', ms: 10000 });
     if (!r.readOnly) scheduleTakeNameSync();
     setTimeout(() => checkCrashRecordings().catch(() => {}), 500);
-    if (state.lastSeenAtOpen) { const f = state.folder; setTimeout(() => { if (state.folder === f) showWhatChanged().catch(() => {}); }, 700); }
+    if (state.lastSeenAtOpen && !quiet) { const f = state.folder; setTimeout(() => { if (state.folder === f) showWhatChanged().catch(() => {}); }, 700); }
     { const f = state.folder; state.keyDoubt = null; renderKeyChip(); setTimeout(() => { if (state.folder === f) keyCheck().catch(() => {}); }, 2500); }
     if (!r.readOnly) fixTrackTypes();   // older songs: bring take file names up to "<track> - <take> - <who> - <id>.wav"
     const backup = await bp.song.readBackup(folder);
@@ -4711,18 +4714,31 @@
       const hb = heldBy(t.id), mine = mineT(t.id);
       const lk = el('button', 'tlock' + (mine ? ' mine' : hb ? ' theirs' : ''), mine ? '🔓' : hb ? `🔒 ${hb}` : '🔒');
       lk.title = mine ? 'Unlocked for you — click to lock it again (frees it for the band). It locks by itself after 10 min untouched.' : hb ? `${hb} has this track unlocked (it frees up when they lock it or leave it for 10 min)` : 'Locked — click to unlock it and work on it';
-      lk.addEventListener('click', (e) => { e.stopPropagation(); if (mine) lockTrack(t.id).catch(fail); else if (!hb) unlockTrack(t.id).catch(fail); else status(lk.title, 6000); });
+      lk.addEventListener('click', (e) => { e.stopPropagation(); if (mine) lockTrack(t.id).catch(fail); else if (!hb) unlockTrack(t.id).catch(fail); else status(lk.dataset.tip || lk.title, 6000); });
       if (!mine) row.classList.add('locked');
-      const arm = el('button', 'arm' + (state.armedTrack === t.id ? ' active' : ''), '●'); arm.title = 'arm for recording';
-      arm.addEventListener('click', (e) => { e.stopPropagation(); if (!mine) { if (hb) status(lk.title, 6000); else lockNudge(t.id); return; } state.armedTrack = state.armedTrack === t.id ? null : t.id; renderTracks(); });
+      const arm = el('button', 'arm' + (state.armedTrack === t.id ? ' active' : ''), '●'); arm.title = 'Arm: record onto this track next. Hit R (or ● up top) and this is where the take goes. Only one track at a time.';
+      arm.addEventListener('click', (e) => { e.stopPropagation(); if (!mine) { if (hb) status(lk.dataset.tip || lk.title, 6000); else lockNudge(t.id); return; } state.armedTrack = state.armedTrack === t.id ? null : t.id; renderTracks(); });
       // mute / solo on a track that isn't yours: just for your ears (not saved)
       const ms = (k) => (e) => { e.stopPropagation(); if (mine) change(() => engine.updateTrack(t.id, { [k]: !t[k] }), { undoable: false }); else { engine.updateTrack(t.id, { [k]: !t[k] }); status(`${k === 'mute' ? 'Muted' : 'Soloed'} just for you — it's not your track, so it isn't saved.`, 4000); } renderAll(); };
-      const mute = el('button', 'mute' + (t.mute ? ' active' : ''), 'M'); mute.addEventListener('click', ms('mute'));
-      const solo = el('button', 'solo' + (t.solo ? ' active' : ''), 'S'); solo.addEventListener('click', ms('solo'));
-      const del = el('button', null, '✕'); del.title = `delete track (takes stay on disk; ${MOD}+Z to undo)`;
+      const mute = el('button', 'mute' + (t.mute ? ' active' : ''), 'M'); mute.title = 'Mute: silence this track (it stays in the song). On someone else\'s track it\'s just for your ears.'; mute.addEventListener('click', ms('mute'));
+      const solo = el('button', 'solo' + (t.solo ? ' active' : ''), 'S'); solo.title = 'Solo: hear only this track (and any other soloed ones). Handy for checking one part.'; solo.addEventListener('click', ms('solo'));
+      const del = el('button', null, '✕'); del.title = `Delete this track from the song. The recordings stay on disk; ${MOD}+Z brings it back.`;
       del.addEventListener('click', async (e) => { e.stopPropagation(); if (engine.recording || finishing) { status('Stop recording first.'); return; } if (state.readOnly) { status('Read-only — "Take over" (banner above) to edit.', 6000); return; } const a = await ask('Delete track', `Delete track "${t.name}" and its ${t.clips.length} take(s) from the song? The audio files stay in the folder and can be recovered; ${MOD}+Z undoes this.`, [['Delete', 'ok', 'danger'], ['Cancel', 'cancel', 'primary']]); if (a !== 'ok') return; change(() => { for (const c of t.clips) trashClip(t, c); state.song.trashTracks = { ...(state.song.trashTracks || {}), [t.id]: t.name }; engine.removeTrack(t.id); if (state.selectedTrack === t.id) state.selectedTrack = null; if (state.armedTrack === t.id) state.armedTrack = null; }, { label: `delete track ${t.name}` }); renderAll(); refreshUnreferenced(); });
-      btns.append(lk, arm, mute, solo, del);
-      head.append(nameRow, ty, btns, reactionChips(t.id, t.name, { compact: true }));
+      // what the head shows depends on the job: Write = what this track covers; Record = arm first, last take
+      const info = el('div', 'tinfo'); const live = t.clips.filter((c) => !c.mute);
+      if (state.ws === 'record') {
+        btns.append(arm, lk, mute, solo);
+        const last = t.clips.slice().sort((a, b) => String(b.takenAt || '').localeCompare(String(a.takenAt || '')))[0];
+        info.textContent = !t.clips.length ? 'no takes yet — arm it and hit R' : `${t.clips.length} take${t.clips.length === 1 ? '' : 's'} · last: ${last.name}${last.takenBy ? ` · ${last.takenBy}` : ''}${last.takenAt ? ` · ${ago(last.takenAt)}` : ''}${state.armedTrack === t.id && engine.monitorInput ? ' · 🎧 monitoring' : ''}`;
+        info.title = 'Takes on this track and who recorded the latest one. Record → Takes lists them all.';
+        head.append(nameRow, btns, info, reactionChips(t.id, t.name, { compact: true }));
+      } else {
+        btns.append(lk, arm, mute, solo, del);
+        const secs = liveSections(); const covered = secs.filter((sc) => live.some((c) => c.start < sc.end - 1e-3 && clipEnd(c) > sc.start + 1e-3)).map((sc) => sc.name);
+        info.textContent = !t.clips.length ? (t.instrument === 'drumkit' ? 'drum machine' : 'nothing recorded yet') : !secs.length ? `${t.clips.length} take${t.clips.length === 1 ? '' : 's'}` : covered.length === secs.length ? `covers every part (${t.clips.length} take${t.clips.length === 1 ? '' : 's'})` : covered.length ? `covers ${covered.join(', ')}` : 'takes outside the parts';
+        info.title = 'Which parts of the song this track has takes for. Empty parts show where a recording is still needed.';
+        head.append(nameRow, ty, btns, info, reactionChips(t.id, t.name, { compact: true }));
+      }
       head.addEventListener('click', () => { selectTrack(t.id); });
       head.addEventListener('mousedown', (e) => trackDragStart(e, t, row));
       M.attach(head, () => { selectTrack(t.id); return [{ title: t.name }, ...trackItems(t)]; });
@@ -5140,7 +5156,35 @@
     for (const t of engine.tracks) m.appendChild(makeStrip(t));
     const ma = $('#master-area'); ma.innerHTML = ''; ma.appendChild(makeStrip(null));
   }
-  let clipHeld = false, peakHold = { v: -Infinity, at: 0 };
+  let clipHeld = false, peakHold = { v: -Infinity, at: 0 }, lufsEma = null;
+  const ROLE_LABEL = { drums: 'drums', bass: 'bass', gtr: 'guitar', keys: 'keys', leadVox: 'lead vocal', backVox: 'backing vox', synth: 'synth', other: 'bed / other' };
+  // Quick fixes: the mixing moves people reach for most, as whole-FX patches (merged over what's there). Plain names, undoable.
+  const QUICK_FIXES = [
+    ['vocal', 'Sit the vocal in the mix', 'low-cut 100 Hz, a little less mud, presence up, gentle compression, a touch of reverb', { hpf: { on: true, hz: 100 }, eq: { on: true, low: { hz: 300, db: -2 }, high: { hz: 3500, db: 3 } }, comp: { on: true, threshold: -22, ratio: 3, attack: 0.01, release: 0.12, makeup: 3 }, reverbSend: 0.2 }],
+    ['vocal', 'Vocal: tame the harshness', 'pull 2.5–4 kHz down a bit, soften the top', { eq: { on: true, mid: { hz: 3000, db: -3, q: 1.5 }, high: { hz: 9000, db: -1.5 } } }],
+    ['bass', 'Bass: tight and even', 'low-cut 35 Hz, roll off the fizz, firm compression so every note is the same size', { hpf: { on: true, hz: 35 }, lpf: { on: true, hz: 5000 }, eq: { on: true, low: { hz: 80, db: 1.5 } }, comp: { on: true, threshold: -20, ratio: 4, attack: 0.008, release: 0.1, makeup: 3 } }],
+    ['guitar', 'Guitar: less mud', 'low-cut 90 Hz and dip 300 Hz so it stops fighting the bass', { hpf: { on: true, hz: 90 }, eq: { on: true, mid: { hz: 300, db: -3, q: 1 } } }],
+    ['guitar', 'Guitar: make room for the vocal', 'a small dip where the voice lives (2.5 kHz)', { eq: { on: true, mid: { hz: 2500, db: -2.5, q: 1.2 } } }],
+    ['drums', 'Drums: more punch', 'compression that lets the hit through, a bit of thump and snap', { comp: { on: true, threshold: -18, ratio: 3, attack: 0.025, release: 0.12, makeup: 2 }, eq: { on: true, low: { hz: 70, db: 1.5 }, high: { hz: 8000, db: 2 } } }],
+    ['keys', 'Keys: make room for the vocal', 'a small dip at 2.5 kHz and a low-cut so the left hand stays out of the bass', { hpf: { on: true, hz: 80 }, eq: { on: true, mid: { hz: 2500, db: -2.5, q: 1.2 } } }],
+    ['*', 'Brighter', 'high shelf +2 dB', { eq: { on: true, high: { db: 2 } } }],
+    ['*', 'Darker', 'high shelf −2 dB', { eq: { on: true, high: { db: -2 } } }],
+    ['*', 'Warmer', 'low shelf +2 dB', { eq: { on: true, low: { db: 2 } } }],
+    ['*', 'Thinner', 'low shelf −2 dB and a low-cut', { hpf: { on: true }, eq: { on: true, low: { db: -2 } } }],
+    ['*', 'Even it out (compress)', 'medium compression', { comp: { on: true, threshold: -20, ratio: 3, attack: 0.015, release: 0.15, makeup: 2 } }],
+    ['*', 'Add space (reverb)', 'reverb send 25%', { reverbSend: 0.25 }],
+    ['*', 'Dry it up (no reverb)', 'reverb send 0', { reverbSend: 0 }],
+  ];
+  function quickFixMenu(t) {
+    const role = window.BPAutoMix.role(t); const want = { leadVox: 'vocal', backVox: 'vocal', gtr: 'guitar', synth: 'keys' }[role] || role; const mine = QUICK_FIXES.filter(([r]) => r === want); const any = QUICK_FIXES.filter(([r]) => r === '*');
+    const item = ([, label, desc, patch]) => ({ label, hint: desc, disabled: ro(), action: () => { change(() => engine.updateTrack(t.id, { fx: patch }), { label: `${t.name}: ${label.toLowerCase()}` }); renderAll(); status(`${t.name}: ${label} — ${desc}. ${MOD}+Z undoes it.`, 7000); } });
+    const others = engine.tracks.filter((x) => x.id !== t.id);
+    return [{ title: `${t.name} — quick fixes` }, ...mine.map(item), ...(mine.length ? ['sep'] : []), ...any.map(item), 'sep',
+      { label: 'Copy the sound from…', sub: others.length ? others.map((o) => ({ label: o.name, action: () => { change(() => engine.updateTrack(t.id, { fx: JSON.parse(JSON.stringify(o.fx)) }), { label: `${t.name}: FX from ${o.name}` }); renderAll(); } })) : [{ label: 'no other tracks', disabled: true }], disabled: ro() },
+      { label: 'Start over (flat: no EQ, no compression, no reverb)', disabled: ro(), action: () => { change(() => engine.updateTrack(t.id, { fx: window.BPEngine.DEFAULT_FX() }), { label: `${t.name}: FX reset` }); renderAll(); } },
+      { label: 'Fader 0 dB · pan centre', disabled: ro(), action: () => { change(() => engine.updateTrack(t.id, { gainDb: 0, pan: 0 }), { label: `${t.name}: level reset` }); renderAll(); } },
+      { label: 'Open Track FX (all the knobs)', action: () => { state.selectedTrack = t.id; renderAll(); } }];
+  }
   function makeStrip(t) {
     const s = el('div', 'strip' + (t ? '' : ' master')); s.dataset.id = t ? t.id : 'master';
     M.attach(s, () => stripMenu(t));
@@ -5163,6 +5207,24 @@
       const pk = el('div', 'peak', '−∞'); pk.title = 'loudest master peak in the last 2 s, dBFS (before the limiter)';
       const lim = el('label', 'lim'); const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = engine.master.limiter !== false; cb.title = 'safety limiter on the master: stops stacked presets from clipping the output'; cb.addEventListener('change', () => { if (state.readOnly) { cb.checked = !cb.checked; return; } change(() => engine.setMaster({ limiter: cb.checked })); }); lim.append(cb, el('span', null, 'limit'));
       s.append(cl, pk, lim);
+      const lu = el('div', 'lufs mixonly', '— LUFS'); lu.title = 'Loudness of the mix right now (short-term LUFS). Streaming "normal" is about −14; loud rock sits around −9. Auto master gets you there.'; s.append(lu);
+    }
+    if (t) {   // Mix console only (hidden elsewhere): role, reverb send, quick FX on/off, ✨ quick fixes
+      const mx = el('div', 'mixonly');
+      const role = window.BPAutoMix.role(t); const rc = el('span', 'role', ROLE_LABEL[role] || role); rc.style.borderColor = t.color; rc.title = `Cobander hears this as ${ROLE_LABEL[role] || role} (from the name / type) — Auto mix and the quick fixes use it`; mx.append(rc);
+      const sendRow = el('div', 'send'); const sl = document.createElement('input'); sl.type = 'range'; sl.min = 0; sl.max = 100; sl.step = 1; sl.value = Math.round((t.fx.reverbSend || 0) * 100); sl.title = 'Reverb send: how much of this track goes into the shared room sound. Vocals like some; bass and kick none.';
+      gestureUndo(sl, () => `${t.name} reverb send`); sl.addEventListener('input', () => { if (state.readOnly) return; engine.updateTrack(t.id, { fx: { reverbSend: Number(sl.value) / 100 } }); sv.textContent = `${sl.value}%`; markDirty(); });
+      const sv = el('span', 'val', `${sl.value}%`); sendRow.append(el('span', 'lbl', 'verb'), sl, sv); mx.append(sendRow);
+      const chips = el('div', 'fxchips');
+      for (const [k, label, tip] of [['hpf', 'LC', 'Low-cut (high-pass): takes out rumble and boom below the note'], ['eq', 'EQ', 'EQ: tone — low / mid / high'], ['comp', 'CMP', 'Compressor: evens out loud and quiet moments'], ['amp', 'AMP', 'Amp model (guitar / bass)'], ['delay', 'DLY', 'Delay (echo)']]) {
+        if (k === 'amp' && !(role === 'gtr' || role === 'bass' || (t.fx.amp && t.fx.amp.on))) continue;
+        const c = el('button', 'chip-fx' + (t.fx[k] && t.fx[k].on ? ' on' : ''), label); c.title = `${tip} — click to turn ${t.fx[k] && t.fx[k].on ? 'off' : 'on'}; the knobs are in Track FX on the right`;
+        c.addEventListener('click', (e) => { e.stopPropagation(); if (ro()) return; change(() => engine.updateTrack(t.id, { fx: { [k]: { on: !(t.fx[k] && t.fx[k].on) } } }), { label: `${t.name} ${label} ${t.fx[k] && t.fx[k].on ? 'off' : 'on'}` }); state.selectedTrack = t.id; renderAll(); });
+        chips.append(c);
+      }
+      mx.append(chips);
+      const qf = el('button', 'quickfix', '✨ fix'); qf.title = 'Quick fixes: common mixing moves in plain words (sit the vocal, less mud, more punch, brighter…). Each one is undoable.'; qf.addEventListener('click', (e) => { e.stopPropagation(); state.selectedTrack = t.id; menuAt(qf, quickFixMenu(t)); }); mx.append(qf);
+      s.append(mx);
     }
     if (t) { const b = el('div', 'btns'); const mu = el('button', 'mute' + (t.mute ? ' active' : ''), 'M'); mu.addEventListener('click', () => { change(() => engine.updateTrack(t.id, { mute: !t.mute }), { undoable: false }); renderAll(); }); const so = el('button', 'solo' + (t.solo ? ' active' : ''), 'S'); so.addEventListener('click', () => { change(() => engine.updateTrack(t.id, { solo: !t.solo }), { undoable: false }); renderAll(); }); b.append(mu, so); s.appendChild(b); s.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') { state.selectedTrack = t.id; renderTracks(); renderFx(); } }); }
     return s;
@@ -5187,6 +5249,7 @@
         if (Number.isFinite(p) && p > 0 && !engine.master.limiter && !clipHeld) { clipHeld = true; if (cl) { cl.classList.add('on'); cl.classList.remove('hot'); cl.textContent = 'CLIP'; } }
         else if (cl && !clipHeld) { const hot = peakHold.v > 0 || m.limiterDb < -3; cl.classList.toggle('hot', hot); cl.textContent = hot ? 'HOT' : 'ok'; }
         const lim = ms.querySelector('.lim span'); if (lim) lim.textContent = m.limiterDb < -0.5 ? `limiter ${m.limiterDb.toFixed(1)} dB` : 'limiter';
+        const lu = ms.querySelector('.lufs'); if (lu && state.ws === 'mix') { const v0 = Number.isFinite(m.master.rmsDbfs) ? m.master.rmsDbfs - 0.7 : null; const v = v0 == null || v0 < -70 ? (lufsEma = null) : (lufsEma = lufsEma == null ? v0 : lufsEma * 0.92 + v0 * 0.08); lu.textContent = v != null && v > -70 && (engine.playing || engine.recording) ? `${v.toFixed(1)} LUFS` : '— LUFS'; lu.classList.toggle('hot', v != null && v > -8); }
       }
       const inFill = $('#input-meter .fill'); if (inFill) inFill.style.width = `${pct(m.input)}%`;
     }
@@ -5208,8 +5271,22 @@
     if (!t) { body.textContent = 'Select a track.'; body.className = 'muted'; return; }
     body.className = '';
     const fx = t.fx;
+    // plain-English tips for the knobs (shown on hover / in help mode)
+    const FX_TIPS = {
+      'Amp': 'A guitar / bass amp model. Turn it on for crunch and body; off for the raw pickup sound.', 'gain': 'How hard the amp is driven: low = clean, high = distorted.', 'bass': 'Low end from the amp.', 'mid': 'Body / honk. Cutting mids scoops the sound.', 'treble': 'Brightness.', 'presence (top-end bite)': 'Extra edge above the treble.', 'level': 'How loud the amp comes out (after the distortion).', 'cab': 'Which speaker cabinet: 112 = small and tight, 412 = big rock stack.', 'amp': 'Which amp: clean, crunch, distorted, bass…',
+      'High-pass (cuts rumble)': 'Removes everything below a note — mic thumps, hum, boom. Vocals and guitars usually want this on around 80–120 Hz.', 'cut below': 'Nothing below this frequency gets through. Bass and kick: keep it low (30–40 Hz).',
+      'Low-pass (cuts clicks, fizz, fret noise)': 'Removes the very top end — harsh fizz, string squeak. Leave off unless something sounds scratchy.', 'cut above': 'Nothing above this frequency gets through.',
+      'EQ': 'Turn parts of the sound up or down. Low = bass / boom, mid = body / honk, high = sparkle / hiss. Small moves (±3 dB) go a long way.',
+      'low Hz': 'Where the low control works.', 'low dB': 'More or less low end. Cut it if a track sounds muddy.', 'mid Hz': 'Where the mid control works (300 = mud, 1000 = honk, 3000 = presence).', 'mid dB': 'More or less of that spot.', 'mid width': 'How wide a band the mid control grabs: narrow (high Q) for one annoying note, wide for a general tilt.', 'high Hz': 'Where the high control works.', 'high dB': 'More or less sparkle. Cut it if a track hisses.',
+      'Compressor (evens out loud/quiet)': 'Turns the loud moments down so the quiet ones can come up — keeps a vocal or bass steady in the mix. The defaults are sensible.',
+      'threshold': 'Where it starts working: lower = it grabs more of the performance.', 'ratio': 'How hard it squashes once past the threshold. 2–4 is gentle, 10+ is a limiter.', 'attack': 'How fast it reacts. Slow (20–30 ms) lets the pick / drum hit through; fast flattens it.', 'release': 'How fast it lets go. Too fast pumps; too slow smears.', 'knee (softness)': 'How gradually it kicks in around the threshold.', 'makeup gain': 'Turn the result back up — compressing makes things quieter overall.',
+      'Delay': 'Echo. Synced delay repeats in time with the song.', 'time': 'Gap between repeats.', 'feedback': 'How many repeats before it fades.', 'mix': 'How much echo versus the dry sound.',
+      'Reverb (send to the shared room)': 'How much of this track goes into the shared room sound. Vocals like some; bass and kick usually none.', 'amount': 'How much of this track goes to the reverb.',
+      'Master reverb (shared by all tracks)': 'The one room every track\'s reverb send goes into.', 'decay': 'How long the room rings.', 'pre-delay': 'A tiny gap before the reverb starts; keeps the words clear.', 'damp': 'Darker or brighter room.',
+      'Gate (cuts noise between notes)': 'Mutes the track when it\'s quieter than the threshold — kills hum and bleed between phrases. Set it just above the noise.',
+    };
     const slider = (label, get, set, min, max, step, unit, tip) => {
-      const l = el('label'); if (tip) l.title = tip; l.append(el('span', null, label));
+      const l = el('label'); tip = tip || FX_TIPS[label]; if (tip) l.title = tip; l.append(el('span', null, label));
       const r = document.createElement('input'); r.type = 'range'; r.min = min; r.max = max; r.step = step; r.value = get();
       const v = el('span', 'v', `${fmt(get())}${unit}`);
       gestureUndo(r, () => `${t.name} ${label}`);
@@ -5225,7 +5302,7 @@
       if (!isOpen) g.classList.add('collapsed');
       const caret = el('span', 'caret', isOpen ? '▾' : '▸'); h.append(caret);
       if (setOn) { const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = isOn(); cb.addEventListener('click', (e) => e.stopPropagation()); cb.addEventListener('change', () => { change(() => setOn(cb.checked)); if (cb.checked && g.classList.contains('collapsed')) { g.classList.remove('collapsed'); caret.textContent = '▾'; fxOpen.set(key, true); } }); h.append(cb); }
-      h.append(el('span', null, title));
+      h.append(el('span', null, title)); if (FX_TIPS[title]) h.title = FX_TIPS[title];
       if (setOn && !isOpen) h.append(el('span', 'onoff', isOn() ? 'on' : 'off'));
       h.addEventListener('click', (e) => { if (e.target.tagName === 'INPUT') return; const now = g.classList.toggle('collapsed'); caret.textContent = now ? '▸' : '▾'; fxOpen.set(key, !now); const oo = h.querySelector('.onoff'); if (oo) oo.remove(); if (now && setOn) h.append(el('span', 'onoff', isOn() ? 'on' : 'off')); });
       g.appendChild(h);
@@ -5626,7 +5703,7 @@
       { label: 'Lighten the folder… (FLAC + clear unused audio)', action: () => compactDrive().catch(fail) },
       { label: `Clear parked takes…${state.unreferenced && state.unreferenced.length ? ` (${state.unreferenced.length}, ${mb(state.unreferenced.reduce((n, u) => n + (u.size || 0), 0))})` : ''}`, hint: 'audio nothing in this song uses', action: () => clearParked().catch(fail), disabled: state.readOnly || !(state.unreferenced && state.unreferenced.length) },
       'sep',
-      { label: 'Keyboard shortcuts', hint: '?', action: showShortcuts }]);
+      { label: 'What the words mean (glossary)', hint: 'F1', action: showGlossary }, { label: 'Keyboard shortcuts', hint: '?', action: showShortcuts }]);
   });
   // key chip: the song's key, set / detect / transpose from one place
   $('#key-chip').addEventListener('click', () => {
@@ -5829,8 +5906,9 @@
   const TUNINGS = { guitar: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bass: ['B0', 'E1', 'A1', 'D2', 'G2'] };
   let tunerRun = null;
   async function openTuner() {
-    await ensureInput(); await engine.resume();
     const d = $('#tuner'); if (d.open) return;
+    const hadInput = engine.inputAlive && engine.inputAlive();   // the tuner opened the mic → it closes it again on Done
+    await ensureInput(); await engine.resume();
     const an = engine.ctx.createAnalyser(); an.fftSize = 4096; engine.inputSource.connect(an);
     const buf = new Float32Array(an.fftSize); let hist = [];
     try { const v = Number(localStorage.getItem('bp.a4')); if (v >= 415 && v <= 466) $('#tu-a4').value = String(v); } catch (_) {}
@@ -5855,7 +5933,9 @@
       for (const sp of $('#tu-strings').children) sp.classList.toggle('hit', sp.dataset.n === `${nt.name}${nt.octave}` && Math.abs(nt.cents) <= 3);
     };
     d.returnValue = ''; d.showModal(); tunerRun = requestAnimationFrame(loop);
-    d.addEventListener('close', () => { cancelAnimationFrame(tunerRun); try { engine.inputSource && engine.inputSource.disconnect(an); } catch (_) {} try { localStorage.setItem('bp.a4', $('#tu-a4').value); } catch (_) {} }, { once: true });
+    d.addEventListener('close', () => { cancelAnimationFrame(tunerRun); try { engine.inputSource && engine.inputSource.disconnect(an); } catch (_) {} try { localStorage.setItem('bp.a4', $('#tu-a4').value); } catch (_) {}
+      // Done = stop listening: the mic the tuner opened is closed right away (unless a take or monitoring needs it); one someone else opened goes back on the idle timer
+      if (!hadInput && !engine.recording && !engine.monitorInput && !sketchRec && !finishing) engine.closeInput(); else scheduleInputRelease(); }, { once: true });
   }
   $('#btn-tuner').addEventListener('click', () => openTuner().catch(fail));
   // ---- what changed since I last opened this song ----
@@ -6339,6 +6419,81 @@
     }
     d.showModal();
   }
+  // ---------- plain-English help: hover tips (styled, short delay), help mode (? badges, instant tips) and a glossary ----------
+  // Every control carries a `title` written for someone who has never used recording software. On hover the title
+  // is moved to data-tip (so the browser's tiny native tooltip stays out of the way) and shown in our own box.
+  const HELP = { timer: 0, el: null, on: false, cur: null };
+  function helpBox() { if (!HELP.el) { HELP.el = el('div'); HELP.el.id = 'help-tip'; document.body.append(HELP.el); } return HELP.el; }
+  function helpShow(t) {
+    const text = t.dataset.tip; if (!text) return; const box = helpBox(); box.textContent = text; box.style.display = 'block'; HELP.cur = t;
+    const r = t.getBoundingClientRect(); const w = box.offsetWidth, h = box.offsetHeight;
+    let x = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2)); let y = r.bottom + 8; if (y + h > window.innerHeight - 8) y = r.top - h - 8;
+    box.style.left = `${x}px`; box.style.top = `${Math.max(8, y)}px`;
+  }
+  function helpHide() { clearTimeout(HELP.timer); HELP.timer = 0; HELP.cur = null; if (HELP.el) HELP.el.style.display = 'none'; }
+  document.addEventListener('mouseover', (e) => {
+    const t = e.target && e.target.closest ? e.target.closest('[title], [data-tip]') : null;
+    if (!t || t.closest('#help-tip')) return;
+    if (t.getAttribute('title')) { t.dataset.tip = t.getAttribute('title'); t.removeAttribute('title'); }
+    if (t === HELP.cur) return;
+    clearTimeout(HELP.timer); HELP.timer = setTimeout(() => helpShow(t), HELP.on ? 60 : 650);
+  });
+  document.addEventListener('mouseout', (e) => { const t = e.target && e.target.closest ? e.target.closest('[data-tip]') : null; if (t && (!e.relatedTarget || !t.contains(e.relatedTarget))) helpHide(); });
+  document.addEventListener('mousedown', helpHide, true); document.addEventListener('keydown', (e) => { if (e.key !== 'F1') helpHide(); }, true); window.addEventListener('blur', helpHide);
+  // dialogs: a tip inside an open <dialog> must sit above it, so the box moves into the dialog's top layer
+  const tipHost = () => { const d = document.querySelector('dialog[open]'); return d || document.body; };
+  new MutationObserver(() => { const box = helpBox(); const host = tipHost(); if (box.parentElement !== host) host.append(box); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['open'] });
+  function setHelpMode(on) { HELP.on = !!on; document.body.classList.toggle('help', HELP.on); const b = $('#btn-help'); if (b) b.classList.toggle('active', HELP.on); if (HELP.on) status('Help mode: hover anything with a ? to see what it does — F1 or the ? button turns it off. Press F1 twice for the glossary.', 8000); else helpHide(); }
+  // glossary: the words that trip people up, in plain English
+  const GLOSSARY = [
+    ['Track', 'One instrument or voice. A song is a stack of tracks playing together.'],
+    ['Take', 'One recording on a track. Keep several takes and pick the best — or stitch the best bits together (comp).'],
+    ['Bar', 'A chunk of time, usually 4 beats. Songs are counted in bars ("verse is 8 bars").'],
+    ['BPM', 'Beats per minute — how fast the song goes. 120 is a brisk walk.'],
+    ['Click', 'A metronome you hear in your headphones so everyone plays in time. It isn\'t in the recording.'],
+    ['Count-in', 'A bar of clicks before recording starts so you know when to come in.'],
+    ['Arm', 'Pick the track you\'re about to record onto (the red ● on the track).'],
+    ['Monitor', 'Hear yourself through Cobander while you record. If you hear yourself twice, turn it off.'],
+    ['Latency', 'The tiny delay between playing a note and hearing it back through the computer. The latency offset in Settings lines takes up with the click.'],
+    ['Mute / Solo', 'Mute silences a track. Solo plays only that track (and anything else soloed).'],
+    ['Loop', 'Play the same bit over and over — to practise it or record it again.'],
+    ['Punch in', 'Record only between two points, to fix one bad bit without redoing the whole take.'],
+    ['Lock', 'Who\'s allowed to change the song right now, so two people don\'t overwrite each other. Unlock a track to record on it while someone else has the song open.'],
+    ['Linked parts', 'Chorus 2 is a copy of Chorus 1: record or write in one and both change. Unlink it to make it different.'],
+    ['Key', 'The home note of the song (G, Bm…). Chords and the pitch check are measured against it.'],
+    ['Capo / transpose', 'Show the chords moved up or down, for a capo or a different tuning. The audio doesn\'t change.'],
+    ['Mix', 'How loud each track is, where it sits left/right, and its sound (EQ, effects). The mix is what you hear; the takes don\'t change.'],
+    ['Fader / gain', 'Volume of a track, in dB. 0 is as recorded; −6 is about half as loud.'],
+    ['Pan', 'Left / right position in the speakers.'],
+    ['EQ', 'Turn frequencies up or down. Low = bass and boom, mid = body and honk, high = sparkle and hiss.'],
+    ['High-pass (low-cut)', 'Takes out the rumble below an instrument\'s lowest note — cleans up vocals and guitars.'],
+    ['Compressor', 'Evens out loud and quiet moments so a vocal sits steady in the mix. Threshold = where it starts working; ratio = how hard.'],
+    ['Reverb / send', 'Room sound. The send is how much of a track goes into the shared reverb.'],
+    ['Delay', 'Echo. Synced delay repeats in time with the song.'],
+    ['Master', 'The last volume control, for the whole song. Auto master sets it to a normal loudness for sharing.'],
+    ['LUFS', 'A loudness number streaming services use. Around −14 is "normal", −9 is loud rock.'],
+    ['Limiter', 'Stops the loudest peaks from clipping (crackling) when the song is turned up.'],
+    ['Bounce', 'Save the whole song as one audio file to share. Stems = one file per instrument, for a real studio.'],
+    ['Quantize / Tighten', 'Nudge notes or hits onto the beat. Strength = how far (100% is robotic).'],
+    ['MIDI', 'Notes as data instead of audio (which note, when, how hard). MIDI tracks play a built-in instrument, so you can draw a bass line without a bass.'],
+    ['FLAC', 'The file type takes are saved as: lossless (nothing thrown away) but about half the size of WAV.'],
+    ['Comp', 'Stitching the best bits of several takes into one.'],
+    ['Pitch check', 'Marks sung notes that are flat (blue), sharp (red) or the wrong note (amber). It never changes the audio.'],
+    ['Noodle pad', 'Your own scratch song for messing around. Save the good bits to the Parts bin.'],
+    ['Loose ends', 'The band\'s to-do list for things that aren\'t a song.'],
+  ];
+  function showGlossary() {
+    let d = $('#glossary');
+    if (!d) {
+      d = document.createElement('dialog'); d.id = 'glossary'; const f = document.createElement('form'); f.method = 'dialog'; f.append(el('h3', null, 'What the words mean'));
+      f.append(el('p', 'muted small', 'Hover anything in Cobander for a plain-English tip. F1 turns on help mode (little ? marks everywhere, tips show instantly).'));
+      const tb = document.createElement('table'); tb.className = 'glossary'; for (const [k, v] of GLOSSARY) { const tr = document.createElement('tr'); const a = document.createElement('td'); a.append(el('b', null, k)); const b = document.createElement('td'); b.textContent = v; tr.append(a, b); tb.append(tr); }
+      const menu = document.createElement('menu'); const ks = el('button', null, 'Keyboard shortcuts'); ks.type = 'button'; ks.addEventListener('click', () => { d.close(); showShortcuts(); }); const b = el('button', 'primary', 'Close'); b.value = ''; menu.append(ks, b); f.append(tb, menu); d.append(f); document.body.append(d);
+    }
+    d.showModal();
+  }
+  document.addEventListener('keydown', (e) => { if (e.key !== 'F1') return; e.preventDefault(); if (HELP.on) { if (document.querySelector('dialog[open]')) return; showGlossary(); } else setHelpMode(true); }, true);
+  if ($('#btn-help')) $('#btn-help').addEventListener('click', () => setHelpMode(!HELP.on));
   window.addEventListener('resize', () => { renderTracks(); positionPlayhead(); });
   // Resizable bottom panel (mixer / FX / notes); height remembered on this computer.
   // Draggable dividers: songs list | timeline, mixer | FX | side tabs. Widths are remembered per computer.
@@ -6559,7 +6714,7 @@
         const songOf = (x) => { const s = b.songs.find((y) => y.folder === x || y.name === x || y.qid === x); if (!s) throw new Error(`no song "${x}" on the board`); return s; };
         if (args.goal) { const s = songOf(args.goal.song); if (!Q.GOALS.some(([id]) => id === args.goal.id)) throw new Error('goal id must be title | structure | show'); patch[qKey(s, `goal:${args.goal.id}`)] = !!args.goal.done; }
         if (args.task) { const s = songOf(args.task.song); if (args.task.id) { const t = s.tasks.find((x) => x.id === args.task.id); if (!t) throw new Error(`no task ${args.task.id}`); patch[`song:${t.qid}:task:${t.id}`] = { text: t.text, done: args.task.done !== undefined ? !!args.task.done : t.done, who: t.who, ...(args.task.delete ? { deleted: true } : {}) }; } else { if (!args.task.text) throw new Error('task text required'); const mb = args.task.who ? Q.memberFor(b.members, args.task.who) : null; patch[qKey(s, `task:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`)] = { text: String(args.task.text).slice(0, 200), done: false, who: mb ? mb.name : args.task.who ? String(args.task.who).slice(0, 30) : null }; } }
-        if (args.todo) { if (args.todo.id) { const t = (b.todos || []).find((x) => x.id === args.todo.id); if (!t) throw new Error(`no to-do ${args.todo.id}`); patch[`band:todo:${t.id}`] = { text: t.text, who: t.who, done: args.todo.done !== undefined ? !!args.todo.done : t.done, doneBy: args.todo.done ? me() : t.doneBy, ...(args.todo.delete ? { deleted: true } : {}) }; } else { if (!args.todo.text) throw new Error('todo.text'); const mb = args.todo.who ? Q.memberFor(b.members, args.todo.who) : null; patch[`band:todo:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`] = { text: (mb ? String(args.todo.text).replace(/\s*@\w+/, '') : String(args.todo.text)).trim().slice(0, 200) || String(args.todo.text).slice(0, 200), done: false, who: mb ? mb.name : args.todo.who || null }; } }
+        if (args.todo) { if (args.todo.id) { const t = (b.todos || []).find((x) => x.id === args.todo.id); if (!t) throw new Error(`no to-do ${args.todo.id}`); patch[`band:todo:${t.id}`] = { text: t.text, who: t.who, done: args.todo.done !== undefined ? !!args.todo.done : t.done, doneBy: args.todo.done ? me() : t.doneBy, ...(args.todo.delete ? { deleted: true } : {}) }; } else { if (!args.todo.text) throw new Error('todo.text'); const mb = args.todo.who ? Q.memberFor(b.members, args.todo.who) : null; patch[`band:todo:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`] = { text: (mb ? String(args.todo.text).replace(/\s*@\w+/, '') : String(args.todo.text)).trim().slice(0, 200) || String(args.todo.text).slice(0, 200), done: false, who: mb ? mb.name : args.todo.who ? String(args.todo.who).slice(0, 30) : null }; } }
         if (args.boss !== undefined) patch['band:boss'] = args.boss ? { title: String(args.boss.title || '').slice(0, 80), date: /^\d{4}-\d\d-\d\d$/.test(String(args.boss.date || '')) ? args.boss.date : '', songs: (args.boss.songs || []).map((x) => songOf(x).qid) } : null;
         if (args.next !== undefined) patch['band:next'] = String(args.next || '').slice(0, 200);
         if (args.manual) { const s = songOf(args.manual.song); const mb = Q.memberFor(b.members, args.manual.member); if (!mb) throw new Error(`no member ${args.manual.member}`); patch[qKey(s, `m:${mb.name}:${s.folder ? 'manual' : 'pct'}`)] = args.manual.pct == null ? null : Q.clampPct(args.manual.pct); }

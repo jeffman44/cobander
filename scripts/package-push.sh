@@ -29,11 +29,11 @@ for f in "${FILES[@]}"; do KEEP+=" if /i not \"%%~nxf\"==\"${f}\""; done
 {
   printf '@echo off\r\nsetlocal\r\ncd /d "%%~dp0"\r\necho Cobander %s update > update-%s.log\r\n' "$VER" "$VER"
   printf '%s' "$JOIN"
-  printf 'set INST=G:\\My Drive\\Band stuff\\Cobander\\installers\r\nif not exist "%%INST%%" mkdir "%%INST%%"\r\n'
+  printf 'set INST=G:\\My Drive\\Band stuff\\BandPad\\installers\r\nif not exist "%%INST%%" mkdir "%%INST%%"\r\n'
   for f in "${FILES[@]}"; do printf 'copy /y "%s" "%%INST%%\\" >nul && echo copied %s to Drive >> update-%s.log\r\n' "$f" "$f" "$VER"; done
-  printf 'for %%%%f in ("%%INST%%\\Cobander-*.exe" "%%INST%%\\Cobander-*.zip") do%s del "%%%%f" >nul 2>&1\r\n' "$KEEP"
+  printf 'for %%%%f in ("%%INST%%\\Cobander-*.exe" "%%INST%%\\Cobander-*.zip" "%%INST%%\\BandPad-*.exe" "%%INST%%\\BandPad-*.zip") do%s del "%%%%f" >nul 2>&1\r\n' "$KEEP"
   printf 'copy /y latest.json "%%INST%%\\latest.json" >nul && echo copied latest.json to Drive >> update-%s.log\r\n' "$VER"
-  printf 'tasklist /fi "imagename eq Cobander.exe" | find /i "Cobander.exe" >nul\r\nif not errorlevel 1 (\r\n  echo Cobander is running - closing it first >> update-%s.log\r\n  taskkill /im Cobander.exe >nul 2>&1\r\n  timeout /t 4 >nul\r\n  taskkill /im Cobander.exe /f >nul 2>&1\r\n)\r\n' "$VER"
+  for exe in Cobander.exe BandPad.exe; do printf 'tasklist /fi "imagename eq %s" | find /i "%s" >nul\r\nif not errorlevel 1 (\r\n  echo %s is running - closing it first >> update-%s.log\r\n  taskkill /im %s >nul 2>&1\r\n  timeout /t 4 >nul\r\n  taskkill /im %s /f >nul 2>&1\r\n)\r\n' "$exe" "$exe" "$exe" "$VER" "$exe" "$exe"; done
   printf 'start /wait "" "Cobander-%s-win-x64.exe" /S\r\necho installed %s >> update-%s.log\r\n' "$VER" "$VER" "$VER"
   printf 'start "" "%%LOCALAPPDATA%%\\Programs\\Cobander\\Cobander.exe"\r\necho launched >> update-%s.log\r\n' "$VER"
 } > "$OUT/UPDATE-${VER}.cmd"
@@ -42,9 +42,9 @@ for f in "${FILES[@]}"; do KEEP+=" if /i not \"%%~nxf\"==\"${f}\""; done
 {
   printf '@echo off\r\nsetlocal\r\ncd /d "%%~dp0"\r\necho Cobander %s publish > publish-%s.log\r\n' "$VER" "$VER"
   printf '%s' "$JOIN"
-  printf 'set INST=G:\\My Drive\\Band stuff\\Cobander\\installers\r\nif not exist "%%INST%%" mkdir "%%INST%%"\r\n'
+  printf 'set INST=G:\\My Drive\\Band stuff\\BandPad\\installers\r\nif not exist "%%INST%%" mkdir "%%INST%%"\r\n'
   for f in "${FILES[@]}"; do printf 'copy /y "%s" "%%INST%%\\" >nul && echo copied %s to Drive >> publish-%s.log\r\n' "$f" "$f" "$VER"; done
-  printf 'for %%%%f in ("%%INST%%\\Cobander-*.exe" "%%INST%%\\Cobander-*.zip") do%s del "%%%%f" >nul 2>&1\r\n' "$KEEP"
+  printf 'for %%%%f in ("%%INST%%\\Cobander-*.exe" "%%INST%%\\Cobander-*.zip" "%%INST%%\\BandPad-*.exe" "%%INST%%\\BandPad-*.zip") do%s del "%%%%f" >nul 2>&1\r\n' "$KEEP"
   printf 'copy /y latest.json "%%INST%%\\latest.json" >nul && echo copied latest.json to Drive >> publish-%s.log\r\n' "$VER"
 } > "$OUT/PUBLISH-${VER}.cmd"
 ls -la "$OUT"

@@ -55,7 +55,8 @@ class Updater {
     let m = null;
     try {
       const r = await this.o.fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers: { accept: 'application/vnd.github+json', 'user-agent': 'cobander-updater' } });
-      if (r.ok) { const rel = await r.json(); const asset = (rel.assets || []).find((a) => a.name === MANIFEST); if (asset) { const r2 = await this.o.fetch(asset.browser_download_url, { headers: { 'user-agent': 'cobander-updater' } }); if (r2.ok) { m = await r2.json(); if (m && m.version) { m.github = { tag: rel.tag_name, assets: Object.fromEntries((rel.assets || []).map((a) => [a.name, { url: a.browser_download_url, size: a.size }])) }; delete m.chunked; } else m = null; } } }
+      if (r.ok) { const rel = await r.json(); const asset = (rel.assets || []).find((a) => a.name === MANIFEST); if (asset) { const r2 = await this.o.fetch(asset.browser_download_url, { headers: { 'user-agent': 'cobander-updater' } }); if (r2.ok) { m = await r2.json(); if (m && m.chunked && m.chunked.version && cmpVer(m.chunked.version, m.version) > 0) { const ck = m.chunked; m = { version: ck.version, date: ck.date, notes: ck.notes, files: {}, size: {}, sha256: {} }; for (const [k, f] of Object.entries(ck.files || {})) { m.files[k] = String(f.name || '').replace(/^BandPad-/, 'Cobander-'); m.size[k] = f.size; m.sha256[k] = f.sha256; } }   /* the band folder's latest.json carries the real release under `chunked` (the top level is the 0.8.1 bridge) */
+          if (m && m.version) { m.github = { tag: rel.tag_name, assets: Object.fromEntries((rel.assets || []).map((a) => [a.name, { url: a.browser_download_url, size: a.size }])) }; delete m.chunked; } else m = null; } } }
     } catch (_) { m = null; }
     this.gh = { at: now, m }; if (m) this.source = 'github';
     return m;
@@ -100,23 +101,24 @@ class Updater {
     if (this.installing) return this.status;
     const s = await this.check({ force: true });
     if (!s.available || !s.ready) throw new Error(s.reason || 'No update is ready.');
-    this.installing = true;
+    this.installing = true; let out = null;
     try {
       const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'bandpad-update-'));
       const local = path.join(tmp, path.basename(s.path));
       this.set({ state: 'downloading', progress: 0 });
       let done = 0; const total = s.size || 1;
-      const out = fs.createWriteStream(local);
+      out = fs.createWriteStream(local); let outErr = null; out.on('error', (e) => { outErr = e; });
       if (s.url) {   // GitHub release asset: stream it down
         const r = await this.o.fetch(s.url, { headers: { 'user-agent': 'cobander-updater' } }); if (!r.ok || !r.body) throw new Error(`download failed (${r.status})`);
         const total2 = Number(r.headers.get('content-length')) || total;
-        for await (const d of r.body) { if (!out.write(d)) await new Promise((res) => out.once('drain', res)); done += d.length; this.set({ state: 'downloading', progress: Math.min(1, done / total2) }); }
+        for await (const d of r.body) { if (outErr) throw outErr; if (!out.write(d)) await new Promise((res) => out.once('drain', res)); done += d.length; this.set({ state: 'downloading', progress: Math.min(1, done / total2) }); }
       } else for (const src of (s.parts || [s.path])) {   // a chunked installer is joined back together here
         await new Promise((resolve, reject) => {
           const rs = fs.createReadStream(src); rs.on('data', (d) => { done += d.length; this.set({ state: 'downloading', progress: Math.min(1, done / total) }); });
           rs.on('error', reject); rs.on('end', resolve); rs.pipe(out, { end: false });
         });
       }
+      if (outErr) throw outErr;
       await new Promise((resolve, reject) => { out.on('error', reject); out.end(resolve); });
       this.set({ state: 'verifying' });
       if (s.sha256) { const got = await sha256File(local); if (got.toLowerCase() !== String(s.sha256).toLowerCase()) throw new Error('The installer in the shared folder is corrupt or still syncing (checksum mismatch). Try again in a minute.'); }
@@ -124,6 +126,7 @@ class Updater {
       await this.launchInstaller(local, tmp);
       return this.status;
     } catch (err) {
+      try { if (out) out.destroy(); } catch (_) {}
       this.installing = false; this.set({ state: 'error', error: err.message });
       throw err;
     }
@@ -175,11 +178,10 @@ class Updater {
         `exec >>"${log}" 2>&1; echo "--- $(date) update to ${path.basename(local)}"`,
         `while kill -0 ${pid} 2>/dev/null; do sleep 1; done`,
         // the zip holds one <Name>.app (Cobander.app; an older build was BandPad.app) — it goes in next to the running one under its own name
-        `NEW=$(ls -d "${tmp}"/unz/*.app 2>/dev/null | head -1)`,
         `if ! ditto -xk "${local}" "${tmp}/unz" || [ -z "$(ls -d "${tmp}"/unz/*.app 2>/dev/null)" ]; then echo "FAIL unzip"; open "${bundle}"; exit 1; fi`,
         `NEW=$(ls -d "${tmp}"/unz/*.app | head -1); DEST="${path.dirname(bundle)}/$(basename "$NEW")"`,
         `if ! mv "${bundle}" "${old}"; then echo "FAIL move old aside"; open "${bundle}"; exit 1; fi`,
-        `if [ "$DEST" != "${bundle}" ] && [ -e "$DEST" ]; then rm -rf "$DEST"; fi`,
+        `if [ "$DEST" != "${bundle}" ] && [ -e "$DEST" ]; then echo "replacing existing $DEST"; rm -rf "$DEST"; fi`,
         `if ! mv "$NEW" "$DEST"; then echo "FAIL move new in; rolling back"; mv "${old}" "${bundle}"; open "${bundle}"; exit 1; fi`,
         `xattr -dr com.apple.quarantine "$DEST" 2>/dev/null`,
         `rm -rf "${old}"`,

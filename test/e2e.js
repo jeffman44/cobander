@@ -1234,6 +1234,28 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       const h = await jeff.evalJs(`getComputedStyle(document.querySelector('.track')).height`); assert.ok(h === '132px' || h === '44px', `track height after one click: ${h}`);
       assert.equal(await jeff.evalJs(`localStorage.getItem('bp.trackH')`), h.replace('px', ''), 'remembered');
       await jeff.shot('track-height'); await jeff.evalJs(`document.querySelector('#btn-track-h').click(); document.querySelector('#btn-track-h').click()`);
+      // Mix = a console: timeline hidden, strips carry role / send / FX chips / quick fixes; Record heads show takes
+      await jeff.post('/workspace', { ws: 'mix' }); await sleep(400);
+      assert.equal(await jeff.evalJs(`getComputedStyle(document.querySelector('#arrange')).display`), 'none', 'timeline hidden in Mix');
+      assert.ok(await jeff.evalJs(`document.querySelectorAll('#mixer .strip .quickfix').length >= 1 && document.querySelector('#master-area .lufs') !== null`), 'console strips');
+      { const before = await jeff.evalJs(`window.bandpadDebug.engine.tracks[0].fx.hpf.on`); await jeff.evalJs(`document.querySelector('#mixer .strip .chip-fx').click(); true`); await sleep(200); assert.notEqual(await jeff.evalJs(`window.bandpadDebug.engine.tracks[0].fx.hpf.on`), before, 'LC chip toggles the high-pass'); }
+      await jeff.shot('mix-console');
+      await jeff.post('/workspace', { ws: 'record' }); await sleep(300);
+      assert.ok(await jeff.evalJs(`/take|arm it/.test(document.querySelector('.track-head .tinfo').textContent)`), 'record head info');
+      await jeff.post('/workspace', { ws: 'write' }); await sleep(300);
+      // help: ? button → help mode; hovering a control shows our tip box (the native title is moved to data-tip)
+      await jeff.evalJs(`document.querySelector('#btn-help').click(); true`); await sleep(100);
+      assert.equal(await jeff.evalJs(`document.body.classList.contains('help')`), true, 'help mode on');
+      await jeff.evalJs(`document.querySelector('#bpm').dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); true`); await sleep(300);
+      assert.ok(await jeff.evalJs(`document.querySelector('#help-tip') && document.querySelector('#help-tip').style.display === 'block' && /beats per minute/i.test(document.querySelector('#help-tip').textContent)`), 'tip shows');
+      await jeff.shot('help-mode');
+      await jeff.evalJs(`document.querySelector('#btn-help').click(); true`);
+      // tuner: Done closes the mic it opened
+      await jeff.evalJs(`(() => { const E = window.bandpadDebug.engine; if (E.monitorInput) E.setMonitor(false); E.closeInput(); return true; })()`); await sleep(200);   // start with the mic closed, as a bandmate opening the tuner cold would
+      await jeff.evalJs(`document.querySelector('#btn-tuner').click(); true`); await sleep(1200);
+      assert.equal(await jeff.evalJs(`document.querySelector('#tuner').open`), true, 'tuner open');
+      await jeff.evalJs(`document.querySelector('#tuner').close(); true`); await sleep(300);
+      assert.equal(await jeff.evalJs(`!!(window.bandpadDebug.engine.inputAlive && window.bandpadDebug.engine.inputAlive())`), false, 'mic released after Done');
       await jeff.post('/song/save'); await jeff.post('/song/close');
       // chart every song: Fourteen has a guitar take (0.14 step) — chords it already drafted mean "nothing new"; a fresh song with the same take gets charted
       await fsp.writeFile(path.join(WORK, 'chords.wav'), chordWav(['G', 'D', 'Em', 'C']));

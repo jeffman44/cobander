@@ -159,11 +159,13 @@ function looksLikeDrivePath(p) { return !!cloudProvider(p); }
 // real file back. OneDrive (Files On-Demand) and Dropbox (online-only) fetch a file the moment it is opened, so a
 // plain read is enough there — it is just slow the first time.
 function icloudStubFor(dir, name) { return path.join(dir, `.${name}.icloud`); }
+const hydrated = new Map();   // dir → when brctl was last asked (don't nag iCloud every poll)
 async function hydrateDir(dir, names = null) {
   if (process.platform !== 'darwin') return [];
   let list = names; if (!list) { try { list = await fsp.readdir(dir); } catch (_) { return []; } }
   const stubs = list.filter((n) => /^\..+\.icloud$/.test(n)).map((n) => n.slice(1, -'.icloud'.length));
   if (!stubs.length) return [];
+  const last = hydrated.get(dir) || 0; if (Date.now() - last < 60000) return stubs; hydrated.set(dir, Date.now());
   try { const { spawn } = require('child_process'); const c = spawn('brctl', ['download', ...stubs.map((n) => path.join(dir, n))], { stdio: 'ignore', detached: true }); c.on('error', () => {}); c.unref(); } catch (_) {}
   return stubs;
 }
@@ -203,7 +205,7 @@ class SongStore {
       try { dir = this.songDir(e.name); } catch (_) { continue; }
       const songPath = path.join(dir, SONG_FILE);
       try {
-        if (process.platform === 'darwin' && !fs.existsSync(songPath) && fs.existsSync(icloudStubFor(dir, SONG_FILE))) { hydrateDir(dir).catch(() => {}); continue; }   // iCloud evicted it: ask for it back, it lists next time
+        if (process.platform === 'darwin' && !fs.existsSync(songPath) && fs.existsSync(icloudStubFor(dir, SONG_FILE))) { hydrateDir(dir).catch(() => {}); this.lastListErrors = { ...(this.lastListErrors || {}), [e.name]: 'iCloud is downloading this song' }; continue; }   // iCloud evicted it: ask for it back, it lists next time
         const raw = JSON.parse(await fsp.readFile(songPath, 'utf8'));
         const st = await fsp.stat(songPath);
         const lock = await this.readLock(e.name);

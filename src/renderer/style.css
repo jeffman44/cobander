@@ -703,3 +703,38 @@ body.tracks-thin .clip .label { font-size: 10px; }
 .link-btn.pbr { color: #f2b534; }
 #bp-pbr { margin-top: 14px; padding-top: 8px; border-top: 1px solid var(--line); }
 #s-links { gap: 6px; flex-wrap: wrap; }
+
+/* plain-English help: hover tips, help mode badges, glossary */
+#help-tip { position: fixed; z-index: 10000; max-width: 320px; padding: 8px 10px; background: #fffbe8; color: #1d1d1d; border: 1px solid #d8c98a; border-radius: 6px; font-size: 13px; line-height: 1.35; box-shadow: 0 6px 18px rgba(0,0,0,.35); display: none; pointer-events: none; white-space: normal; }
+dialog #help-tip { position: fixed; }
+body.help button[data-tip]:not(.link-btn):not(#btn-help)::after, body.help button[title]:not(.link-btn):not(#btn-help)::after, body.help label.chip[data-tip]::after, body.help label.chip[title]::after, body.help .side-tab[data-tip]::after, body.help .side-tab[title]::after { content: '?'; display: inline-block; margin-left: 4px; width: 13px; height: 13px; line-height: 13px; border-radius: 50%; background: #f2b534; color: #1d1d1d; font-size: 10px; font-weight: 700; text-align: center; vertical-align: middle; }
+#btn-help.active { background: #f2b534; color: #1d1d1d; border-color: #f2b534; }
+table.glossary { border-collapse: collapse; max-height: 60vh; display: block; overflow: auto; margin: 8px 0; }
+table.glossary td { padding: 5px 10px 5px 0; vertical-align: top; border-bottom: 1px solid var(--line); font-size: 13px; }
+table.glossary td:first-child { white-space: nowrap; }
+body.help .track-head .btns button::after, body.help .add-row button::after, body.help #toasts button::after, body.help .qb-x::after, body.help #transport button::after { display: none; }
+body.help .track-head .btns button, body.help .add-row button, body.help #transport button { box-shadow: inset 0 0 0 1px #f2b534; }
+
+/* Mix workspace = a console: the timeline goes away, the mixer fills the page */
+body.ws-mix #arrange, body.ws-mix #now-line, body.ws-mix #bottom-handle { display: none !important; }
+body.ws-mix #bottom { height: auto !important; flex: 1; min-height: 0; }
+.strip .mixonly { display: none; }
+body.ws-mix .strip .mixonly { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
+body.ws-mix .strip { width: 104px; min-width: 104px; padding: 8px 6px; gap: 6px; }
+body.ws-mix .strip .sname { font-size: 12px; }
+body.ws-mix .strip input[type=range].fader { height: clamp(150px, 34vh, 340px); width: 26px; }
+body.ws-mix .strip .meter { width: 12px; }
+body.ws-mix .strip input[type=range].pan { width: 84px; }
+body.ws-mix #mixer { padding: 12px; gap: 8px; }
+.strip .role { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-left-width: 3px; border-radius: 3px; padding: 0 5px; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.strip .send { display: flex; align-items: center; gap: 3px; width: 100%; font-size: 10px; color: var(--muted); } .strip .send input { flex: 1; min-width: 0; width: 40px; } .strip .send .val { width: 28px; text-align: right; }
+.strip .fxchips { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
+.strip .chip-fx { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+.strip .chip-fx.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.strip .quickfix { font-size: 11px; padding: 2px 8px; width: 100%; }
+.strip .lufs { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; color: var(--muted); } .strip .lufs.hot { color: var(--warn); }
+body.ws-mix .strip.master { width: 120px; min-width: 120px; }
+/* per-workspace track heads */
+.track-head .tinfo { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.ws-record .track-head button.arm { padding: 2px 10px; font-weight: 700; }
+body.ws-record .track-head button.arm.active::after { content: ' REC'; }

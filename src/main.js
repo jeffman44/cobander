@@ -13,6 +13,7 @@ const { Updater } = require('./updater');
 try {
   const appData = app.getPath('appData'); const neu = path.join(appData, 'Cobander'); const alt = path.join(appData, 'BandPad');
   if (!fs.existsSync(neu) && fs.existsSync(alt)) { try { fs.renameSync(alt, neu); } catch (_) { app.setPath('userData', alt); } }
+  else if (fs.existsSync(neu) && fs.existsSync(alt) && !fs.existsSync(path.join(neu, 'settings.json')) && fs.existsSync(path.join(alt, 'settings.json'))) { try { fs.copyFileSync(path.join(alt, 'settings.json'), path.join(neu, 'settings.json')); } catch (_) {} }
 } catch (_) { /* best effort */ }
 // Where Cobander lives in public: GitHub repo (releases + issues) and the tip jar.
 const PKG = require('../package.json');
@@ -235,14 +236,14 @@ function startHeartbeat() {
   }, HEARTBEAT_MS);
 }
 
-async function openSong(folder, { force = false } = {}) {
+async function openSong(folder, { force = false, quiet = false } = {}) {
   await closeOpenSong();
   const { song, mtimeMs } = await store.loadSong(folder);
   const res = await store.acquireLock(folder, identity, { force });
   open = { folder, lock: res.ok ? res.lock : null, heartbeatTimer: null, lastMtime: mtimeMs, lastSaveId: song.saveId || null, missedHeartbeats: 0 };
   if (res.ok) startHeartbeat();
   const lastSeen = seenMap()[folder] || null;
-  markSeen(folder); presence = { mode: 'listening', playing: false }; startPresence();
+  if (!quiet) markSeen(folder); presence = { mode: 'listening', playing: false }; startPresence();
   return { song, mtimeMs, readOnly: !res.ok, lock: res.lock, lastSeen, bounces: await store.listBounces(folder), unreferenced: await store.unreferencedTakes(folder) };
 }
 

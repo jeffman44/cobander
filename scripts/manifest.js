@@ -30,10 +30,12 @@ if (!Object.keys(out.files).length) throw new Error('no installers in release/')
 // small files straight to Drive. Older clients keep using the top-level full installer.
 const PART = 25 * 1024 * 1024; const cdir = path.join(rel, 'chunks'); fs.rmSync(cdir, { recursive: true, force: true }); fs.mkdirSync(cdir, { recursive: true });
 out.chunked = { version: ver, date: out.date, notes: out.notes, files: {} };
-for (const [k, f] of Object.entries(out.files)) {
+for (const [k, f0] of Object.entries(out.files)) {
+  // the band folder gets the BandPad-named mac zip when build.sh made one (MAC_COMPAT) — see build.sh
+  const compat = f0.replace(/^Cobander-/, 'BandPad-'); const f = /^mac-/.test(k) && fs.existsSync(path.join(rel, compat)) ? compat : f0;
   const buf = fs.readFileSync(path.join(rel, f)); const parts = [];
   for (let i = 0, n = 0; i < buf.length; i += PART, n++) { const name = `Cobander-${k}.part${String(n).padStart(2, '0')}`; const slice = buf.subarray(i, Math.min(buf.length, i + PART)); fs.writeFileSync(path.join(cdir, name), slice); parts.push({ file: name, size: slice.length }); }
-  out.chunked.files[k] = { name: f, size: buf.length, sha256: out.sha256[k], parts };
+  out.chunked.files[k] = { name: f, size: buf.length, sha256: f === f0 ? out.sha256[k] : sha(path.join(rel, f)), parts };
 }
 // After the switch-over, the top-level (what older Cobanders read) keeps pointing at the last full installer on Drive.
 if (process.env.BRIDGE && fs.existsSync(process.env.BRIDGE)) { const b = JSON.parse(fs.readFileSync(process.env.BRIDGE, 'utf8')); for (const k of ['version', 'date', 'notes', 'files', 'size', 'sha256']) out[k] = b[k]; }
