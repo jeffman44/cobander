@@ -1,5 +1,9 @@
 # Cobander changelog
 
+## 0.15.3
+- Wordmark without the Japanese: COBANDER, a red noodle seal, (noodle together).
+- Only people who actually played (takes, parts, words, notes) show up as bandmates — an assistant that saved a mix through the API doesn't.
+
 ## 0.15.2
 - New wordmark up top in the tofu-shop stencil spirit: COBANDER, a red noodle seal, (noodle together).
 - Real icons instead of system emoji: OpenMoji for the kitchen (noodles, takeout, chopsticks, pot…) and game-icons sprites for the Band page — so nothing shows as a box on Windows. Credits under ⚙.
