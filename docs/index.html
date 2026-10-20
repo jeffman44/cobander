@@ -91,8 +91,6 @@
   .carton .btn.hot { background: var(--chili); color: #fff; } .carton .btn.hot:hover { background: #ef4a3b; }
   .carton .fine { color: #5e564a; font-size: 14px; }
   .stamp { position: absolute; top: -18px; right: 24px; transform: rotate(6deg); border: 3px solid var(--chili); color: var(--chili); border-radius: 8px; padding: 6px 12px; font-family: var(--display); font-weight: 900; font-size: 20px; letter-spacing: 2px; line-height: 1.05; text-align: center; background: rgba(243,236,221,.9); }
-  .free { margin-top: 26px; max-width: 760px; }
-  .free pre { background: var(--ink-2); border: 1px solid var(--line); padding: 14px 16px; border-radius: 8px; overflow: auto; font-size: 14px; }
 
   /* setup + faq */
   .setup { padding: 20px 0 40px; }
@@ -119,7 +117,7 @@
 <div class="wrap">
   <nav>
     <a class="mark" href="#"><b>COBANDER</b><span class="seal"><img class="gi" src="icons/gi-delapouite-noodles.svg" alt=""></span></a>
-    <div class="links"><a href="#does">What it does</a><a href="#menu">Takeout</a><a href="#setup">Setup</a><a href="#faq">Questions</a><a class="repo-link" href="https://github.com/OWNER/cobander">Source</a></div>
+    <div class="links"><a href="#does">What it does</a><a href="#menu">Takeout</a><a href="#setup">Setup</a><a href="#faq">Questions</a></div>
   </nav>
 
   <header class="hero">
@@ -181,13 +179,6 @@
         <span class="fine">Windows 10+ · macOS 13+ · Apple silicon and Intel</span>
       </div>
     </div>
-    <div class="free">
-      <h3 style="font-size:32px;margin-bottom:8px">Or build it yourself, free</h3>
-      <p class="muted">The whole thing is open source (MIT) and nothing is held back. If you're fine with a terminal, this is the same app:</p>
-      <pre>git clone https://github.com/<span class="repo">OWNER/cobander</span>
-cd cobander &amp;&amp; npm install &amp;&amp; npm start</pre>
-      <p class="muted">Builds you make yourself aren't code-signed, so Windows asks "Run anyway" and a Mac wants right-click → Open the first time. That, and the time, is what Takeout pays for.</p>
-    </div>
   </section>
 
   <section class="setup" id="setup">
@@ -210,7 +201,7 @@ cd cobander &amp;&amp; npm install &amp;&amp; npm start</pre>
   </section>
 
   <footer>
-    <p>Made by Jeff Deuel for a band in a basement. MIT license · <a class="repo-link" href="https://github.com/OWNER/cobander">source on GitHub</a> · <a class="repo-link" href="https://github.com/OWNER/cobander/issues">report a bug</a></p>
+    <p>Made by Jeff Deuel for a band in a basement. <a class="repo-link" href="https://github.com/OWNER/cobander/issues">Report a bug</a></p>
     <p>Characters by <a href="https://kenney.nl">Kenney</a> (CC0). Icons by <a href="https://openmoji.org">OpenMoji</a> (CC BY-SA 4.0) and <a href="https://game-icons.net">game-icons.net</a> (CC BY 3.0: Lorc, Delapouite). Speech-to-text by whisper.cpp.</p>
   </footer>
 </div>
