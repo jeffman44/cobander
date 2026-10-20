@@ -38,8 +38,7 @@
 
   /* hero: the band, drawn by a human, cheering on the hit line */
   .hero { padding: 40px 0 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 28px; align-items: center; }
-  .hero .scene { grid-column: 2; grid-row: 1; width: 100%; height: auto; border-radius: 14px; box-shadow: 0 30px 60px rgba(0,0,0,.55); animation: bob .9375s ease-in-out infinite; transform-origin: 50% 100%; }
-  @keyframes bob { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-5px) scale(1.012); } }
+  .hero .scene { grid-column: 2; grid-row: 1; width: 100%; height: auto; border-radius: 14px; box-shadow: 0 30px 60px rgba(0,0,0,.55); }
   .hero .txt { grid-column: 1; grid-row: 1; }
   .hero .herofig { grid-column: 1 / -1; }
   @media (max-width: 760px) { .hero { grid-template-columns: 1fr; } .hero .scene { grid-column: 1; grid-row: 1; } .hero .txt { grid-row: 2; } }
