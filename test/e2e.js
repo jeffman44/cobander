@@ -1288,6 +1288,32 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       const ca = await jeff.post('/chart/all'); assert.ok(ca.charted.some((x) => /^Fifteen/.test(x)), JSON.stringify(ca));
       await jeff.post('/song/open', { folder: 'Fifteen' }); { const st = await jeff.get('/state'); assert.ok((st.song.chords || []).length >= 2, 'Fifteen got chords'); } await jeff.post('/song/close');
     });
+    await step('shots: website screenshots (a realistic song, no toasts)', async () => {
+      if (!process.env.SHOTS) return;
+      await fsp.writeFile(path.join(WORK, 'chords.wav'), chordWav(['G', 'D', 'Em', 'C']));
+      await fsp.writeFile(path.join(WORK, 'drums.wav'), sloppyDrums(16));
+      await fsp.writeFile(path.join(WORK, 'sung.wav'), sungWav());
+      await jeff.post('/song/create', { name: 'Basement Anthem', bpm: 128 });
+      await jeff.post('/sections', { add: [{ name: 'Intro', startBar: 1, endBar: 2 }, { name: 'Verse 1', startBar: 3, endBar: 6 }, { name: 'Chorus', startBar: 7, endBar: 10 }] });
+      for (const [kind, name] of [['guitar', 'Rhythm gtr'], ['bass', 'Bass'], ['drumsMic', 'Drums'], ['vocals', 'Lead vox']]) await jeff.post('/song/patch', { addTrack: { kind, name } });
+      const st = await jeff.get('/state'); const tr = (n) => st.song.tracks.find((t) => t.name === n);
+      await jeff.post('/clip/import', { path: path.join(WORK, 'chords.wav'), trackId: tr('Rhythm gtr').id, start: 0, name: 'take 3' });
+      await jeff.post('/clip/import', { path: path.join(WORK, 'chords.wav'), trackId: tr('Bass').id, start: 0, name: 'take 1' });
+      await jeff.post('/clip/import', { path: path.join(WORK, 'drums.wav'), trackId: tr('Drums').id, start: 0, name: 'take 2' });
+      await jeff.post('/clip/import', { path: path.join(WORK, 'sung.wav'), trackId: tr('Lead vox').id, start: 3.75, name: 'take 4' });
+      await jeff.post('/chords', { fromBar: 1, bars: 'G D | Em C | G D | Em C | G D | Em C | G D | Em C | G D | Em C' });
+      await jeff.post('/lyrics', { add: [{ text: 'noodles in the colander tonight', bar: 3 }, { text: 'strain it out and let it ring', bar: 5 }, { text: 'every take is just a thing', bar: 7 }, { text: 'we never had a doubt', bar: 9 }] });
+      await jeff.post('/quest', { todo: { text: 'book the Halloween show', who: 'Dan' } }); await jeff.post('/quest', { todo: { text: 'new strings before practice' } });
+      await jeff.post('/quest', { boss: { title: 'Halloween show at the Hi-Dive', date: '2026-10-31' } });
+      await jeff.post('/song/save'); await sleep(500);
+      const clean = () => jeff.evalJs(`(() => { for (const t of document.querySelectorAll('#toasts .toast, .toast')) t.remove(); const u = document.querySelector('#update-bar'); if (u) u.hidden = true; return true; })()`);
+      await jeff.post('/workspace', { ws: 'write' }); await sleep(600); await clean(); await jeff.shot('site-write');
+      await jeff.post('/workspace', { ws: 'mix' }); await sleep(600); await clean(); await jeff.shot('site-mix');
+      await jeff.post('/workspace', { ws: 'band' }); await sleep(800); await clean(); await jeff.shot('site-band');
+      await jeff.post('/workspace', { ws: 'write' }); await jeff.post('/practice', { open: true }); await sleep(400);
+      await jeff.evalJs(`const v = document.querySelector('#k-view'); v.value = 'crawl'; v.dispatchEvent(new Event('change')); true`); await jeff.post('/transport', { action: 'seek', time: 4.2 }).catch(() => {}); await sleep(700); await clean(); await jeff.shot('site-practice');
+      await jeff.post('/practice', { open: false }); await jeff.post('/song/close');
+    });
     await step('no renderer errors in either window', async () => {
       for (const a of [jeff, kat]) { const errs = await a.evalJs(`(window.__errs || []).slice(0, 5)`); assert.deepEqual(errs, [], `${a.name}: ${JSON.stringify(errs)}`); }
     });

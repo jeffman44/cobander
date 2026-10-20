@@ -45,23 +45,14 @@
   .btn { display: inline-block; font: 700 17px/1 var(--body); padding: 15px 22px; border-radius: 8px; text-decoration: none; border: 2px solid transparent; cursor: pointer; }
   .btn.hot { background: var(--noodle); color: #1d1d1d; } .btn.hot:hover { background: #ffc94d; }
   .btn.cool { background: transparent; color: var(--white); border-color: var(--line); } .btn.cool:hover { border-color: var(--steel); }
-  .stage { position: relative; height: 190px; margin-top: 18px; }
-  .stage .line { position: absolute; left: 0; right: 0; bottom: 36px; height: 3px; background: var(--noodle); box-shadow: 0 0 14px rgba(242,181,52,.6); }
-  .stage .band { position: absolute; left: 0; right: 0; bottom: 30px; display: flex; justify-content: center; gap: clamp(6px, 3vw, 40px); align-items: flex-end; }
-  .stage .m { position: relative; width: 96px; height: 128px; }
-  .stage .m img { width: 96px; height: 128px; display: block; }
-  .stage .m .ins { position: absolute; right: -4px; bottom: 8px; width: 34px; height: 34px; border-radius: 50%; background: var(--ink-2); border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; }
-  .stage .m .ins .gi { width: 20px; height: 20px; }
-  .stage .m:nth-child(2) { animation: bounce 1.6s .2s ease-in-out infinite; } .stage .m:nth-child(4) { animation: bounce 1.6s .6s ease-in-out infinite; }
-  @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-  .stage .say { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; color: var(--steel); font-size: 14px; }
   .gi { display: inline-block; width: 1em; height: 1em; vertical-align: -.15em; }
   .om { display: inline-block; width: 1.2em; height: 1.2em; background: center / contain no-repeat; vertical-align: -.25em; }
 
   /* the pitch */
   .pitch { padding: 40px 0 10px; }
   .pitch p { font-size: 19px; }
-  .shots { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; margin: 26px 0 10px; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 26px 0 10px; }
+  .herofig { margin: 30px 0 0; } .herofig img { width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 30px 60px rgba(0,0,0,.5); }
   .shots figure { margin: 0; }
   .shots img { width: 100%; height: auto; display: block; border-radius: 10px; border: 1px solid var(--line); }
   .shots figcaption { color: var(--steel); font-size: 14px; margin-top: 8px; }
@@ -106,7 +97,6 @@
 
   @media (max-width: 760px) {
     .shots { grid-template-columns: 1fr; }
-    .stage .m:nth-child(5), .stage .m:nth-child(6) { display: none; }
     .carton { padding: 26px 18px 22px; } .stamp { right: 10px; font-size: 16px; }
     .dish .name { font-size: 24px; } .dish .price { font-size: 28px; }
     nav .links { display: none; }
@@ -128,29 +118,15 @@
       <a class="btn cool" href="#does">See what it does</a>
       <span class="muted">Windows &amp; Mac · no server · no accounts · no subscription</span>
     </div>
-    <div class="stage" aria-hidden="true">
-      <div class="line"></div>
-      <div class="band">
-        <div class="m"><img src="sprites/madv/cheer0.png" alt=""><span class="ins"><img class="gi" src="icons/gi-lorc-guitar.svg" alt=""></span></div>
-        <div class="m"><img src="sprites/fper/cheer1.png" alt=""><span class="ins"><img class="gi" src="icons/gi-delapouite-microphone.svg" alt=""></span></div>
-        <div class="m"><img src="sprites/mper/show.png" alt=""><span class="ins"><img class="gi" src="icons/gi-delapouite-guitar-bass-head.svg" alt=""></span></div>
-        <div class="m"><img src="sprites/zombie/cheer0.png" alt=""><span class="ins"><img class="gi" src="icons/gi-delapouite-drum.svg" alt=""></span></div>
-        <div class="m"><img src="sprites/robot/idle.png" alt=""><span class="ins"><img class="gi" src="icons/gi-lorc-dragon-head.svg" alt=""></span></div>
-        <div class="m"><img src="sprites/fadv/jump.png" alt=""><span class="ins"><img class="gi" src="icons/gi-lorc-guitar.svg" alt=""></span></div>
-      </div>
-      <div class="say">Yes, you pick yours. Yes, there's a zombie.</div>
-    </div>
+    <figure class="herofig"><img src="img/mix.jpg" alt="Cobander's Mix workspace: the song timeline with a console of faders below and Track FX on the right"></figure>
   </header>
 
   <section class="pitch">
     <p>Somebody records a riff at 11 pm. By 11:01 it's on everyone else's screen, on its own track, in the right place in the song. The drummer adds a take at lunch. The singer pins the words to where she sings them. Nobody uploaded anything, nobody made an account, and nobody paid for a plan — the band's Google Drive (or OneDrive, iCloud, Dropbox) is the server.</p>
     <p class="muted">It's for the band that has songs in a group chat and voice memos, not for mixing an album. Although it mixes pretty well.</p>
-    <div class="shots">
-      <figure><img src="img/mix.jpg" alt="The Mix workspace: timeline on top, a console of faders below, Track FX on the right" loading="lazy"><figcaption>Mix: a real console, with one-click fixes in plain words ("sit the vocal", "less mud", "more punch").</figcaption></figure>
-      <div class="tall">
-        <figure><img src="img/practice.jpg" alt="Practice: lyrics flying toward you in 3D over the song" loading="lazy"><figcaption>Practice: the words fly at you and hit the line when it's time to sing them.</figcaption></figure>
-        <figure><img src="img/band.jpg" alt="The Band page: levels, loose ends, the setlist, the band feed" loading="lazy"><figcaption>Band: levels, achievements, the setlist, the next show, the to-do list that isn't a song.</figcaption></figure>
-      </div>
+    <div class="shots two">
+      <figure><img src="img/practice.jpg" alt="Practice: lyrics flying toward you in 3D over the song" loading="lazy"><figcaption>Practice: the words fly at you and hit the line when it's time to sing them.</figcaption></figure>
+      <figure><img src="img/band.jpg" alt="The Band page: levels, loose ends, the setlist, the band feed" loading="lazy"><figcaption>Band: levels, achievements, the setlist, the next show, the to-do list that isn't a song.</figcaption></figure>
     </div>
   </section>
 
@@ -202,7 +178,7 @@
 
   <footer>
     <p>Made by Jeff Deuel for a band in a basement. <a class="repo-link" href="https://github.com/OWNER/cobander/issues">Report a bug</a></p>
-    <p>Characters by <a href="https://kenney.nl">Kenney</a> (CC0). Icons by <a href="https://openmoji.org">OpenMoji</a> (CC BY-SA 4.0) and <a href="https://game-icons.net">game-icons.net</a> (CC BY 3.0: Lorc, Delapouite). Speech-to-text by whisper.cpp.</p>
+    <p>Icons by <a href="https://openmoji.org">OpenMoji</a> (CC BY-SA 4.0) and <a href="https://game-icons.net">game-icons.net</a> (CC BY 3.0: Lorc, Delapouite). Speech-to-text by whisper.cpp.</p>
   </footer>
 </div>
 <script>
