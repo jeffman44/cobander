@@ -1,6 +1,7 @@
 # Cobander changelog
 
 ## 0.15.1
+- 🥡 Takeout: Cobander's installers are pay-what-you-want (a round for the band $12 · a round and the jukebox $25 · Roadie $60), one time, per band; the source stays free. Link under ⚙ and on the Band page.
 - Kitchen icons next to the names (names unchanged): 🍜 Songs, 📋 Setlist, 🐉🍜 boss battle, 🥡 Parts, 🥢 Ideas, 🍲 Versions, 🍳 Band feed, 🍽️ Show, 🧂 Auto mix / fix, 🍽️ Auto master, 🥡 Bounce, 🫗 Lighten the folder.
 - 🍺 Ko-fi joins Venmo in the tip jar (⚙ and the Band page).
 

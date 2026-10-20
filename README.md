@@ -30,15 +30,20 @@ whole band opens at practice.
 
 ## Install
 
-Download the latest release for your computer from the
-[Releases page](../../releases/latest): the `.exe` for Windows, the `mac-arm64` zip for Apple-silicon Macs, the
-`mac-x64` zip for Intel Macs. Open it, give yourself a name, and point it at a folder inside the cloud folder your
-band shares. Everyone in the band does the same with the same folder. That's the setup.
+**Takeout 🥡** — ready-made installers (Windows `.exe`, Mac `mac-arm64` / `mac-x64` zips) with one-click updates,
+pay what you want, one time, per band:
 
-Cobander checks that Releases page (or the band folder) for updates and installs them itself.
+- **$12** — a round for the band
+- **$25** — a round and the jukebox (suggested)
+- **$60** — Roadie: your band's name in the credits
 
-The builds aren't code-signed (that costs money). Windows SmartScreen will ask "Run anyway"; on a Mac, drag the app
-into Applications, then right-click → Open the first time.
+Get it from the [download page](https://ko-fi.com/jdeuel44) *(storefront link coming; Ko-fi works today)*.
+Open it, give yourself a name, and point it at a folder inside the cloud folder your band shares. Everyone in the
+band does the same with the same folder. That's the setup. Cobander checks for updates and installs them itself.
+
+**Free** — the source is MIT; `npm install && npm start` runs it, `bash scripts/build.sh all` builds the same
+installers. Nothing is held back. The builds you make yourself aren't code-signed, so Windows SmartScreen will ask
+"Run anyway" and a Mac wants right-click → Open the first time; that's most of what Takeout pays for.
 
 ## Build it yourself
 
@@ -55,8 +60,8 @@ script can drive a running Cobander over HTTP or a file-drop inbox).
 
 ## Buy Jeff a PBR 🍺
 
-Cobander is free and will stay free. If it's earning its keep, the tip jar is [Ko-fi](https://ko-fi.com/jdeuel44)
-or Venmo **@jdeuel44** (links are in the app under ⚙ and on the Band page).
+Already have it and just want to say thanks? [Ko-fi](https://ko-fi.com/jdeuel44) or Venmo **@jdeuel44**
+(links are in the app under ⚙ and on the Band page).
 
 ## License
 

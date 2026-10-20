@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cobander — noodle together</title>
+<meta name="description" content="A band sketchpad: record, write, mix and practice with your band through the cloud folder you already share. No server, no accounts, no subscription.">
+<link rel="icon" href="icon.png">
+<style>
+  :root { --bg: #15171d; --bg2: #1f222b; --bg3: #2a2e39; --fg: #e8e9ee; --muted: #9aa0ad; --line: #343946; --accent: #5b8def; --noodle: #f2b534; --ok: #4caf7d; }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #faf8f3; --bg2: #fff; --bg3: #f0ece2; --fg: #1d1d1d; --muted: #666; --line: #e3ded2; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 32px 16px 64px; }
+  header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  header img { width: 96px; height: 96px; border-radius: 22px; }
+  h1 { margin: 0; font-size: 40px; letter-spacing: -0.5px; }
+  h1 small { display: block; font-size: 18px; font-weight: 400; color: var(--muted); }
+  h2 { font-size: 22px; margin: 40px 0 10px; }
+  p { margin: 8px 0; } .muted { color: var(--muted); }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 16px 0; }
+  .card { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .tier { text-align: center; cursor: pointer; transition: transform .1s, border-color .1s; }
+  .tier:hover, .tier.pick { border-color: var(--noodle); transform: translateY(-2px); }
+  .tier .price { font-size: 34px; font-weight: 700; color: var(--noodle); }
+  .tier .name { font-weight: 600; } .tier .why { color: var(--muted); font-size: 14px; }
+  .btn { display: inline-block; background: var(--noodle); color: #1d1d1d; font-weight: 700; padding: 12px 22px; border-radius: 10px; text-decoration: none; border: 0; font-size: 16px; cursor: pointer; }
+  .btn.quiet { background: var(--bg3); color: var(--fg); font-weight: 500; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 14px 0; }
+  ul { padding-left: 20px; } li { margin: 4px 0; }
+  code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+  pre { background: var(--bg3); padding: 12px; border-radius: 8px; overflow: auto; font-size: 14px; }
+  footer { margin-top: 48px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 16px; }
+  a { color: var(--accent); }
+  .shot { width: 100%; border-radius: 12px; border: 1px solid var(--line); margin: 12px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="icon.png" alt="noodles in a colander">
+    <h1>Cobander <small>Noodle together. A sketchpad for your whole band.</small></h1>
+  </header>
+
+  <p>Everyone in the band records, writes, mixes and practices on their own computer, and the song lives in the one
+  folder you already share — Google Drive, OneDrive, iCloud Drive or Dropbox. <b>No server, no accounts, no
+  subscription.</b> Whatever one of you noodles, the rest get in seconds.</p>
+
+  <div class="grid">
+    <div class="card"><h3>✍️ Write</h3><p class="muted">Parts, chords, lyrics pinned where they're sung (speech-to-text on your computer), notes on the timeline, a parts bin, a noodle pad.</p></div>
+    <div class="card"><h3>⏺ Record</h3><p class="muted">Arm a track, hit R. Lossless takes, punch-in, comp the best bits, a tuner, a drum machine, MIDI guitar / bass / keys for sketching without a mic.</p></div>
+    <div class="card"><h3>🎚 Mix</h3><p class="muted">A real console. Auto mix, Auto master, tighten a sloppy take, pitch check on vocals, a timing report, stems and a DAW hand-off when a song outgrows it.</p></div>
+    <div class="card"><h3>🎙 Practice</h3><p class="muted">Big words and chords that follow the song, loop a part, slow it down, a note highway of what to play, Show mode with a pedal, your phone follows along.</p></div>
+    <div class="card"><h3>⚔ Band</h3><p class="muted">Levels and achievements, the setlist, a boss battle (the next show), loose ends, who's rehearsing right now.</p></div>
+    <div class="card"><h3>🤝 Together</h3><p class="muted">Song and track locks so two people can work at once, @mentions, a band feed, in-app updates — all through the shared folder.</p></div>
+  </div>
+
+  <h2 id="takeout">🥡 Takeout — pay what you want, once, per band</h2>
+  <p>The ready-made installers for Windows and Mac, signed so your computer doesn't panic, with one-click updates
+  forever. Pick what the band can spare:</p>
+  <div class="grid">
+    <div class="card tier" data-amt="12"><div class="price">$12</div><div class="name">A round for the band</div><div class="why">the floor — four tallboys</div></div>
+    <div class="card tier pick" data-amt="25"><div class="price">$25</div><div class="name">A round and the jukebox</div><div class="why">what most bands pick</div></div>
+    <div class="card tier" data-amt="60"><div class="price">$60</div><div class="name">Roadie</div><div class="why">your band's name in the credits</div></div>
+  </div>
+  <div class="row">
+    <a class="btn" id="buy" href="https://ko-fi.com/jdeuel44" target="_blank" rel="noopener">Get Cobander — $25</a>
+    <span class="muted">Windows 10+ · macOS 13+ (Apple silicon and Intel)</span>
+  </div>
+  <p class="muted">Updates are included for good. Already have it and want to say thanks? <a href="https://ko-fi.com/jdeuel44">Ko-fi</a> or Venmo <b>@jdeuel44</b> — buy Jeff a PBR 🍺</p>
+
+  <h2>Free — build it yourself</h2>
+  <p>The whole thing is open source (MIT) and nothing is held back. If you're comfortable with a terminal:</p>
+  <pre>git clone https://github.com/<span class="repo">OWNER/cobander</span>
+cd cobander &amp;&amp; npm install &amp;&amp; npm start      # run it
+bash scripts/build.sh all                    # or build the installers</pre>
+  <p class="muted">Builds you make yourself aren't code-signed, so Windows SmartScreen asks "Run anyway" and a Mac wants right-click → Open the first time. That, and not having to do this, is what Takeout pays for.</p>
+
+  <h2>Setup, in one breath</h2>
+  <ul>
+    <li>Open Cobander, type your name.</li>
+    <li>Point it at a folder inside the cloud folder your band shares (make one: <code>Band stuff/Cobander</code>).</li>
+    <li>Every bandmate does the same, same folder. Done — songs, takes and chords show up for everyone.</li>
+  </ul>
+
+  <footer>
+    Made by Jeff Deuel for a band in a basement. <a class="repo-link" href="https://github.com/OWNER/cobander">Source on GitHub</a> ·
+    <a class="repo-link" href="https://github.com/OWNER/cobander/issues">Report a bug</a> · MIT license.
+  </footer>
+</div>
+<script>
+  // tier buttons set the suggested amount on the buy link (the storefront takes the final amount)
+  const BUY = { base: 'https://ko-fi.com/jdeuel44', amounts: true };
+  const buy = document.getElementById('buy');
+  for (const t of document.querySelectorAll('.tier')) t.addEventListener('click', () => {
+    for (const x of document.querySelectorAll('.tier')) x.classList.toggle('pick', x === t);
+    buy.textContent = `Get Cobander — $${t.dataset.amt}`; buy.href = BUY.base;
+  });
+  // repo links are filled from the page's own location on GitHub Pages (user.github.io/cobander → user/cobander)
+  const m = /^([^.]+)\.github\.io$/.exec(location.hostname); if (m) { const repo = `${m[1]}/cobander`; for (const r of document.querySelectorAll('.repo')) r.textContent = repo; for (const a of document.querySelectorAll('.repo-link')) a.href = a.href.replace('OWNER/cobander', repo); }
+</script>
+</body>
+</html>
