@@ -1,6 +1,7 @@
 # Cobander changelog
 
 ## 0.15.4
+- Right-click a guitar / keys / bass track → 🎸 Chords & tabs: the chart moved for a capo or another key (nothing re-tuned), chords from its takes, or the play-along highway; 🔁 Transpose the whole song sits next to it. "Lyrics from this track" now only shows on vocal tracks.
 - 3D practice view: every word flies at you on its own, lands in its place on the line when it's time to sing it, and the line assembles as it arrives. The view menu switches back to classic karaoke (words + chords) any time.
 
 ## 0.15.3

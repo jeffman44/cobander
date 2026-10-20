@@ -1879,7 +1879,14 @@
     return [
       ...lockItems(t),
       { label: state.armedTrack === t.id ? 'Disarm' : 'Arm for recording', action: () => { state.armedTrack = state.armedTrack === t.id ? null : t.id; renderTracks(); }, disabled: ro() || t.instrument === 'drumkit' },
-      ...(t.instrument === 'audio' && t.clips.length ? [{ label: '🎤 Lyrics from this track (speech-to-text)', action: () => transcribeTrack(t), disabled: !!asrBusy }] : []),
+      ...(t.instrument === 'audio' && t.clips.length && isVocalTrack(t) ? [{ label: '🎤 Lyrics from this track (speech-to-text)', action: () => transcribeTrack(t), disabled: !!asrBusy }] : []),
+      ...(harmonicTrack(t) || bassTrack(t) ? [
+        { label: '🎸 Chords & tabs for this track', sub: [
+          { title: 'Show the chart moved for a capo / another key (nothing is re-tuned)' },
+          ...[0, -1, -2, -3, -4, -5, 1, 2, 3].map((k) => ({ label: k === 0 ? 'As written' : k < 0 ? `Capo ${-k} (chords shown ${k})` : `Up ${k} half step${k === 1 ? '' : 's'}`, action: () => showChartShifted(k) })),
+          'sep', { label: 'Chords from this track (listen to the takes)', action: () => chordsFromTracks([t]).catch(fail), disabled: ro() },
+          { label: 'Play-along highway (Practice → play along)', action: () => { setWorkspace('practice'); setTimeout(() => { const al = $('#k-along'); if (al) { al.value = bassTrack(t) ? 'bass' : 'chords'; al.dispatchEvent(new Event('change')); } }, 300); } }] },
+        { label: '🔁 Transpose the whole song (re-tunes the recordings too)', sub: transposeItems(null), disabled: state.readOnly }] : []),
       { label: t.mute ? 'Un-mute track' : 'Mute track', action: () => { change(() => engine.updateTrack(t.id, { mute: !t.mute }), { undoable: false }); renderAll(); }, disabled: ro() },
       { label: t.solo ? 'Un-solo track' : 'Solo track', action: () => { change(() => engine.updateTrack(t.id, { solo: !t.solo }), { undoable: false }); renderAll(); }, disabled: ro() },
       'sep',
@@ -3097,6 +3104,7 @@
 
   // ---------- chord chart / lyric sheet ----------
   // By section: the chords bar by bar, then the lyric lines with the chord they start on. Transposable for practice.
+  function showChartShifted(k) { setWorkspace('write'); showTab('chart'); renderChart(); const sel = $('#chart-transpose'); if (sel) { sel.value = String(k); sel.dispatchEvent(new Event('change')); } status(k ? `Chart shown ${k > 0 ? '+' : ''}${k} — the recordings are untouched. Change it with the transpose box in the Chords tab.` : 'Chart as written.', 6000); }
   function chartText(semis = 0) {
     const song = collectSong(); const b = barLen(); const flat = MU.isFlatKey(semis ? MU.transposeKey(state.song.key || 'C', semis) : (state.song.key || ''));
     const tp = (c) => (semis ? MU.transposeChord(c, semis, flat) : c);
