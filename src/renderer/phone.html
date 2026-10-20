@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#15171c">
+<title>Cobander — practice</title>
+<style>
+  :root { --bg: #15171c; --bg2: #1d2027; --line: #30353f; --fg: #e6e8ee; --muted: #8b91a0; --xp: #e5b04b; --accent: #5b8def; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 16px/1.3 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { display: flex; flex-direction: column; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+  header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--bg2); border-bottom: 1px solid var(--line); }
+  header b { font-size: 16px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #part { color: var(--xp); font-weight: 700; letter-spacing: .1em; font-size: 13px; }
+  select, button { font: inherit; color: var(--fg); background: #262a33; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  #stage { flex: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; padding: 16px; text-align: center; }
+  .line { max-width: 100%; }
+  .cur { font-size: calc(30px * var(--ks, 1)); font-weight: 700; min-height: 2.6em; display: flex; align-items: flex-end; justify-content: center; flex-wrap: wrap; }
+  .next { font-size: calc(19px * var(--ks, 1)); color: var(--muted); }
+  .prev { font-size: calc(15px * var(--ks, 1)); color: #5d6372; }
+  .w { display: inline-flex; flex-direction: column; align-items: flex-start; margin: 0 .14em; }
+  .c { font: 700 .55em ui-monospace, Menlo, monospace; color: var(--accent); min-height: 1.1em; }
+  .cur .t { color: #8b91a0; } .cur .sung .t { color: var(--fg); } .cur .now .t { color: var(--xp); }
+  #count { color: var(--muted); font-size: 18px; min-height: 1.3em; } #count.soon { color: var(--xp); font-size: 34px; font-weight: 700; }
+  #bars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; }
+  #bars div { border: 1px solid var(--line); border-radius: 8px; padding: 14px 4px; font: 700 calc(26px * var(--ks, 1)) ui-monospace, Menlo, monospace; color: var(--muted); }
+  #bars div.now { border-color: var(--xp); color: var(--fg); } #bars div.done { opacity: .45; }
+  #bars .sec { grid-column: 1 / -1; border: 0; padding: 0; font-size: 13px; color: var(--xp); letter-spacing: .1em; text-align: left; }
+  footer { display: flex; gap: 8px; padding: 10px 12px; background: var(--bg2); border-top: 1px solid var(--line); align-items: center; }
+  footer button { flex: 1; font-size: 20px; padding: 12px 0; }
+  footer #play { flex: 1.6; background: var(--accent); border-color: var(--accent); }
+  #prog { height: 4px; background: #262a33; } #prog i { display: block; height: 100%; width: 0; background: var(--xp); }
+  #msg { color: var(--muted); font-size: 14px; }
+  .opts { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+</style>
+</head>
+<body>
+<header><b id="song">Cobander</b><span id="part"></span></header>
+<div class="opts">
+  <select id="view"><option value="both">words + chords</option><option value="chords">chords only</option><option value="words">words only</option></select>
+  <select id="tp"></select>
+  <button id="size">A±</button>
+</div>
+<div id="prog"><i></i></div>
+<div id="stage">
+  <div id="prev" class="line prev"></div>
+  <div id="count"></div>
+  <div id="cur" class="line cur"></div>
+  <div id="next" class="line next"></div>
+  <div id="bars" hidden></div>
+  <div id="msg"></div>
+</div>
+<footer>
+  <button id="prevpart" aria-label="previous part">⏮</button>
+  <button id="play" aria-label="play / pause">▶</button>
+  <button id="nextpart" aria-label="next part">⏭</button>
+</footer>
+<script>
+(() => {
+  const K = new URLSearchParams(location.search).get('k') || '';
+  const $ = (s) => document.querySelector(s);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  const NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']; const PC = { C: 0, 'B#': 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, Fb: 4, F: 5, 'E#': 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11, Cb: 11 };
+  const tpNote = (n, k) => (PC[n] == null ? n : NOTES[(((PC[n] + k) % 12) + 12) % 12]);
+  const tpChord = (c, k) => (!k || !c ? c : String(c).replace(/^([A-G][#b]?)/, (m) => tpNote(m, k)).replace(/\/([A-G][#b]?)/, (m, n) => `/${tpNote(n, k)}`));
+  for (let k = -6; k <= 6; k++) { const o = new Option(k ? `chords ${k > 0 ? '+' : ''}${k}${k < 0 ? ` (capo ${-k})` : ''}` : 'chords as written', String(k)); $('#tp').append(o); }
+  const save = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} }; const load = (k, d) => { try { return localStorage.getItem(k) || d; } catch (_) { return d; } };
+  $('#tp').value = load('bpp.tp', '0'); $('#view').value = load('bpp.view', 'both'); let ks = Number(load('bpp.ks', '1')) || 1; document.body.style.setProperty('--ks', ks);
+  $('#tp').onchange = () => { save('bpp.tp', $('#tp').value); barsKey = ''; }; $('#view').onchange = () => { save('bpp.view', $('#view').value); barsKey = ''; };
+  $('#size').onclick = () => { ks = ks >= 1.8 ? 0.8 : Math.round((ks + 0.2) * 10) / 10; document.body.style.setProperty('--ks', ks); save('bpp.ks', String(ks)); };
+  let st = null, lines = [], v = 0, got = 0, barsKey = '';
+  async function poll() {
+    try {
+      const r = await fetch(`/state?k=${encodeURIComponent(K)}&v=${v}`, { cache: 'no-store' }); const s = await r.json();
+      if (s.error) throw new Error(s.error);
+      if (s.lines) { lines = s.lines; v = s.v; barsKey = ''; }
+      st = s; got = performance.now(); $('#msg').textContent = s.song ? '' : 'No song open in Cobander.';
+    } catch (err) { $('#msg').textContent = `Can't reach Cobander (${err.message}) — same Wi-Fi as the computer?`; }
+    setTimeout(poll, st && st.playing ? 700 : 1500);
+  }
+  async function cmd(action, extra = {}) { try { await fetch(`/cmd?k=${encodeURIComponent(K)}`, { method: 'POST', body: JSON.stringify({ action, ...extra }) }); setTimeout(poll, 120); } catch (_) {} }
+  $('#play').onclick = () => cmd('toggle'); $('#prevpart').onclick = () => cmd('prevpart'); $('#nextpart').onclick = () => cmd('nextpart');
+  const now = () => { if (!st) return 0; let t = st.pos + (st.playing ? (performance.now() - got) / 1000 * (st.rate || 1) : 0); if (st.loop && st.playing && t >= st.loop.to) t = st.loop.from + ((t - st.loop.from) % (st.loop.to - st.loop.from)); return t; };
+  function lineAt(t) { let i = -1; for (let k = 0; k < lines.length; k++) { if (lines[k].time <= t + 1e-3) i = k; else break; } const cur = i >= 0 && t <= lines[i].end + 1.2 ? lines[i] : null; return { i, cur, next: lines[i + 1] || null }; }
+  function render(node, l, t, big) {
+    node.innerHTML = ''; if (!l) return; const k = Number($('#tp').value) || 0; const showC = $('#view').value !== 'words';
+    l.words.forEach((w, i) => { const s = el('span', 'w'); const cs = showC ? l.chords.filter((c) => c.wi === i).map((c) => tpChord(c.chord, k)) : []; s.append(el('span', 'c', cs.join(' '))); s.append(el('span', 't', w.w)); if (big && t != null) { if (t >= w.e) s.classList.add('sung'); else if (t >= w.t) s.classList.add('now'); } node.append(s); });
+  }
+  function bars(t) {
+    const box = $('#bars'); const sc = (st.sections || []).find((x) => t >= x.start && t < x.end) || null; const k = Number($('#tp').value) || 0;
+    const key = JSON.stringify([sc && sc.start, k, v]);
+    if (key !== barsKey) { barsKey = key; box.innerHTML = ''; box.append(el('div', 'sec', sc ? sc.name.toUpperCase() : '')); for (const b of (sc ? sc.bars : st.bars || []) || []) { const d = el('div', null, b.chords.map((c) => tpChord(c, k)).join(' ') || (b.held ? '–' : '')); d.dataset.s = b.s; d.dataset.e = b.e; box.append(d); } }
+    for (const d of box.querySelectorAll('div[data-s]')) { const s = Number(d.dataset.s), e = Number(d.dataset.e); d.classList.toggle('now', t >= s && t < e); d.classList.toggle('done', t >= e); }
+  }
+  function frame() {
+    requestAnimationFrame(frame); if (!st || !st.song) return;
+    const t = now(); $('#song').textContent = st.song + (st.setlist ? ` · ${st.setlist}` : ''); $('#play').textContent = st.playing ? '❚❚' : '▶';
+    const sc = (st.sections || []).find((x) => t >= x.start && t < x.end); $('#part').textContent = sc ? sc.name.toUpperCase() : '';
+    $('#prog i').style.width = `${Math.min(100, 100 * t / Math.max(1, st.end || 1))}%`;
+    const chordsOnly = $('#view').value === 'chords';
+    for (const id of ['#prev', '#cur', '#next']) $(id).hidden = chordsOnly; $('#bars').hidden = !chordsOnly;
+    if (chordsOnly) { bars(t); $('#count').textContent = ''; return; }
+    const a = lineAt(t); render($('#cur'), a.cur, t, true); render($('#prev'), a.cur ? lines[a.i - 1] : lines[a.i] || null, null, false); render($('#next'), a.next, null, false);
+    const c = $('#count'); if (!a.cur && a.next) { const s = a.next.time - t; c.textContent = s <= 3.2 ? String(Math.max(1, Math.ceil(s))) : `${a.next.section ? `${a.next.section} — ` : ''}♪ ${Math.round(s)} s`; c.className = s <= 3.2 ? 'soon' : ''; } else { c.textContent = ''; c.className = ''; }
+    if (!lines.length) $('#cur').textContent = 'No timed lyrics in this song yet — chords only shows the bars.';
+  }
+  try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (_) {}
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (_) {} } });
+  poll(); frame();
+})();
+</script>
+</body>
+</html>

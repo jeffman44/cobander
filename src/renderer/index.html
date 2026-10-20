@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: data: https://huggingface.co https://*.huggingface.co https://*.hf.co; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:">
+<title>Cobander — noodle together</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <div id="update-bar" hidden></div>
+  <header id="topbar">
+    <div class="row1">
+      <div class="brand" title="Cobander — noodle together.">Cobander</div>
+      <nav id="ws-tabs" title="Workspaces (Ctrl+1–5)">
+        <button data-ws="write" title="Write (Ctrl+1): the song — parts, takes, lyrics, chords, notes">✍ Write</button>
+        <button data-ws="record" title="Record (Ctrl+2): input, monitoring, punch, tuner, and the takes on the selected track">● Record</button>
+        <button data-ws="mix" title="Mix (Ctrl+3): mixer, FX, master — Auto mix / Auto master">🎚 Mix</button>
+        <button data-ws="practice" id="btn-karaoke" title="Practice (Ctrl+4 or K): full screen — lyrics and chords as they come, loop parts, slow down, take yourself out of the mix, the setlist, Show mode, your phone">🎙 Practice</button>
+        <button data-ws="band" title="Band (Ctrl+5): the band's level, setlist, who's done what, who's rehearsing">⚔ Band<span class="tab-badge" id="tb-band"></span></button>
+      </nav>
+      <div id="transport">
+        <button id="btn-start" title="To start / loop start (Home)">&#9198;</button>
+        <button id="btn-back" title="Back one bar (,)  Shift = 4 bars">&#9664;&#9664;</button>
+        <button id="btn-stop" title="Stop — back to where you started (Esc)">&#9632;</button>
+        <button id="btn-pause" title="Play / pause in place (Space)">&#9654;</button>
+        <button id="btn-play" hidden>&#9654;</button>
+        <button id="btn-fwd" title="Forward one bar (.)  Shift = 4 bars">&#9654;&#9654;</button>
+        <button id="btn-end" title="To end (End)">&#9197;</button>
+        <button id="btn-rec" class="rec" title="Record onto the armed track (R)">&#9679;</button>
+        <div id="time" class="mono">0:00.00</div>
+        <div id="bars" class="mono" title="bar.beat">1.1</div>
+      </div>
+      <div class="right">
+        <button id="xp-chip" class="xp-chip" hidden title="your level — click for the band's progress"><span class="xp-lvl"></span><span class="xp-title"></span><span class="xp-bar"><i></i></span><span class="xp-num"></span></button>
+        <span id="who" class="muted"></span>
+        <button id="btn-settings" title="Settings">&#9881;</button>
+      </div>
+    </div>
+    <div class="row2">
+      <span class="grp" title="the song">
+        <label class="chip">bpm <input type="number" id="bpm" min="30" max="300" value="120"></label>
+        <label class="chip"><select id="timesig" title="Time signature — Other… for anything (13/7, 2+2+3/8)"><option>4/4</option><option>3/4</option><option>6/8</option><option>2/4</option><option>5/4</option><option>7/8</option><option>9/8</option><option>12/8</option><option value="custom">Other…</option></select></label>
+        <button id="key-chip" class="chip" title="Song key — click to set or detect it">key –</button>
+      </span>
+      <span class="grp" title="playing">
+        <label class="chip"><input type="checkbox" id="click-on"> click</label>
+        <label class="chip"><input type="checkbox" id="count-in" checked> count-in</label>
+        <span class="chip loopchip"><label><input type="checkbox" id="loop-on"> loop</label> bars <input type="number" id="loop-from" min="1" value="1" title="loop from bar"> – <input type="number" id="loop-to" min="1" value="4" title="loop to bar (inclusive)"> <button id="btn-loop-here" title="Loop 4 bars from the playhead ([ and ] set start/end)">here</button><button id="btn-loop-clip" title="Loop the selected take">take</button></span>
+      </span>
+      <span class="grp only-record" title="recording">
+        <label class="chip" title="Punch in/out: R plays one bar before the loop range and records, but the take only plays inside the range (the rest stays in the file as handles). Other takes on the track go quiet inside the range."><input type="checkbox" id="punch-on"> punch</label>
+        <label class="chip"><input type="checkbox" id="monitor"> monitor</label>
+        <div id="input-meter" class="meter small" title="input level"><div class="fill"></div></div>
+        <button id="btn-tuner" class="chip" title="Tuner (T) — tune to the live input">tuner</button>
+        <span id="midi-led" class="chip muted" title="MIDI activity">midi</span>
+      </span>
+      <span class="grp only-mix" title="mixing">
+        <button id="btn-automix" class="chip" title="Auto mix: levels, EQ cleanup, compression, panning and reverb sends set from what's recorded — a rough mix to start from (Undo or A/B to compare)">✨ Auto mix</button>
+        <button id="btn-automaster" class="chip" title="Auto master: master level to a streaming-loud target with the limiter catching the peaks">✨ Auto master</button>
+        <button id="btn-mixab" class="chip" title="A/B: flip between the mix before and after Auto mix / Auto master (B)" disabled>A/B</button>
+        <span id="mix-ab-state" class="muted small"></span>
+      </span>
+    </div>
+  </header>
+
+  <div id="body">
+    <aside id="sidebar">
+      <div class="side-head">
+        <span>Songs</span>
+        <span><button id="btn-noodle" title="Noodle pad: your own scratch song to record random riffs and save the good ones to the Parts bin">🎸</button> <button id="btn-new-song" title="New song">+</button></span>
+      </div>
+      <div id="folder-line" class="muted small"></div>
+      <select id="song-stage-filter" title="show songs by stage"><option value="">all songs</option><option value="idea">💡 ideas</option><option value="writing">✍️ writing</option><option value="demo">🎙 demos</option><option value="done">✅ done</option><option value="none">no stage yet</option></select>
+      <ul id="song-list"></ul>
+      <div id="band-feed-head" class="side-head small" title="Everything the band did, across every song — live · click to minimize / expand"><span><span id="band-feed-caret">▾</span> Band feed <span id="band-feed-new" class="bf-new" hidden></span></span><span id="band-feed-live" class="muted">live</span></div>
+      <ul id="band-feed" class="small"></ul>
+    </aside>
+    <div class="vsplit" data-target="#sidebar" data-key="bp.sideW" data-min="160" data-max="520" data-side="left" title="drag to resize · double-click to reset"></div>
+
+    <main id="main">
+      <div id="no-song" class="empty">
+        <h2>Pick a song on the left, or make a new one.</h2>
+        <p class="muted">Everything lives in the band's shared folder. Hit <b>R</b> to record onto the armed track, <b>Space</b> to play.</p>
+      </div>
+      <section id="band-page" hidden>
+        <div class="bp-col bp-main">
+          <div id="band-pane">
+                <div class="qb-head"><div class="qb-lvl"><b id="qb-lvl-n"></b><span id="qb-lvl-title"></span></div><div class="qb-xp"><span id="qb-xp"></span><div class="xp-bar big"><i id="qb-bar"></i></div><span id="qb-tonext" class="muted small"></span></div></div>
+                <div id="qb-boss" class="qb-boss" title="click to set the next boss battle (a practice, a show)"></div>
+                <div class="tab-tools small"><b>Band</b><span class="muted">click a bandmate for the breakdown</span></div>
+                <div id="qb-members"></div>
+                <div class="tab-tools small"><b id="qb-song-title">This song</b></div>
+                <div id="qb-song"></div>
+                <div class="tab-tools small"><b>Loose ends</b><span class="muted">band to-dos that aren't a song — book the gig, fix the PA, buy PBR (@Name assigns)</span></div>
+                <div id="qb-todos" class="qb-tasks"></div>
+                <div class="tab-tools small"><b>Setlist</b><button id="qb-chart-all" title="Open each song in turn, listen to its guitar / keys / bass takes and draft the chords it doesn't have yet (chords anyone typed are never touched). Songs someone else has open are skipped.">🎼 Chart every song</button><input id="qb-new" placeholder="add a song not in Cobander (a cover)…"><button id="qb-add">+</button></div>
+                <ul id="qb-setlist" class="small"></ul>
+                <div id="qb-next" class="muted small qb-next" title="click to edit"></div>
+              </div>
+        </div>
+        <div class="bp-col bp-side">
+          <div class="panel-title">Rehearsing now</div>
+          <ul id="bp-live" class="small"></ul>
+          <div class="panel-title">Practice this week</div>
+          <ul id="bp-practice" class="small"></ul>
+          <div class="panel-title">Band feed</div>
+          <ul id="bp-feed" class="small"></ul>
+          <div id="bp-pbr" class="small muted">Cobander is free. If it's earning its keep, <button type="button" class="link-btn pbr" data-link="venmo" title="Venmo @jdeuel44">🍺 buy Jeff a PBR</button><button type="button" class="link-btn pbr" data-link="kofi" hidden>or a Ko-fi</button></div>
+        </div>
+      </section>
+      <div id="song" hidden>
+        <div id="song-head">
+          <div id="song-title"></div>
+          <div id="song-reactions"></div>
+          <div id="presence-line" class="badge presence" hidden></div>
+          <div id="lock-badge" class="badge"></div>
+          <div id="sync-badge" class="badge"></div>
+          <div class="spacer"></div>
+          <button id="btn-unlock-all" title="Unlock every track nobody else has (they lock again after 10 min untouched)">🔓 Unlock all</button><button id="btn-writing" hidden>✍ Writing</button><button id="btn-undo" title="Undo (Ctrl/Cmd+Z)">Undo</button>
+          <button id="btn-redo" title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
+          <button id="btn-save" title="Save (Ctrl/Cmd+S)">Save</button>
+          <button id="btn-share" title="Bounce the mix, share a part with its chart, hand off to a DAW, open it on your phone">Share ▾</button>
+          <button id="btn-more" title="Song folder, deleted takes, Lighten Drive">⋯</button>
+          <button id="btn-bounce" hidden>Bounce mix</button>
+          <button id="btn-stems" hidden title="Writes a folder with a REAPER project, a MIDI file, stems and the raw takes, for anyone who wants to keep working in their own DAW">Hand off to a DAW</button>
+          <button id="btn-open-folder" hidden title="Show song folder">Folder</button>
+          <button id="btn-close" title="Close this song and let bandmates edit it">Close</button>
+        </div>
+        <div id="banner" class="banner" hidden></div>
+        <div id="practice-bar" hidden><b>Practice</b><span id="practice-info"></span><button id="btn-practice-stop">Stop practice</button></div>
+        <div id="room-bar" hidden><b id="room-name"></b><span id="room-info" class="small"></span><button id="btn-room-rec" title="Loop-record this part (R)">&#9679; Record here</button><button id="btn-room-leave">Leave room</button></div>
+        <div id="now-line" class="small" title="where you are: section · chord · lyric"><span id="now-section"></span><span id="now-chord" class="mono"></span><span id="now-lyric"></span></div>
+
+        <div id="arrange">
+          <div id="ruler-row"><div class="track-head ruler-head"><div class="lane-label" title="Song sections — right-click the strip to add Intro / Verse / Chorus…">sections</div><div class="lane-label" title="Chords — click the strip to add a chord at that beat">chords</div><div class="add-row"><button id="btn-add-track">+ track</button><button id="btn-track-h" title="Track height — thin / regular / thick (Alt+wheel over the tracks for any size)">↕</button><button id="btn-drums" title="Drum editor / generator: write the drums for a section, hit by hit or with one click">🥁</button><button id="snap-ind" class="snap-ind" title="snap">snap 1/4</button><button id="btn-import-audio" title="Import WAV / MP3 / M4A files — each becomes a track (or drag files straight onto the timeline)">⤓ import</button></div></div><div id="lanes-col"><div id="section-lane" class="toplane"></div><div id="chord-lane" class="toplane"></div><canvas id="ruler"></canvas></div></div>
+          <div id="tracks"></div>
+          <div id="room-shade" hidden></div>
+        </div>
+
+        <div id="bottom-handle" title="drag to resize"></div>
+        <div id="bottom">
+          <div id="mixer"></div>
+          <div id="master-area"></div>
+          <div class="vsplit" data-target="#fx-panel" data-key="bp.fxW" data-min="240" data-max="900" title="drag to resize · double-click to reset"></div>
+          <div id="fx-panel">
+            <div class="panel-title">Track FX <span id="fx-track-name" class="muted"></span></div>
+            <div id="fx-body" class="muted">Select a track.</div>
+          </div>
+          <div class="vsplit" id="split-notes" data-target="#notes-panel" data-key="bp.notesW" data-min="260" data-max="1400" title="drag to resize · double-click to reset"></div>
+          <div id="notes-panel">
+            <div id="side-tabs">
+              <button data-tab="takes" data-ws="record" title="The takes on the selected track: keep, comp, star, tighten, pitch check, words / chords from a take">Takes</button>
+              <button data-tab="lyrics" data-ws="write record">Lyrics</button>
+              <button data-tab="chart" data-ws="write" title="Chords: the chart, and chords heard from the recordings">Chords</button>
+              <button data-tab="notes" data-ws="write record" class="active">Notes<span class="tab-badge" id="tb-notes"></span></button>
+              <button data-tab="needs" data-ws="write record">Needs<span class="tab-badge" id="tb-needs"></span></button>
+              <button data-tab="ideas" data-ws="write">Ideas<span class="tab-badge" id="tb-ideas"></span></button>
+              <button data-tab="parts" data-ws="write">Parts</button>
+              <button data-tab="feed" data-ws="write" title="This song's history — every save, roll back from any row">History</button>
+              <button data-tab="versions" data-ws="write" title="Tagged versions (A/B) and bounces">Versions</button>
+            </div>
+            <div class="side-tab" data-tab="takes" hidden>
+              <div class="tab-tools"><b id="takes-track" class="small"></b><span class="spacer"></span><button id="btn-recover" hidden class="small" title="Takes that were deleted (or lost in a save conflict) — the audio is still in the song folder">Deleted takes</button></div>
+              <ul id="take-list" class="small"></ul>
+            </div>
+            <div class="side-tab" data-tab="notes">
+              <div id="for-you" hidden></div>
+              <div class="panel-title row-title"><span id="note-list-title">Notes on the timeline</span><label class="small muted"><input type="checkbox" id="show-resolved"> resolved</label></div>
+              <ul id="note-list" class="small"></ul>
+              <div class="panel-title">Scratch notes</div>
+              <textarea id="notes" placeholder="anything: lyrics drafts, gear, to-dos…"></textarea>
+            </div>
+            <div class="side-tab" data-tab="lyrics" hidden>
+              <div class="tab-tools"><button id="btn-melody" title="Write a melody for lyrics: syllables are counted and sung across a part, in key, over your chords">🎵 Melody…</button><button id="btn-lyrics-paste" title="Paste or type the lyrics, one line per row">Add lines…</button><button id="btn-lyric-pin" title="Pins the next unpinned line at the playhead — play the song and hit P on each line">Pin next (P)</button><button id="btn-lyrics-asr" title="Speech-to-text: listens to the vocal tracks and writes the lyrics, each line pinned where it's sung (runs on this computer; the speech model downloads once)">🎤 From the vocals</button></div>
+              <div class="small muted" id="lyrics-hint"></div>
+              <ul id="lyric-list" class="small"></ul>
+            </div>
+            <div class="side-tab" data-tab="needs" hidden>
+              <form id="need-form" class="tab-tools"><input id="need-input" type="text" placeholder="needs bass, needs a harmony…" maxlength="120"><button type="submit">Add</button></form>
+              <ul id="need-list" class="small"></ul>
+            </div>
+            <div class="side-tab" data-tab="ideas" hidden>
+              <div class="tab-tools"><button id="btn-idea-rec" title="Record a quick sketch with your mic — it goes here, not on the timeline">&#9679; Sketch</button><button id="btn-idea-file" title="Add a voice memo or any audio file (phone recordings are fine)">Add file…</button><button id="btn-idea-text">Text…</button><input type="file" id="idea-file" accept="audio/*,.m4a,.mp3,.wav,.aac,.ogg,.flac,.webm" multiple hidden></div>
+              <div class="small muted">Sketches and voice memos for this song. Right-click one to put it on the timeline.</div>
+              <ul id="idea-list" class="small"></ul>
+            </div>
+            <div class="side-tab" data-tab="feed" hidden>
+              <ul id="feed-list" class="small"></ul>
+            </div>
+            <div class="side-tab" data-tab="parts" hidden>
+              <div class="tab-tools"><button id="btn-part-save" title="Save the section under the playhead (or the selected take) to the band's parts bin">Save part…</button><input id="parts-filter" type="search" placeholder="filter: name, tag, style, key…"><select id="parts-sort" title="sort"><option value="new">newest</option><option value="style">by style</option><option value="name">A–Z</option><option value="bpm">tempo</option><option value="key">key</option><option value="who">by who</option></select></div>
+              <div class="pgroup-h">This song <span class="muted small">— drag a part onto the timeline to add another (linked) copy</span></div>
+              <ul id="song-parts" class="small"></ul>
+              <div class="pgroup-h">Band parts bin</div>
+              <div class="small muted" id="parts-hint">Riffs and sections the band saved. Drop one into any song: it is re-timed to this song's tempo and moved to its key automatically.</div>
+              <ul id="part-list" class="small"></ul>
+            </div>
+            <div class="side-tab" data-tab="chart" hidden>
+              <div class="tab-tools"><button id="btn-chords-detect" title="Listen to the guitar / keys / bass takes and draft the chords into the chord lane — only where there are no chords yet">🎸 From the recordings</button><button id="btn-chart-copy" title="Copy the chord chart / lyric sheet as text (for the group chat)">Copy text</button><button id="btn-chart-save" title="Save a printable chart (HTML) into the song folder">Save printable</button><select id="chart-transpose" title="Transpose the chart (to play it in another key)"></select></div>
+              <pre id="chart-view" class="small"></pre>
+            </div>
+            <div class="side-tab" data-tab="versions" hidden>
+              <div class="tab-tools"><button id="btn-version-tag" title="Remember the song exactly as it is now under a name, to compare or go back to later">Tag this version…</button><button id="btn-ab" hidden>A/B</button></div>
+              <div class="small muted" id="ab-hint">A/B plays a tagged version against what you have now, from the same spot.</div>
+              <ul id="version-list" class="small"></ul>
+              <div class="panel-title">Bounces</div>
+              <ul id="bounce-list" class="small"></ul>
+            </div>
+            <div class="side-tab" data-tab="files" hidden>
+              <button id="btn-compact" hidden class="small">Lighten Drive…</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="status" class="small muted"></div>
+</div>
+<div id="toasts"></div>
+<div id="countin" hidden><div class="num"></div><div class="cap">count-in</div></div>
+
+<dialog id="settings">
+  <form method="dialog">
+    <h3>Settings</h3>
+    <label>Your name (shown to bandmates on locks and takes)<input id="s-name" type="text" placeholder="e.g. Kat"></label>
+    <label>Shared band folder (inside Google Drive, OneDrive, iCloud Drive or Dropbox)<div class="row"><input id="s-folder" type="text" readonly><button type="button" id="s-pick">Choose…</button></div>
+      <span id="s-cloud" class="small muted"></span>
+      <span id="s-drive-warn" class="small warn-text" hidden>This doesn't look like a folder a cloud-sync app keeps on this computer (Google Drive for desktop, OneDrive, iCloud Drive, Dropbox). Cobander works in any folder, but the band only sees each other's noodles if every bandmate points Cobander at the same synced folder.</span>
+      <span class="small muted">Tips: share the folder with the band from the provider's own app (Drive "Share", OneDrive "Share", iCloud "Collaborate", Dropbox "Share"), and turn on "always keep on this device" / "available offline" for it so takes aren't downloaded mid-song.</span></label>
+    <label>Audio input<div class="row"><select id="s-input"></select><button type="button" id="s-refresh-inputs" title="Ask for microphone access and list devices">Refresh</button></div></label>
+    <label>Audio output <span class="muted small">— your interface's headphone / line out (the click, playback and monitoring go here)</span><select id="s-output"></select></label>
+    <label>Click output <span class="muted small">— send the click somewhere else (a drummer's in-ears, a second headphone out); same output = everything together</span><select id="s-clickout"></select></label>
+    <label>MIDI input (for synth tracks)<select id="s-midi"></select></label>
+    <label>Record latency offset (ms) <span class="muted small">— trims the start of each take so it lines up with playback; raise it if takes land late</span><div class="row"><input id="s-offset" type="number" min="0" max="500"><button type="button" id="s-measure" title="Plays 8 clicks out the output and listens for them on the input, then sets the offset from the round trip. Point the input at the output first: a cable from the interface's line out into an input, or a mic that can hear the monitors.">Measure</button></div><span id="s-measure-out" class="small muted"></span></label>
+    <label class="row"><input type="checkbox" id="s-monfx"> Monitor the live input through the armed track's amp / EQ / FX <span class="muted small">(takes still record dry)</span></label>
+    <label>Click level (dB)<input id="s-click" type="number" min="-40" max="0" value="-12"></label>
+    <label>Speech-to-text model (lyrics from vocals) <span class="muted small">— downloads once per computer, runs offline</span><select id="s-asr"></select><span id="s-asr-info" class="small muted"></span></label>
+    <div class="row small" id="s-version-row"><span id="s-version" class="muted"></span><button type="button" id="s-check-update">Check for updates</button></div>
+    <div class="row small" id="s-links"><span class="muted">Cobander is free and open source.</span><button type="button" class="link-btn" data-link="repo">GitHub</button><button type="button" class="link-btn" data-link="issues">Report a bug</button><button type="button" class="link-btn pbr" data-link="venmo" title="Venmo @jdeuel44">🍺 Buy Jeff a PBR</button><button type="button" class="link-btn pbr" data-link="kofi" hidden>🍺 Ko-fi</button></div>
+    <details><summary>Assistant / control API</summary>
+      <p class="small muted">A local-only HTTP API lets an AI assistant read meters, change the mix, and bounce. Token lives in settings.json.</p>
+      <div class="small mono" id="s-api"></div>
+    </details>
+    <menu><button value="ok" id="s-save" class="primary">Save</button><button value="cancel" class="cancel" formnovalidate>Cancel</button></menu>
+  </form>
+</dialog>
+
+<dialog id="ask">
+  <form method="dialog">
+    <h3 id="ask-title"></h3>
+    <p id="ask-text"></p>
+    <menu id="ask-menu"></menu>
+  </form>
+</dialog>
+
+<dialog id="recover">
+  <form method="dialog">
+    <h3>Deleted takes</h3>
+    <p class="small muted">Takes that were deleted — the audio is still in the song folder. Tick one and press Restore to put it back where it was (a take from a lost save conflict goes on the selected track at the playhead).</p>
+    <ul id="recover-list" class="small mono"></ul>
+    <menu><button value="ok" class="primary">Restore ticked</button><button value="cancel" class="cancel" formnovalidate>Cancel</button></menu>
+  </form>
+</dialog>
+
+<dialog id="prompt">
+  <form method="dialog">
+    <h3 id="prompt-title">Name</h3>
+    <input id="prompt-input" type="text" autofocus>
+    <menu><button value="ok" class="primary">OK</button><button value="cancel" class="cancel" formnovalidate>Cancel</button></menu>
+  </form>
+</dialog>
+
+<dialog id="thread">
+  <form method="dialog">
+    <h3 id="thread-title"></h3>
+    <div id="thread-body"></div>
+    <textarea id="thread-input" rows="3" placeholder="Reply… (@Name pings a bandmate)"></textarea>
+    <div id="thread-people" class="small"></div>
+    <menu><button value="reply" class="primary" id="thread-reply">Reply</button><button value="resolve" id="thread-resolve">Resolve</button><button value="cancel" class="cancel">Close</button></menu>
+  </form>
+</dialog>
+
+<dialog id="lines">
+  <form method="dialog">
+    <h3 id="lines-title">Lyrics</h3>
+    <p class="small muted" id="lines-hint">One line per row. They start unpinned: play the song and press P (or "Pin next") as each line is sung.</p>
+    <textarea id="lines-input" rows="12"></textarea>
+    <menu><button value="ok" class="primary">Add</button><button value="cancel" class="cancel" formnovalidate>Cancel</button></menu>
+  </form>
+</dialog>
+
+<dialog id="newsong">
+  <form method="dialog">
+    <h3>New song</h3>
+    <label>Name<input id="ns-name" type="text" maxlength="120" placeholder="working title is fine" required></label>
+    <div id="ns-err" class="small" style="color:var(--rec)" hidden></div>
+    <div class="ns-step">Start from <span class="muted small">— sets the sections, tempo, tracks and a matching drum groove. Everything can be changed later.</span></div>
+    <input id="ns-filter" type="search" placeholder="filter styles: punk, metal, folk, hip-hop…">
+    <div id="ns-templates"></div>
+    <div class="row ns-row">
+      <label>Tempo (bpm)<input id="ns-bpm" type="number" min="30" max="300"></label>
+      <label>Time sig<select id="ns-sig"></select></label>
+      <label>Key<select id="ns-key"></select></label>
+      <label class="ns-check"><input id="ns-click" type="checkbox"> click on</label>
+    </div>
+    <label id="ns-arr-row">Structure<select id="ns-arr"></select></label>
+    <div class="small muted" id="ns-range"></div>
+    <div id="ns-structure"></div>
+    <div class="ns-step">Starter tracks</div>
+    <div id="ns-tracks"></div>
+    <menu><button value="ok" class="primary" id="ns-create">Create song</button><button value="cancel" class="cancel" formnovalidate>Cancel</button></menu>
+  </form>
+</dialog>
+
+<dialog id="restructure">
+  <form method="dialog">
+    <h3>Restructure song</h3>
+    <p class="small muted">Cuts the takes, chords, lyrics and notes inside your labelled sections (Verse, Chorus, Intro…) and lays them out in a new order. Same tempo. Nothing is deleted — Undo (Ctrl/⌘+Z) or the Feed's roll-back brings the old arrangement back.</p>
+    <label>New structure<select id="rs-arr"></select></label>
+    <div class="small muted" id="rs-blurb"></div>
+    <div class="small">Now:</div><div id="rs-now" class="rs-strip"></div>
+    <div class="small">After:</div><div id="rs-after" class="rs-strip"></div>
+    <div class="small" id="rs-report"></div>
+    <menu><button value="ok" class="primary" id="rs-apply">Restructure</button><button value="cancel" class="cancel" formnovalidate>Cancel</button></menu>
+  </form>
+</dialog>
+
+<dialog id="melody">
+  <form method="dialog">
+    <h3>Melody from lyrics</h3>
+    <div class="row ns-row">
+      <label>Part<select id="ml-section"></select></label>
+      <label>Voice<select id="ml-voice"><option value="low">low (bari / alto)</option><option value="mid" selected>mid</option><option value="high">high (tenor / soprano)</option></select></label>
+      <label>Feel<select id="ml-density"><option value="auto" selected>natural</option><option value="sparse">sparse, long notes</option><option value="busy">busy, fast words</option></select></label>
+    </div>
+    <label>Lyrics — one line per phrase. <span class="muted small">Type ar-gue to force a split, or wo_ah to sing two words on one note.</span><textarea id="ml-text" rows="5" placeholder="I can't argue with the way you left&#10;every word I said was wrong"></textarea></label>
+    <div id="ml-syl" class="small mono"></div>
+    <div class="small muted" id="ml-info"></div>
+    <div id="ml-roll-wrap">
+      <canvas id="ml-roll" tabindex="0" aria-label="melody notes — drag to edit"></canvas>
+      <div class="row ml-roll-tools small">
+        <label class="ns-check" title="Dragging a note up/down only lands on notes in the key — it can't sound wrong"><input type="checkbox" id="ml-inkey" checked> stay in key</label>
+        <button type="button" id="ml-undo" title="Undo the last note edit (Ctrl+Z)" disabled>↶ Undo edit</button>
+        <span class="muted">Drag a note to move it · drag its right end to stretch it · double-click to add or delete · ↑↓ selected note (Shift = octave) · Alt = no snap · click to hear it</span>
+      </div>
+    </div>
+    <div class="row ml-buttons">
+      <button type="button" id="ml-again" class="primary" title="A brand new melody (rhythm and notes)">🎲 Again</button>
+      <button type="button" id="ml-notes" title="Keep the rhythm, roll new notes">New notes</button>
+      <button type="button" id="ml-rhythm" title="Keep the notes, roll a new rhythm">New rhythm</button>
+      <button type="button" id="ml-play" title="Play this part with the melody">▶ Play</button>
+      <button type="button" id="ml-say" title="Speak the words in time (computer voice — for checking where the words fall)">🗣 Say it</button>
+      <button type="button" id="ml-star" title="Keep this one in the list below">☆ Keep</button>
+    </div>
+    <div id="ml-kept" class="small"></div>
+    <label class="ns-check"><input type="checkbox" id="ml-place" checked> also place these lines as lyrics (pinned where they're sung)</label>
+    <menu><button value="ok" class="primary">Done</button><button value="cancel" class="cancel" formnovalidate title="Takes out everything you did in this window and puts back any melody that was there before">Cancel</button></menu>
+  </form>
+</dialog>
+
+<dialog id="noteed">
+  <form method="dialog">
+    <h3 id="ne-title">Notes</h3> <label class="small">part <select id="ne-part" title="Write in another part of the song (what you did here is kept)"></select></label>
+    <div class="small muted" id="ne-info"></div>
+    <div class="row ns-row ne-riff">
+      <label>Riff: notes<select id="rf-rate"><option value="0.5">1/2</option><option value="1">1/4</option><option value="2" selected>1/8</option><option value="4">1/16</option><option value="3">1/8 triplets</option><option value="6">1/16 triplets</option></select></label>
+      <label>different notes<input id="rf-count" type="number" min="1" max="7" value="3"></label>
+      <label>busy<input id="rf-density" type="range" min="0.2" max="1" step="0.05" value="0.75"></label>
+      <label>syncopated<input id="rf-sync" type="range" min="0" max="1" step="0.05" value="0.25"></label>
+      <label>length<input id="rf-gate" type="range" min="0.15" max="1" step="0.05" value="0.85" title="short = chug, long = legato"></label>
+      <label>low note<select id="rf-low"><option value="28">bass (E1)</option><option value="40" selected>guitar (E2)</option><option value="52">mid (E3)</option><option value="64">high (E4)</option></select></label>
+      <label class="ns-check"><input type="checkbox" id="rf-power"> power chords</label>
+      <label class="ns-check"><input type="checkbox" id="rf-follow" checked> follow the chords</label>
+    </div>
+    <div class="row ml-buttons">
+      <button type="button" id="rf-roll" class="primary" title="A brand new riff with these settings">🎲 Riff</button>
+      <button type="button" id="rf-notes" title="Keep the rhythm, new notes">New notes</button>
+      <button type="button" id="rf-rhythm" title="Keep the notes, new rhythm">New rhythm</button>
+      <button type="button" id="ne-play">▶ Play</button>
+      <button type="button" id="ne-undo" disabled>↶ Undo edit</button>
+      <label class="ns-check small"><input type="checkbox" id="ne-inkey" checked> stay in key</label>
+      <label class="small">snap<select id="ne-grid" title="auto = follows the zoom (Ctrl+wheel over the notes)"><option value="auto" selected>auto (zoom)</option><option value="8">1/32</option><option value="4">1/16</option><option value="2">1/8</option><option value="1">1/4</option><option value="6">1/16 triplets</option><option value="3">1/8 triplets</option></select> <span id="ne-snapnow" class="muted"></span></label>
+    </div>
+    <div id="ne-scroll"><canvas id="ne-roll" tabindex="0" aria-label="notes — click-drag to draw, right-click for chords"></canvas></div>
+    <div class="small muted">Click-drag on empty space to draw a note (snaps to the grid) · drag a note to move it · drag its right end to stretch · double-click a note to delete · ↑↓ (Shift = octave) · <b>right-click a note: power chord, add 3rd/5th, any chord</b> · scroll up/down for pitch.</div>
+    <menu><button value="ok" class="primary">Done</button><button value="cancel" class="cancel" formnovalidate>Cancel</button></menu>
+  </form>
+</dialog>
+
+<dialog id="drumed">
+  <form method="dialog">
+    <h3>Drums</h3>
+    <div class="row ns-row">
+      <label>Part<select id="dr-section"></select></label>
+      <label>Style<select id="dr-style"></select></label>
+      <label>Feel<select id="dr-feel"><option value="chill">chill</option><option value="normal" selected>normal</option><option value="busy">busy</option></select></label>
+      <label>Grid<select id="dr-grid"><option value="4">1/16</option><option value="2">1/8</option><option value="3">1/8 triplets</option><option value="6">1/16 triplets</option></select></label>
+    </div>
+    <div class="row ml-buttons">
+      <button type="button" id="dr-gen" class="primary" title="Write a whole drum part for this section in the chosen style — every press is a new one">🎲 Generate</button>
+      <button type="button" id="dr-play" title="Loop this part">▶ Play</button>
+      <button type="button" id="dr-undo" title="Undo the last edit (Ctrl+Z)" disabled>↶ Undo edit</button>
+      <button type="button" id="dr-clear" title="Remove every hit in this part">Clear all</button>
+      <span class="small muted" id="dr-info"></span>
+    </div>
+    <div id="dr-grid-wrap"><div id="dr-rows"></div><div id="dr-scroll"><canvas id="dr-canvas" tabindex="0"></canvas></div></div>
+    <div class="small muted">Click a square to add a hit · click again = accent · again = remove · drag across to paint · each row's <b>fill</b> menu fills the whole part (1/4, 1/8, 1/16, triplets, backbeat…).</div>
+    <menu><button value="ok" class="primary">Done</button><button value="cancel" class="cancel" formnovalidate title="Puts the drums back the way they were before you opened this">Cancel</button></menu>
+  </form>
+</dialog>
+
+<dialog id="addtrack">
+  <form method="dialog">
+    <h3>What are you recording?</h3>
+    <div id="addtrack-mine" class="addtrack-kinds-like" hidden></div>
+    <div id="addtrack-kinds">
+      <button value="guitar"><b>Guitar</b><span>mic or DI through the amp sim</span></button>
+      <button value="bass"><b>Bass</b><span>DI, with a bass amp preset</span></button>
+      <button value="vocals"><b>Vocals</b><span>mic, with a vocal chain</span></button>
+      <button value="other"><b>Anything else</b><span>mic or line in, flat</span></button>
+      <button value="drumsMic"><b>Drums (mics)</b><span>your real kit or e-kit through the interface</span></button>
+      <button value="drums"><b>Drum machine</b><span>built-in beat, no mic — pick a pattern</span></button>
+      <button value="keys"><b>Synth / keys</b><span>play with a MIDI keyboard or the on-screen keys</span></button>
+      <button value="midiGuitar"><b>Guitar (MIDI)</b><span>draw notes / power chords, synth guitar — clean, crunch, distorted, palm-mute, acoustic</span></button>
+      <button value="midiBass"><b>Bass (MIDI)</b><span>draw a bass line, picked bass guitar sound</span></button>
+    </div>
+    <menu><button value="cancel" class="cancel" formnovalidate>Cancel</button></menu>
+  </form>
+</dialog>
+
+<dialog id="tuner">
+  <form method="dialog">
+    <div class="tu-note"><span id="tu-name">–</span><sub id="tu-oct"></sub></div>
+    <div class="tu-meter"><div class="tu-zero"></div><div id="tu-needle"></div></div>
+    <div class="tu-read small muted"><span id="tu-cents">play a string</span><span id="tu-hz"></span> · A4 = <input type="number" id="tu-a4" min="415" max="466" value="440"> Hz</div>
+    <div class="tu-strings small" id="tu-strings"></div>
+    <menu><button value="" class="primary">Done</button></menu>
+  </form>
+</dialog>
+<div id="karaoke" hidden>
+  <div class="k-top">
+    <b id="k-song"></b><span id="k-part" class="k-part"></span><span id="k-pos" class="mono muted"></span>
+    <span class="k-sp"></span>
+    <span id="k-setnav" class="k-group" hidden><button id="k-prevsong" title="Previous song in the setlist (Shift+↑)">⏮ song</button><button id="k-nextsong" title="Next song in the setlist (Shift+↓)">song ⏭</button><label class="chip" title="Pause between songs"><select id="k-gap"><option value="0">no gap</option><option value="3">3 s gap</option><option value="5" selected>5 s gap</option><option value="10">10 s gap</option><option value="20">20 s gap</option></select></label></span>
+    <span id="k-showbar" class="k-group" hidden><label class="chip" title="Show: what the band hears from Cobander — just the click, or the backing tracks too"><select id="k-backing"><option value="click">click only</option><option value="backing">click + backing tracks</option></select></label><button id="k-pedal" class="chip" title="Teach Cobander your foot pedal: next song, previous song, start / stop (keyboard pedals and MIDI pedals both work)">🦶 pedal…</button></span>
+    <button id="k-show" title="Show mode: the setlist locked in order, big words and chords, next / previous song by pedal, nothing to edit by accident">🎤 Show</button>
+    <button id="k-phone" title="Follow along on your phone (same Wi-Fi)">📱</button>
+    <button id="k-set" title="Rehearse the setlist: every song back to back">▶▶ setlist</button>
+    <button id="k-close" title="Back (Esc)">✕</button>
+  </div>
+  <div class="k-opts">
+    <label class="chip" title="Loop one part (L loops the part you're in)">loop <select id="k-loopsel"><option value="">off</option></select></label>
+    <button id="k-mix" class="chip" title="Who you hear: take your own part out and play along with the band (M)">🎚 mix: everyone</button>
+    <label class="chip" title="Vocal tracks: hear them as a guide, or mute them and sing it yourself (V)"><select id="k-vox"><option value="guide">vocals: guide</option><option value="off">vocals: off (sing it)</option></select></label>
+    <label class="chip" title="Slower, same pitch — the whole song, or the part you're looping (- / +)"><select id="k-speed"><option value="100">100%</option><option value="95">95%</option><option value="90">90%</option><option value="85">85%</option><option value="80">80%</option><option value="75">75%</option><option value="70">70%</option><option value="60">60%</option><option value="50">50%</option></select></label>
+    <label class="chip" title="Metronome while you practice (C)"><input type="checkbox" id="k-click"> click <input type="range" id="k-clickvol" min="-30" max="0" step="1" title="click level"></label>
+    <label class="chip" title="A bar of count-in before it starts playing"><input type="checkbox" id="k-countin"> count-in</label>
+    <label class="chip" title="Play along: a scrolling note highway of what to play — chord grips, the bass line as a tab (read off the bass takes), or a MIDI part as a tab. Follows the capo / transpose setting."><select id="k-along"><option value="">play along: off</option><option value="chords">🎸 guitar chords</option><option value="bass">🎸 bass line (tab)</option><option value="midi">🎹 MIDI part (tab)</option></select></label>
+    <label class="chip" title="What's on screen"><select id="k-view"><option value="both">words + chords</option><option value="chords">chords only (bars)</option><option value="words">words only</option></select></label>
+    <label class="chip" title="Show the chords moved up/down — for a capo or a different tuning (sound doesn't change)"><select id="k-tp"></select></label>
+    <button id="k-size" class="chip" title="Text size (↑ ↓)">A±</button>
+    <button id="k-rec" class="rec" title="Record while you practice — on the armed track (R)">● rec</button>
+  </div>
+  <div id="k-stage">
+    <div id="k-prev" class="k-line dim"></div>
+    <div id="k-count" class="k-count"></div>
+    <div id="k-cur" class="k-line cur"></div>
+    <div id="k-next" class="k-line next"></div>
+    <div id="k-next2" class="k-line next2"></div>
+    <div id="k-bars" class="k-bars" hidden></div>
+    <div id="k-hw" class="k-hw" hidden><div id="k-hw-line" class="k-hw-line"></div><canvas id="k-highway"></canvas><div id="k-hw-msg" class="muted small"></div></div>
+  </div>
+  <div class="k-bottom">
+    <div class="k-transport">
+      <button id="k-prevpart" title="Previous part (Page Up)">⏮</button>
+      <button id="k-back" title="Back a bar (← or ,)">◀◀</button>
+      <button id="k-play" class="k-big" title="Play / pause (Space)">▶</button>
+      <button id="k-fwd" title="Forward a bar (→ or .)">▶▶</button>
+      <button id="k-nextpart" title="Next part (Page Down)">⏭</button>
+      <span id="k-time" class="mono muted"></span>
+      <div id="k-progress" class="k-scrub" title="click or drag to jump"><div id="k-parts"></div><i></i><b></b></div>
+      <span id="k-len" class="mono muted"></span>
+    </div>
+    <span id="k-hint" class="muted small"></span>
+  </div>
+</div>
+<script src="presets.js"></script>
+<script src="collab.js"></script>
+<script src="templates.js"></script>
+<script src="music.js"></script>
+<script src="melody.js"></script>
+<script src="drums.js"></script>
+<script src="riff.js"></script>
+<script src="stretch.js"></script>
+<script src="daw-export.js"></script>
+<script src="menu.js"></script>
+<script src="synth.js"></script>
+<script src="wav.js"></script>
+<script src="meter.js"></script>
+<script src="quest.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="comp.js"></script>
+<script src="chordsdetect.js"></script>
+<script src="automix.js"></script>
+<script src="tighten.js"></script>
+<script src="timing.js"></script>
+<script src="highway.js"></script>
+<script src="pitchcheck.js"></script>
+<script src="changes.js"></script>
+<script src="chart.js"></script>
+<script src="tuner.js"></script>
+<script src="asr.js"></script>
+<script src="karaoke.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

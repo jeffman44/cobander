@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b2f3a"/><stop offset="1" stop-color="#15171d"/></linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9dde6"/><stop offset="0.5" stop-color="#9aa2b1"/><stop offset="1" stop-color="#5f6675"/></linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8d94a3"/><stop offset="0.5" stop-color="#eef1f6"/><stop offset="1" stop-color="#8d94a3"/></linearGradient>
+    <linearGradient id="noodle" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#f2b534"/></linearGradient>
+    <clipPath id="bowlclip"><path d="M150 500 H874 L800 860 Q512 920 224 860 Z"/></clipPath>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#bg)"/>
+  <!-- noodles behind the rim -->
+  <g fill="none" stroke="url(#noodle)" stroke-width="46" stroke-linecap="round">
+    <path d="M250 520 C 230 380, 330 330, 400 400 S 480 560, 560 430 S 700 290, 770 420 S 820 560, 780 520"/>
+    <path d="M330 500 C 300 300, 470 250, 500 360 S 600 470, 650 350 S 760 240, 820 360"/>
+    <path d="M200 470 C 260 280, 400 230, 430 300"/>
+    <path d="M600 500 C 640 380, 760 360, 840 480"/>
+  </g>
+  <!-- colander bowl -->
+  <path d="M150 500 H874 L800 860 Q512 920 224 860 Z" fill="url(#steel)"/>
+  <!-- holes -->
+  <g fill="#3a3f4b" opacity=".9" clip-path="url(#bowlclip)">
+    <g id="row"><circle cx="300" cy="600" r="16"/><circle cx="380" cy="600" r="16"/><circle cx="460" cy="600" r="16"/><circle cx="540" cy="600" r="16"/><circle cx="620" cy="600" r="16"/><circle cx="700" cy="600" r="16"/></g>
+    <use href="#row" x="40" y="70"/><use href="#row" x="0" y="140"/><use href="#row" x="40" y="210"/>
+  </g>
+  <!-- noodles hanging through the holes -->
+  <g fill="none" stroke="url(#noodle)" stroke-width="30" stroke-linecap="round">
+    <path d="M380 600 C 360 700, 400 760, 370 880"/>
+    <path d="M620 600 C 640 700, 600 780, 640 900"/>
+  </g>
+  <!-- rim + handles -->
+  <rect x="120" y="470" width="784" height="56" rx="28" fill="url(#rim)"/>
+  <rect x="40" y="478" width="110" height="40" rx="20" fill="#b9c0cd"/>
+  <rect x="874" y="478" width="110" height="40" rx="20" fill="#b9c0cd"/>
+  <!-- noodles in front of the rim -->
+  <g fill="none" stroke="url(#noodle)" stroke-width="46" stroke-linecap="round">
+    <path d="M440 520 C 420 420, 520 380, 560 470 S 640 540, 700 500"/>
+  </g>
+</svg>

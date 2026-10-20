@@ -1,0 +1,26 @@
+{
+ "version": "0.8.1",
+ "date": "2026-10-16",
+ "notes": [
+  "Draw MIDI notes: double-click an empty spot on any MIDI track (or right-click the track \u2192 Draw notes / riff generator\u2026). The piano roll opens on the loop (or the section): click-drag to draw a note (snaps to 1/32 \u2014 change the snap to 1/16, 1/8, triplets\u2026), scroll up/down through every pitch, right-click a note for power chords / add 3rd / any chord. Edits are heard right away while it loops (Space plays/stops).",
+  "Riff generator in that window: pick the note speed (1/2 \u2026 1/16, triplets), how many different notes, busy, syncopated, note length (chug \u2194 legato), low note, power chords, follow the chords \u2192 \ud83c\udfb2 Riff; New notes / New rhythm re-roll one half.",
+  "Guitar sounds for MIDI tracks: clean, crunch, distorted, palm-muted chug, acoustic, picked bass (Source menu, or + track \u2192 Guitar (MIDI) / Bass (MIDI)). Power chords distort together like a real amp.",
+  "Updates can now arrive in pieces, so new versions reach the Update button faster.",
+  "Drum machine: with nothing else in the song it now plays until you stop (it stopped after 4 bars); the drum editor has a \"Whole song\" part, and the drum machine panel has a button to open the editor."
+ ],
+ "files": {
+  "win-x64": "BandPad-0.8.1-win-x64.exe",
+  "mac-arm64": "BandPad-0.8.1-mac-arm64.zip",
+  "mac-x64": "BandPad-0.8.1-mac-x64.zip"
+ },
+ "size": {
+  "win-x64": 110300603,
+  "mac-arm64": 128545021,
+  "mac-x64": 133974986
+ },
+ "sha256": {
+  "win-x64": "3a83f094c062c267ddf513e28105d58fdda6ddc693b2cd090d9c712208c11aec",
+  "mac-arm64": "fac62fec2e4ef174acb23d14003be423f4b89282f4fd93ec8cf3ae4803164e7a",
+  "mac-x64": "a5b642cf01c42a3bf5e1f10384e00cd0c845ed731418d790dbf2fcd1315354c7"
+ }
+}

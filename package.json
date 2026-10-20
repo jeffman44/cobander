@@ -1,0 +1,68 @@
+{
+  "name": "cobander",
+  "productName": "Cobander",
+  "version": "0.14.1",
+  "description": "Cobander — noodle together. A band sketchpad: record, write, mix and practice with your band through a shared cloud folder (Google Drive, OneDrive, iCloud, Dropbox).",
+  "main": "src/main.js",
+  "author": "Jeff Deuel",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/unit/*.test.js",
+    "e2e": "bash test/e2e.sh",
+    "build": "bash scripts/build.sh all"
+  },
+  "devDependencies": {
+    "electron": "44.7.2",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.jeffdeuel.bandpad",
+    "productName": "Cobander",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "icon": "build/icon.png",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "artifactName": "Cobander-${version}-${os}-${arch}.${ext}",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Cobander-${version}-win-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.music",
+      "artifactName": "Cobander-${version}-mac-${arch}.${ext}",
+      "identity": null,
+      "minimumSystemVersion": "13.0",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "BandPad records audio from your interface or microphone."
+      }
+    },
+    "publish": []
+  }
+}
