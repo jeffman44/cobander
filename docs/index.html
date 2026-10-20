@@ -37,8 +37,13 @@
   nav .links { display: flex; gap: 22px; font-size: 15px; } nav .links a { color: var(--steel); text-decoration: none; } nav .links a:hover { color: var(--white); }
 
   /* hero: the band, drawn by a human, cheering on the hit line */
-  .hero { padding: 48px 0 24px; position: relative; overflow: hidden; }
-  .hero h1 { font-size: clamp(84px, 16vw, 200px); letter-spacing: 3px; color: var(--white); line-height: .85; }
+  .hero { padding: 40px 0 24px; display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: center; }
+  .hero .colander { grid-column: 2; grid-row: 1; width: 340px; height: auto; justify-self: end; filter: drop-shadow(0 20px 30px rgba(0,0,0,.5)); animation: wobble 6s ease-in-out infinite; transform-origin: 50% 90%; }
+  @keyframes wobble { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+  .hero .txt { grid-column: 1; grid-row: 1; }
+  .hero .herofig { grid-column: 1 / -1; }
+  @media (max-width: 760px) { .hero { grid-template-columns: 1fr; } .hero .colander { grid-column: 1; grid-row: 1; width: 60%; justify-self: center; } .hero .txt { grid-row: 2; } }
+  .hero h1 { font-size: clamp(72px, 11vw, 136px); letter-spacing: 3px; color: var(--white); line-height: .85; }
   .hero h1 small { display: block; font-family: var(--display); font-weight: 700; font-size: clamp(22px, 3.2vw, 36px); letter-spacing: 6px; color: var(--noodle); margin-top: 10px; }
   .hero .lede { font-size: clamp(19px, 2.2vw, 23px); max-width: 38ch; margin: 26px 0 22px; }
   .cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
@@ -118,12 +123,15 @@
   </nav>
 
   <header class="hero">
+    <img class="colander" src="colander.svg" alt="A grinning colander full of noodles" width="520" height="440">
+    <div class="txt">
     <h1>COBANDER<small>NOODLE TOGETHER</small></h1>
     <p class="lede">A sketchpad for your whole band. Everyone records, writes, mixes and practices on their own computer; the song lives in the folder you already share.</p>
     <div class="cta">
       <a class="btn hot" href="#menu">Get Cobander</a>
       <a class="btn cool" href="#does">See what it does</a>
       <span class="muted">Windows &amp; Mac · no server · no accounts · no subscription</span>
+    </div>
     </div>
     <figure class="herofig"><img src="img/mix.jpg" alt="Cobander's Mix workspace: the song timeline with a console of faders below and Track FX on the right"></figure>
   </header>

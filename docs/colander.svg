@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 440" width="520" height="440">
+  <defs>
+    <linearGradient id="st" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3e7ee"/><stop offset=".55" stop-color="#9aa3b2"/><stop offset="1" stop-color="#5a6170"/></linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8d94a3"/><stop offset=".5" stop-color="#f2f4f8"/><stop offset="1" stop-color="#8d94a3"/></linearGradient>
+    <linearGradient id="nd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#f2b534"/></linearGradient>
+    <clipPath id="bowl"><path d="M70 190 H450 L400 400 Q260 440 120 400 Z"/></clipPath>
+  </defs>
+  <!-- steam -->
+  <g fill="none" stroke="#9aa0ad" stroke-width="6" stroke-linecap="round" opacity=".5">
+    <path d="M190 90 c-18 -22 18 -40 0 -62"/><path d="M260 70 c-18 -22 18 -40 0 -62"/><path d="M330 90 c-18 -22 18 -40 0 -62"/>
+  </g>
+  <!-- noodles behind the rim -->
+  <g fill="none" stroke="url(#nd)" stroke-width="30" stroke-linecap="round">
+    <path d="M120 210 C 100 120, 180 90, 220 150 S 290 230, 340 140 S 430 60, 460 170"/>
+    <path d="M160 200 C 150 100, 260 80, 280 160 S 360 250, 400 160"/>
+    <path d="M90 190 C 120 110, 200 80, 230 120"/>
+    <path d="M300 200 C 330 120, 420 110, 470 200"/>
+  </g>
+  <!-- bowl -->
+  <path d="M70 190 H450 L400 400 Q260 440 120 400 Z" fill="url(#st)"/>
+  <g fill="#3a3f4b" opacity=".85" clip-path="url(#bowl)">
+    <g id="r"><circle cx="150" cy="250" r="9"/><circle cx="200" cy="250" r="9"/><circle cx="250" cy="250" r="9"/><circle cx="300" cy="250" r="9"/><circle cx="350" cy="250" r="9"/><circle cx="400" cy="250" r="9"/></g>
+    <use href="#r" x="25" y="45"/><use href="#r" x="0" y="90"/><use href="#r" x="25" y="135"/>
+  </g>
+  <!-- face -->
+  <g>
+    <circle cx="215" cy="300" r="11" fill="#1d1d21"/><circle cx="305" cy="300" r="11" fill="#1d1d21"/>
+    <circle cx="219" cy="296" r="4" fill="#fff"/><circle cx="309" cy="296" r="4" fill="#fff"/>
+    <path d="M225 340 Q260 372 295 340" fill="none" stroke="#1d1d21" stroke-width="8" stroke-linecap="round"/>
+    <ellipse cx="185" cy="332" rx="14" ry="8" fill="#d8392b" opacity=".45"/><ellipse cx="335" cy="332" rx="14" ry="8" fill="#d8392b" opacity=".45"/>
+  </g>
+  <!-- noodles through the holes -->
+  <g fill="none" stroke="url(#nd)" stroke-width="18" stroke-linecap="round">
+    <path d="M175 295 C 165 350, 190 380, 170 430"/><path d="M375 295 C 390 350, 360 390, 385 430"/>
+  </g>
+  <!-- rim + handles -->
+  <rect x="50" y="170" width="420" height="40" rx="20" fill="url(#rim)"/>
+  <rect x="2" y="176" width="70" height="28" rx="14" fill="#b9c0cd"/><rect x="448" y="176" width="70" height="28" rx="14" fill="#b9c0cd"/>
+  <!-- noodles in front -->
+  <g fill="none" stroke="url(#nd)" stroke-width="30" stroke-linecap="round">
+    <path d="M200 210 C 190 150, 270 130, 290 185 S 340 230, 380 200"/>
+  </g>
+</svg>
