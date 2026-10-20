@@ -109,7 +109,7 @@
     $('#s-folder').value = state.settings.sharedFolder || '';
     $('#s-offset').value = engine.offsetManual ? engine.recordOffsetMs : (engine.ctx ? engine.autoOffsetMs() : engine.recordOffsetMs ?? 0);
     $('#s-offset').dataset.shown = $('#s-offset').value; $('#s-offset').title = engine.offsetManual ? 'set by you — clear the box to go back to automatic' : 'automatic: follows your current output (re-measured before every take). Type a number to fix it.';
-    $('#s-click').value = engine.click.gainDb; $('#s-monfx').checked = state.settings.monitorFx !== false; $('#s-measure-out').textContent = '';
+    $('#s-click').value = engine.click.gainDb; $('#s-monfx').checked = state.settings.monitorFx !== false; $('#s-fanfare').checked = state.settings.fanfare !== false; $('#s-measure-out').textContent = '';
     await fillOutputs();
     { const sel = $('#s-asr'); sel.innerHTML = ''; for (const [k, m] of Object.entries(ASR.MODELS)) { const o = el('option', null, m.label); o.value = k; sel.append(o); } sel.value = asrModel(); bp.asr.cacheInfo().then((i) => { $('#s-asr-info').textContent = i.bytes ? ` ${Math.round(i.bytes / 1e6)} MB of speech models on this computer` : ' not downloaded yet'; }).catch(() => {}); }
     $('#s-drive-warn').hidden = !state.settings.sharedFolder || !!state.settings.driveLike; $('#s-cloud').textContent = state.settings.cloud ? `✓ ${state.settings.cloud.name} folder` : '';
@@ -133,7 +133,7 @@
           midiInputId: $('#s-midi').value || null,
           outputDeviceId: $('#s-output').value || null,
           clickOutputId: $('#s-clickout').value || null,
-          monitorFx: $('#s-monfx').checked,
+          monitorFx: $('#s-monfx').checked, fanfare: $('#s-fanfare').checked,
           asrModel: $('#s-asr').value || 'small.en',
         };
         engine.setMonitorFx(patch.monitorFx);
@@ -192,7 +192,7 @@
   bp.update.status().then(renderUpdate).catch(() => {});
   // public links: GitHub, bugs, the tip jar (Ko-fi shows once package.json names a page)
   for (const b of document.querySelectorAll('.link-btn[data-link]')) b.addEventListener('click', () => bp.shell.openLink(b.dataset.link).catch(fail));
-  bp.shell.links().then((l) => { for (const b of document.querySelectorAll('.link-btn[data-link]')) { const k = b.dataset.link; const has = k === 'kofi' ? !!l.kofi : k === 'venmo' ? !!l.venmo : k === 'takeout' ? !!l.takeout : (k === 'openmoji' || k === 'gameicons') ? true : !!l.repo; b.hidden = !has; } }).catch(() => {});
+  bp.shell.links().then((l) => { for (const b of document.querySelectorAll('.link-btn[data-link]')) { const k = b.dataset.link; const has = k === 'kofi' ? !!l.kofi : k === 'venmo' ? !!l.venmo : k === 'takeout' ? !!l.takeout : (k === 'openmoji' || k === 'gameicons' || k === 'kenney') ? true : !!l.repo; b.hidden = !has; } }).catch(() => {});
   $('#s-check-update').addEventListener('click', async () => { const b = $('#s-check-update'); b.disabled = true; try { const st = await bp.update.check(); renderUpdate(st); if (!st.available) toast(st.latest ? `You're on the latest (${st.current}).` : 'No installers folder in the shared band folder yet.', { ms: 5000 }); } catch (err) { fail(err); } finally { b.disabled = false; } });
 
   var MT = window.BPMeter;   // hoisted: used from init-time renders
@@ -364,7 +364,7 @@
     const mw = $('#qb-members'); mw.innerHTML = '';
     for (const m of b.members.slice().sort((x, y) => y.xp - x.xp)) {
       const row = el('div', 'qb-member' + (m.isMe ? ' me' : '') + (quest.sel === m.name ? ' sel' : ''));
-      const top = el('div', 'qb-mrow'); const sp = charSprite(m); if (m.isMe) sp.addEventListener('click', (e) => { e.stopPropagation(); chooseCharacter(m).catch(fail); }); top.append(sp, el('span', 'qb-icon', m.icon), el('b', null, m.name), el('span', 'qb-role muted', m.role || ''), el('span', 'qb-mlvl', `Lv ${m.level.n} ${m.level.title}`), el('span', 'qb-mxp mono', `${m.xp}`));
+      const top = el('div', 'qb-mrow'); const sp = charSprite(m); if (m.isMe) sp.addEventListener('click', (e) => { e.stopPropagation(); chooseCharacter(m).catch(fail); }); { const img = sp.querySelector('img.pose'); if (img) { let tm = 0, k = 0; sp.addEventListener('mouseenter', () => { tm = setInterval(() => { img.src = poseSrc(bodyOf(m), `walk${k++ % 4}`); }, 140); }); sp.addEventListener('mouseleave', () => { clearInterval(tm); img.src = poseSrc(bodyOf(m), Q.TIER_POSE[(m.level.tier || 1) - 1]); }); } } top.append(sp, el('span', 'qb-icon', m.icon), el('b', null, m.name), el('span', 'qb-role muted', m.role || ''), el('span', 'qb-mlvl', `Lv ${m.level.n} ${m.level.title}`), el('span', 'qb-mxp mono', `${m.xp}`));
       row.append(top, xpBar(m.level.frac));
       const ach = el('div', 'qb-ach'); for (const a of m.achievements) { const t = el('span', 'qb-a', a.icon); t.title = `${a.title} — ${a.desc}`; ach.append(t); } if (!m.achievements.length) ach.append(el('span', 'muted small', 'no achievements yet'));
       row.append(ach);
@@ -449,9 +449,14 @@
   // ---- characters & level sprites ----
   const charOf = (m) => Q.CHARACTERS.find(([id]) => id === (m && m.character)) || Q.CHARACTERS.find(([id]) => id === roleGuess(m)) || Q.CHARACTERS[0];
   function roleGuess(m) { const r = String((m && m.role) || '').toLowerCase(); if (/bass/.test(r)) return 'lowend'; if (/drum/.test(r)) return 'thumper'; if (/vo(x|cal)|sing/.test(r)) return 'howler'; if (/key|piano|synth/.test(r)) return 'wizard'; if (/sax|horn|trumpet|brass/.test(r)) return 'horn'; if (/banjo|mandolin/.test(r)) return 'picker'; if (/guitar|gtr/.test(r)) return 'shredder'; return 'noodle'; }
-  function charSprite(m, { tier = null, big = false, title = true } = {}) {
-    const ch = charOf(m); const lv = m && m.level ? m.level : { tier: 1, n: 1, title: Q.TIERS[0] }; const t = tier || lv.tier || 1;
-    const box = el('span', `char t${t}${big ? ' big' : ''}`); box.append(el('i', `gi ${ch[2]}`));
+  // everyone gets a body from the start (picked from their name) until they choose one
+  const bodyOf = (m) => { if (m && m.body && Q.BODIES.some(([id]) => id === m.body)) return m.body; const n = String((m && m.name) || ''); let h = 0; for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0; return Q.BODIES[h % Q.BODIES.length][0]; };
+  const poseSrc = (body, pose) => `sprites/${body}/${pose}.png`;
+  function charSprite(m, { tier = null, big = false, title = true, pose = null } = {}) {
+    const ch = charOf(m); const lv = m && m.level ? m.level : { tier: 1, n: 1, title: Q.TIERS[0] }; const t = tier || lv.tier || 1; const body = bodyOf(m);
+    const box = el('span', `char t${t}${big ? ' big' : ''}${body ? ' body' : ''}`);
+    if (body) { const img = document.createElement('img'); img.className = 'pose'; img.src = poseSrc(body, pose || Q.TIER_POSE[t - 1] || 'idle'); img.alt = ''; img.draggable = false; box.append(img); const ins = el('span', 'inst'); ins.append(el('i', `gi ${ch[2]}`)); box.append(ins); }
+    else box.append(el('i', `gi ${ch[2]}`));
     const badge = Q.TIER_BADGE[t - 1]; if (badge) { const b = el('span', 'badge'); b.append(el('i', `gi ${badge}`)); box.append(b); }
     if (title && m) box.title = `${ch[1]} — level ${lv.n}, ${lv.title}${lv.next ? ` · ${lv.toNext} XP to ${lv.next === lv.title ? `level ${lv.n + 1}` : lv.next}` : ' · max level'}${m.isMe ? ' · click to choose your character' : ''}`;
     return box;
@@ -460,18 +465,21 @@
     let d = $('#charpick'); if (d) d.remove();
     d = document.createElement('dialog'); d.id = 'charpick'; const f = document.createElement('form'); f.method = 'dialog';
     f.append(el('h3', null, 'Choose your character'), el('p', 'muted small', 'Your sprite on the Band page. It levels up with you: a badge, a ring and a glow at every new name (every 10 levels). Change it any time.'));
+    let selBody = bodyOf(mb) || 'madv'; const bodies = el('div', 'body-grid');
+    const refreshTiers = () => { tiers.innerHTML = ''; for (let t = 1; t <= 10; t++) tiers.append(charSprite({ ...mb, character: sel, body: selBody }, { tier: t, title: false })); };
+    for (const [id, name] of Q.BODIES) { const c = el('div', 'char-pick body-pick' + (selBody === id ? ' sel' : '')); const img = document.createElement('img'); img.src = poseSrc(id, 'idle'); img.alt = name; c.append(img, el('b', null, name)); c.addEventListener('click', () => { selBody = id; for (const x of bodies.children) x.classList.toggle('sel', x === c); for (const x of grid.children) { const im = x.querySelector('.char'); if (im) im.replaceWith(charSprite({ ...mb, character: x.dataset.id, body: selBody }, { title: false })); } refreshTiers(); }); bodies.append(c); }
     const grid = el('div', 'char-grid'); let sel = (charOf(mb) || [])[0];
     for (const [id, name, , blurb] of Q.CHARACTERS) {
-      const c = el('div', 'char-pick' + (sel === id ? ' sel' : '')); c.append(charSprite({ ...mb, character: id }, { title: false }), el('b', null, name), el('small', null, blurb));
-      c.addEventListener('click', () => { sel = id; for (const x of grid.children) x.classList.toggle('sel', x === c); tiers.innerHTML = ''; for (let t = 1; t <= 10; t++) tiers.append(charSprite({ ...mb, character: id }, { tier: t, title: false })); });
+      const c = el('div', 'char-pick' + (sel === id ? ' sel' : '')); c.dataset.id = id; c.append(charSprite({ ...mb, character: id, body: selBody }, { title: false }), el('b', null, name), el('small', null, blurb));
+      c.addEventListener('click', () => { sel = id; for (const x of grid.children) x.classList.toggle('sel', x === c); refreshTiers(); });
       grid.append(c);
     }
-    const tiers = el('div', 'char-tiers'); for (let t = 1; t <= 10; t++) tiers.append(charSprite({ ...mb, character: sel }, { tier: t, title: false }));
+    const tiers = el('div', 'char-tiers'); refreshTiers();
     const menu = document.createElement('menu'); const ok = el('button', 'primary', 'That\'s me'); ok.value = 'ok'; const cancel = el('button', 'cancel', 'Cancel'); cancel.value = 'cancel'; cancel.setAttribute('formnovalidate', ''); menu.append(cancel, ok);
-    f.append(grid, el('div', 'muted small', 'How it grows:'), tiers, menu); d.append(f); document.body.append(d);
+    f.append(el('div', 'muted small', 'Who you are:'), bodies, el('div', 'muted small', 'What you play:'), grid, el('div', 'muted small', 'How it grows (every ten levels):'), tiers, menu); d.append(f); document.body.append(d);
     const r = await new Promise((res) => { d.addEventListener('close', () => res(d.returnValue), { once: true }); d.showModal(); });
     d.remove(); if (r !== 'ok') return;
-    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null })).map((x) => (x.name === mb.name ? { ...x, character: sel } : x));
+    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, body: x.body || null })).map((x) => (x.name === mb.name ? { ...x, character: sel, body: selBody } : x));
     await questWrite({ 'band:members': list }); toast(`You are ${Q.CHARACTERS.find(([id]) => id === sel)[1]}. 🤘`, { kind: 'ok', ms: 5000 });
   }
   // LEVEL UP: the full obnoxious show — unless a take is rolling
@@ -488,11 +496,12 @@
       if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     } catch (_) { /* no audio, no problem */ }
   }
-  function levelUpShow(m) {
-    if (engine.recording || finishing || sketchRec) { toast(`⚔ Level up — you're level ${m.level.n}: ${m.level.title}`, { kind: 'ok', ms: 9000 }); return; }
+  function levelUpShow(m, { force = false } = {}) {
+    if (!force && (engine.recording || finishing || sketchRec || (state.settings && state.settings.fanfare === false))) { toast(`⚔ Level up — you're level ${m.level.n}: ${m.level.title}`, { kind: 'ok', ms: 9000 }); return; }
     const old = $('#levelup'); if (old) old.remove();
     const o = el('div'); o.id = 'levelup'; const newName = (m.level.n - 1) % 10 === 0;
-    o.append(el('div', 'lu-title', 'LEVEL UP'), charSprite(m, { big: true, title: false }), el('div', 'lu-n', `LEVEL ${m.level.n}${newName ? ' — NEW NAME' : ''}`), el('div', 'lu-name', `${m.name} the ${m.level.title}`), el('div', 'lu-hint', 'click anywhere'));
+    const hero = charSprite(m, { big: true, title: false }); if (bodyOf(m)) { const img = hero.querySelector('img.pose'); const frames = ['cheer0', 'cheer1', 'jump', 'cheer1', 'cheer0', 'wide']; let k = 0; const tm = setInterval(() => { if (!o.isConnected) { clearInterval(tm); return; } img.src = poseSrc(bodyOf(m), frames[k++ % frames.length]); }, 220); }
+    o.append(el('div', 'lu-title', 'LEVEL UP'), hero, el('div', 'lu-n', `LEVEL ${m.level.n}${newName ? ' — NEW NAME' : ''}`), el('div', 'lu-name', `${m.name} the ${m.level.title}`), el('div', 'lu-hint', 'click anywhere'));
     const cols = ['#f2b534', '#d8392b', '#fff', '#5b8def', '#4caf7d', '#ff4d6d']; const N = 70 + m.level.tier * 10;
     for (let i = 0; i < N; i++) { const p = el('span', 'p'); const a = Math.random() * Math.PI * 2, r = 180 + Math.random() * 520; p.style.setProperty('--dx', `${Math.cos(a) * r}px`); p.style.setProperty('--dy', `${Math.sin(a) * r + 200}px`); p.style.background = cols[i % cols.length]; p.style.animationDelay = `${(Math.random() * 0.35).toFixed(2)}s`; p.style.width = p.style.height = `${8 + Math.random() * 12}px`; if (i % 7 === 0) { p.className = 'p gi gi-noodles'; p.style.background = '#f2b534'; p.style.width = p.style.height = '26px'; } o.append(p); }
     document.body.append(o); document.body.classList.add('lu-shake'); setTimeout(() => document.body.classList.remove('lu-shake'), 600);
@@ -501,16 +510,16 @@
     o.addEventListener('click', close); setTimeout(close, 6500);
     logActivity(`hit level ${m.level.n}${newName ? ` — ${m.level.title}` : ''}`);
   }
-  window.bandpadDebug_levelUp = (n) => { const m = myQuest() || { name: me(), role: '', level: Q.levelOf(Q.levelXp(n || 10), Q.MEMBER_LEVELS) }; levelUpShow({ ...m, level: Q.levelOf(Q.levelXp(n || m.level.n), Q.MEMBER_LEVELS) }); };
+  window.bandpadDebug_levelUp = (n) => { const m = myQuest() || { name: me(), role: '', level: Q.levelOf(Q.levelXp(n || 10), Q.MEMBER_LEVELS) }; levelUpShow({ ...m, level: Q.levelOf(Q.levelXp(n || m.level.n), Q.MEMBER_LEVELS) }, { force: true }); };
   async function editMember(mb) {
     const v = await promptName('Name · role · icon (e.g. "Zach · Drums · 🥁")', `${mb.name} · ${mb.role} · ${mb.icon}`); if (!v) return;
     const [name, role, icon] = v.split('·').map((x) => x.trim());
-    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null })).map((x) => (x.name === mb.name ? { ...x, name: name || x.name, role: role ?? x.role, icon: icon || x.icon } : x));
+    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, body: x.body || null })).map((x) => (x.name === mb.name ? { ...x, name: name || x.name, role: role ?? x.role, icon: icon || x.icon } : x));
     await questWrite({ 'band:members': list });
   }
   async function editAliases(mb) {
     const v = await promptName(`${mb.name} shows up in Cobander as… (comma-separated display names, e.g. FossTheBoss)`, (mb.aliases || []).join(', ')); if (v === null) return;
-    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null })).map((x) => (x.name === mb.name ? { ...x, aliases: v.split(',').map((a) => a.trim()).filter(Boolean).slice(0, 6) } : x));
+    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, body: x.body || null })).map((x) => (x.name === mb.name ? { ...x, aliases: v.split(',').map((a) => a.trim()).filter(Boolean).slice(0, 6) } : x));
     await questWrite({ 'band:members': list });
   }
   $('#qb-boss').addEventListener('click', () => editBoss().catch(fail));
@@ -5160,7 +5169,7 @@
   const TRACK_H = [{ h: 44, n: 'thin' }, { h: 84, n: 'regular' }, { h: 132, n: 'thick' }];
   function setTrackH(h, { quiet = false } = {}) {
     h = Math.max(36, Math.min(200, Math.round(Number(h) || 84))); state.trackH = h;
-    document.documentElement.style.setProperty('--track-h', `${h}px`); document.body.classList.toggle('tracks-thin', h < 64);
+    document.documentElement.style.setProperty('--track-h', `${h}px`); document.body.classList.toggle('tracks-thin', h < 72); document.body.classList.toggle('tracks-short', h >= 72 && h < 100);   // short: two rows (name + buttons); thin: one row
     try { localStorage.setItem('bp.trackH', String(h)); } catch (_) {}
     const b = $('#btn-track-h'); if (b) { const lv = TRACK_H.find((x) => x.h === h); b.textContent = '↕'; b.title = `Track height: ${lv ? lv.n + ' noodles' : h + 'px'} — click to cycle, Alt+wheel over the tracks for any size`; }
     renderTracks(); positionPlayhead(); if (!quiet) status(`Tracks: ${TRACK_H.find((x) => x.h === h) ? TRACK_H.find((x) => x.h === h).n + ' noodles' : h + 'px'}`, 1500);
@@ -6818,7 +6827,7 @@
       case 'changes': return computeChanges(args.since || state.lastSeenAtOpen);
       case 'sharePart': { const sc = liveSections().find((x) => x.id === args.section || x.name === args.section); if (!sc) throw new Error(`no part ${args.section}`); return sharePart(sc, { copy: false }); }
       case 'comp': { const f = findClip(args.clipId); if (!f) throw new Error(`no take ${args.clipId}`); const r = compTake(f.t, f.c, Number(args.from), Number(args.to), args.what || 'the range'); return { changed: r ? r.changed : 0 }; }
-      case 'quest': { await loadQuest(); if (!quest.board) throw new Error('no shared folder'); const b = quest.board; return { name: b.name, level: b.level, xp: b.xp, max: b.max, boss: b.boss, next: b.next, practice: b.practice, todos: b.todos, members: b.members.map((m) => ({ name: m.name, role: m.role, character: m.character || null, xp: m.xp, level: m.level, achievements: m.achievements, takes: m.takes, midi: m.midi, notes: m.notes, replies: m.replies, chords: m.chords, lyrics: m.lyrics, sections: m.sections, needsDone: m.needsDone, perSong: m.perSong })), songs: b.songs.map((s) => ({ qid: s.qid, name: s.name, folder: s.folder, xp: s.xp, max: s.max, goals: s.goals, parts: s.prog.map((p) => ({ member: p.member, pct: p.pct, written: p.written, takes: p.takes, midi: p.midi, xp: p.xp, manual: p.manual })), tasks: s.tasks, milestones: s.milestones })) }; }
+      case 'quest': { await loadQuest(); if (!quest.board) throw new Error('no shared folder'); const b = quest.board; return { name: b.name, level: b.level, xp: b.xp, max: b.max, boss: b.boss, next: b.next, practice: b.practice, todos: b.todos, members: b.members.map((m) => ({ name: m.name, role: m.role, character: m.character || null, body: m.body || null, xp: m.xp, level: m.level, achievements: m.achievements, takes: m.takes, midi: m.midi, notes: m.notes, replies: m.replies, chords: m.chords, lyrics: m.lyrics, sections: m.sections, needsDone: m.needsDone, perSong: m.perSong })), songs: b.songs.map((s) => ({ qid: s.qid, name: s.name, folder: s.folder, xp: s.xp, max: s.max, goals: s.goals, parts: s.prog.map((p) => ({ member: p.member, pct: p.pct, written: p.written, takes: p.takes, midi: p.midi, xp: p.xp, manual: p.manual })), tasks: s.tasks, milestones: s.milestones })) }; }
       case 'questSet': {
         await loadQuest(); if (!quest.board) throw new Error('no shared folder'); const b = quest.board; const patch = {};
         const songOf = (x) => { const s = b.songs.find((y) => y.folder === x || y.name === x || y.qid === x); if (!s) throw new Error(`no song "${x}" on the board`); return s; };

@@ -66,7 +66,8 @@ Already have it and just want to say thanks? [Ko-fi](https://ko-fi.com/jdeuel44)
 ## Credits
 
 Icons by [OpenMoji](https://openmoji.org) (CC BY-SA 4.0) and [game-icons.net](https://game-icons.net) (CC BY 3.0 — Lorc, Delapouite,
-Caro Asercion); see `src/renderer/icons/CREDITS.md`. Speech-to-text by whisper.cpp / OpenAI Whisper (MIT).
+Caro Asercion); see `src/renderer/icons/CREDITS.md`. Band-page characters are Kenney's
+[Toon Characters 1](https://kenney.nl/assets/toon-characters-1) (CC0). Speech-to-text by whisper.cpp / OpenAI Whisper (MIT).
 
 ## License
 

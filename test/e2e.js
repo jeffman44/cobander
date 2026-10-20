@@ -54,7 +54,7 @@ class App {
   constructor(name, port, shared) { this.name = name; this.port = port; this.shared = shared; this.token = `tok-${name}`; this.cfg = path.join(WORK, `cfg-${name}`); }
   async start() {
     const ud = path.join(this.cfg, 'Cobander'); await fsp.mkdir(ud, { recursive: true });
-    await fsp.writeFile(path.join(ud, 'settings.json'), JSON.stringify({ sharedFolder: this.shared, displayName: this.name, apiPort: this.port, apiToken: this.token, phonePort: this.port + 10, apiInbox: path.join(this.cfg, 'inbox'), ...(this.name === 'Jeff' ? { autoUnlockTracks: true } : {}) }));
+    await fsp.writeFile(path.join(ud, 'settings.json'), JSON.stringify({ sharedFolder: this.shared, displayName: this.name, apiPort: this.port, apiToken: this.token, phonePort: this.port + 10, apiInbox: path.join(this.cfg, 'inbox'), fanfare: false, ...(this.name === 'Jeff' ? { autoUnlockTracks: true } : {}) }));
     this.log = fs.createWriteStream(path.join(WORK, `${this.name}.log`));
     this.proc = spawn(ELECTRON, [ROOT, '--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'], { env: { ...process.env, XDG_CONFIG_HOME: this.cfg, BP_DEBUG: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
     this.proc.stdout.pipe(this.log); this.proc.stderr.pipe(this.log);

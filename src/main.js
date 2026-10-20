@@ -18,7 +18,7 @@ try {
 // Where Cobander lives in public: GitHub repo (releases + issues) and the tip jar.
 const PKG = require('../package.json');
 const REPO = (PKG.repository && String(PKG.repository.url || PKG.repository).replace(/^.*github\.com[/:]/, '').replace(/\.git$/, '')) || null;
-const LINKS = { repo: REPO ? `https://github.com/${REPO}` : null, venmo: 'https://venmo.com/u/jdeuel44', kofi: PKG.funding && PKG.funding.kofi ? PKG.funding.kofi : null, takeout: (PKG.funding && (PKG.funding.takeout || PKG.funding.kofi)) || null, openmoji: 'https://openmoji.org', gameicons: 'https://game-icons.net' };   // takeout: the pay-what-you-want download (Ko-fi until the storefront exists)
+const LINKS = { repo: REPO ? `https://github.com/${REPO}` : null, venmo: 'https://venmo.com/u/jdeuel44', kofi: PKG.funding && PKG.funding.kofi ? PKG.funding.kofi : null, takeout: (PKG.funding && (PKG.funding.takeout || PKG.funding.kofi)) || null, openmoji: 'https://openmoji.org', gameicons: 'https://game-icons.net', kenney: 'https://kenney.nl' };   // takeout: the pay-what-you-want download (Ko-fi until the storefront exists)
 const SETTINGS_FILE = () => path.join(app.getPath('userData'), 'settings.json');
 const POLL_MS = 3000;            // belt-and-suspenders poll; fs.watch is unreliable on Drive mounts
 const AI_DOC_VERSION_RE = /^<!-- bandpad-ai-doc v(\d+) -->/m;

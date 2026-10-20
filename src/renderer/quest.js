@@ -44,6 +44,9 @@
   const TIER_BADGE = [null, 'gi-star', 'gi-trophy', 'gi-curtains', 'gi-bus', 'gi-crown', 'gi-skull', 'gi-laurel', 'gi-fire', 'gi-dragon'];   // what sits on your sprite at each tier
   const levelXp = (n) => (n <= 1 ? 0 : Math.round(25 * Math.pow(n, 1.75)));
   const MEMBER_LEVELS = Array.from({ length: 100 }, (_, i) => { const n = i + 1; const tier = Math.min(9, Math.floor((n - 1) / 10)); return [levelXp(n), TIERS[tier], TIER_BADGE[tier], tier + 1]; });
+  // Bodies: Kenney's Toon Characters 1 (CC0) — the little person on the Band page; the pose changes with the tier
+  const BODIES = [['madv', 'Adventurer'], ['fadv', 'Adventurer (she)'], ['mper', 'Regular guy'], ['fper', 'Regular gal'], ['robot', 'Robot'], ['zombie', 'Zombie']];
+  const TIER_POSE = ['idle', 'walk0', 'talk', 'show', 'cheer0', 'jump', 'attack0', 'cheer1', 'wide', 'cheer1'];
   // Characters: pick yours on the Band page. The sprite stays; the badge, ring and glow grow with the tier.
   const CHARACTERS = [
     ['shredder', 'Shredder', 'gi-guitar', 'six strings, too loud'], ['lowend', 'Low End', 'gi-bass', 'holds it all together'], ['thumper', 'Thumper', 'gi-drum', 'hits things on purpose'],
@@ -147,7 +150,7 @@
   // ---- the board: songs from Cobander (each with .quest = songStats output, from listSongs) + the shared fields ----
   function board(fields, bpSongs = [], { me = null } = {}) {
     const m = fields instanceof Map ? fields : merge(fields);
-    const configured = (Array.isArray(val(m, 'band:members')) ? val(m, 'band:members') : DEFAULT_MEMBERS).filter((x) => x && x.name).map((x) => ({ name: String(x.name).slice(0, 30), role: String(x.role || '').slice(0, 30), icon: String(x.icon || '🎵').slice(0, 4), aliases: Array.isArray(x.aliases) ? x.aliases.map(String) : [], character: CHARACTERS.some(([id]) => id === x.character) ? x.character : null }));
+    const configured = (Array.isArray(val(m, 'band:members')) ? val(m, 'band:members') : DEFAULT_MEMBERS).filter((x) => x && x.name).map((x) => ({ name: String(x.name).slice(0, 30), role: String(x.role || '').slice(0, 30), icon: String(x.icon || '🎵').slice(0, 4), aliases: Array.isArray(x.aliases) ? x.aliases.map(String) : [], character: CHARACTERS.some(([id]) => id === x.character) ? x.character : null, body: BODIES.some(([id]) => id === x.body) ? x.body : null }));
     const members = configured.slice();
     const songsIn = (bpSongs || []).filter((s) => s && s.folder && !(s.quest && s.quest.stats && s.quest.stats.sandbox) && !/^noodle pad\b/i.test(s.folder));
     // anyone who did work in a song but isn't configured joins as a member (a new bandmate, or a test user)
@@ -272,5 +275,5 @@
     }
     return out.filter((x) => x.song !== undefined).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, limit);
   }
-  return { WORTH, MILESTONES, GOALS, GOAL_XP, PCT_XP, WRITTEN_XP, TASK_XP, DEFAULT_MEMBERS, BAND_LEVELS, MEMBER_LEVELS, TIERS, TIER_BADGE, CHARACTERS, levelXp, ACHIEVEMENTS, songStats, memberXp, merge, board, bandLevel, levelOf, memberFor, xpForLabel, events, norm, clampPct };
+  return { WORTH, MILESTONES, GOALS, GOAL_XP, PCT_XP, WRITTEN_XP, TASK_XP, DEFAULT_MEMBERS, BAND_LEVELS, MEMBER_LEVELS, TIERS, TIER_BADGE, CHARACTERS, BODIES, TIER_POSE, levelXp, ACHIEVEMENTS, songStats, memberXp, merge, board, bandLevel, levelOf, memberFor, xpForLabel, events, norm, clampPct };
 });

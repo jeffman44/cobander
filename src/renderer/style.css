@@ -858,3 +858,19 @@ body.ws-record .track-head button.arm.active::after { content: ' REC'; }
 @keyframes lu-p { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) rotate(720deg); opacity: 0; } }
 body.lu-shake #main, body.lu-shake #topbar, body.lu-shake #sidebar { animation: lu-shake .5s ease-in-out; }
 @keyframes lu-shake { 0%, 100% { transform: translate(0); } 20% { transform: translate(-6px, 3px); } 40% { transform: translate(6px, -3px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(4px, -2px); } }
+
+/* short noodles (72–99 px): name + buttons only, nothing else squeezes in */
+body.tracks-short .track-head { gap: 2px; padding: 3px 8px; }
+body.tracks-short .track-head .tinfo, body.tracks-short .track-head .reactions, body.tracks-short .track-head .ttype, body.tracks-short .track-head .mixchips { display: none; }
+body.tracks-thin .track-head .tinfo, body.tracks-thin .track-head .mixrow, body.tracks-thin .track-head .mixchips { display: none; }
+body.tracks-thin .track-head .btns { flex: none; }
+
+/* Kenney bodies */
+.char.body { width: 56px; height: 64px; border-radius: 12px; overflow: visible; }
+.char.body img.pose { width: 42px; height: 56px; object-fit: contain; image-rendering: auto; }
+.char.body .inst { position: absolute; left: -6px; bottom: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: inherit; }
+.char.body .inst .gi { width: 14px; height: 14px; }
+.char.body.big { width: 160px; height: 180px; border-radius: 24px; } .char.body.big img.pose { width: 120px; height: 160px; } .char.body.big .inst { width: 44px; height: 44px; left: -10px; bottom: -8px; } .char.body.big .inst .gi { width: 28px; height: 28px; }
+.char-tiers .char.body { width: 40px; height: 46px; } .char-tiers .char.body img.pose { width: 30px; height: 40px; } .char-tiers .char.body .inst { width: 14px; height: 14px; left: -4px; bottom: -4px; } .char-tiers .char.body .inst .gi { width: 9px; height: 9px; }
+.body-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 6px 0 10px; }
+.body-pick img { width: 48px; height: 64px; object-fit: contain; }
