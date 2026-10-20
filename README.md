@@ -58,7 +58,7 @@ bash scripts/build.sh all   # Windows + macOS installers into release/
 Node 20+, Electron 44. `src/AI.md` documents the song format and the local control API (an assistant or a
 script can drive a running Cobander over HTTP or a file-drop inbox).
 
-## Buy Jeff a PBR 🍺
+## Send noods 🍜
 
 Already have it and just want to say thanks? [Ko-fi](https://ko-fi.com/jdeuel44) or Venmo **@jdeuel44**
 (links are in the app under ⚙ and on the Band page).
