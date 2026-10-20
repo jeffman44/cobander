@@ -37,11 +37,12 @@
   nav .links { display: flex; gap: 22px; font-size: 15px; } nav .links a { color: var(--steel); text-decoration: none; } nav .links a:hover { color: var(--white); }
 
   /* hero: the band, drawn by a human, cheering on the hit line */
-  .hero { padding: 48px 0 24px; position: relative; }
-  .hero .colander { position: absolute; right: -60px; top: -30px; width: min(52vw, 560px); height: auto; filter: invert(1); opacity: .13; pointer-events: none; }
-  .hero .txt, .hero .herofig { position: relative; }
-  @media (max-width: 760px) { .hero .colander { width: 80%; right: -10%; top: 0; } }
-  .hero h1 { font-size: clamp(84px, 16vw, 200px); letter-spacing: 3px; color: var(--white); line-height: .85; }
+  .hero { padding: 40px 0 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 28px; align-items: center; }
+  .hero .scene { grid-column: 2; grid-row: 1; width: 100%; height: auto; border-radius: 14px; box-shadow: 0 30px 60px rgba(0,0,0,.55); }
+  .hero .txt { grid-column: 1; grid-row: 1; }
+  .hero .herofig { grid-column: 1 / -1; }
+  @media (max-width: 760px) { .hero { grid-template-columns: 1fr; } .hero .scene { grid-column: 1; grid-row: 1; } .hero .txt { grid-row: 2; } }
+  .hero h1 { font-size: clamp(64px, 8vw, 110px); letter-spacing: 3px; color: var(--white); line-height: .85; }
   .hero h1 small { display: block; font-family: var(--display); font-weight: 700; font-size: clamp(22px, 3.2vw, 36px); letter-spacing: 6px; color: var(--noodle); margin-top: 10px; }
   .hero .lede { font-size: clamp(19px, 2.2vw, 23px); max-width: 38ch; margin: 26px 0 22px; }
   .cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
@@ -121,7 +122,7 @@
   </nav>
 
   <header class="hero">
-    <img class="colander" src="colander-engraving.svg" alt="" aria-hidden="true">
+    <img class="scene" src="img/band-scene.jpg" alt="A colander full of noodles on bass and a takeout box on drums, playing in a basement" width="1800" height="1200">
     <div class="txt">
     <h1>COBANDER<small>NOODLE TOGETHER</small></h1>
     <p class="lede">A sketchpad for your whole band. Everyone records, writes, mixes and practices on their own computer; the song lives in the folder you already share.</p>
@@ -201,7 +202,7 @@
 
   <footer>
     <p>Made by Jeff Deuel for a band in a basement. <a class="repo-link" href="https://github.com/OWNER/cobander/issues">Report a bug</a></p>
-    <p>Colander engraving via <a href="https://openclipart.org/detail/261137/colander">Openclipart</a> (public domain). Icons by <a href="https://openmoji.org">OpenMoji</a> (CC BY-SA 4.0) and <a href="https://game-icons.net">game-icons.net</a> (CC BY 3.0: Lorc, Delapouite). Speech-to-text by whisper.cpp.</p>
+    <p>Icons by <a href="https://openmoji.org">OpenMoji</a> (CC BY-SA 4.0) and <a href="https://game-icons.net">game-icons.net</a> (CC BY 3.0: Lorc, Delapouite). Speech-to-text by whisper.cpp.</p>
   </footer>
 </div>
 <script>
