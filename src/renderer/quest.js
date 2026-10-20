@@ -154,7 +154,10 @@
     const members = configured.slice();
     const songsIn = (bpSongs || []).filter((s) => s && s.folder && !(s.quest && s.quest.stats && s.quest.stats.sandbox) && !/^noodle pad\b/i.test(s.folder));
     // anyone who did work in a song but isn't configured joins as a member (a new bandmate, or a test user)
-    for (const s of songsIn) for (const who of Object.keys((s.quest && s.quest.by) || {})) if (!memberFor(members, who)) members.push({ name: who, role: '', icon: '🎵', aliases: [], auto: true });
+    // anyone who did work in a song but isn't configured joins as a member (a new bandmate, or a test user) — work means
+    // takes, parts, words or notes; an assistant that only saved a mix through the API is not a bandmate
+    const played = (st) => !!st && ((st.takes || 0) + (st.midi || 0) + (st.lyrics || 0) + (st.chords || 0) + (st.notes || 0) + (st.replies || 0) + (st.sections || 0) + (st.ideas || 0)) > 0;
+    for (const s of songsIn) for (const [who, st] of Object.entries((s.quest && s.quest.by) || {})) if (!memberFor(members, who) && played(st)) members.push({ name: who, role: '', icon: '🎵', aliases: [], auto: true });
     if (me && !memberFor(members, me)) members.push({ name: String(me), role: '', icon: '🎵', aliases: [], auto: true });
     const quests = new Map();
     for (const s of songsIn) quests.set(`f:${s.folder}`, { qid: `f:${s.folder}`, name: s.name || s.folder, folder: s.folder, bp: s, cover: isCover(s.name || s.folder) });

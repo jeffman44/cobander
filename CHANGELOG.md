@@ -1,7 +1,7 @@
 # Cobander changelog
 
 ## 0.15.2
-- New wordmark up top in the tofu-shop stencil spirit: コバンダー · COBANDER · 麺 seal · (noodle together).
+- New wordmark up top in the tofu-shop stencil spirit: COBANDER, a red noodle seal, (noodle together).
 - Real icons instead of system emoji: OpenMoji for the kitchen (noodles, takeout, chopsticks, pot…) and game-icons sprites for the Band page — so nothing shows as a box on Windows. Credits under ⚙.
 - 100 levels instead of 10, a new name every ten (Roadie → Open Mic → Garage Hero → Basement Star → Local Legend → Headliner → Touring Act → Rock Star → Hall of Famer → Never a Doubt). The old ladder topped out after one good night; this one takes a band a year or two of weekly work. XP for level n = 25·n^1.75. Your level number changes once; nothing else does.
 - Choose your character (Band page → click your sprite): a little person (Kenney's hand-drawn toon characters — adventurer, regular guy / gal, robot, zombie; everyone gets one from the start) plus what you play: Shredder, Low End, Thumper, Howler, Frontman, Keys Wizard, Horn, Noodle, Dumpling, Picker, The Booth, Volt. Until you pick, your role picks for you. The pose changes with every new name (idle → walk → talk → show → cheer → jump → attack → wide), with a badge, ring and glow on top; hover one and it walks.
