@@ -38,7 +38,7 @@ test('quest: the board — members from the shared file (aliases), levels, achie
   const b = Q.board(Q.merge([f('Dan', { 'song:f:Tremors:goal:title': [true, 'a'], 'song:f:Tremors:task:t1': [{ text: 'practice', done: true }, 'a'], 'song:f:Tremors:task:t2': [{ text: 'gone', done: true, deleted: true }, 'a'] })]), bp, { me: 'FossTheBoss' });
   assert.deepEqual(b.songs.map((s) => s.name), ['Tremors'], 'noodle pads stay out');
   const zach = b.members.find((m) => m.name === 'Zach'); assert.ok(zach.isMe, 'FossTheBoss is Zach'); assert.equal(zach.midi, 1); assert.equal(zach.achievements.map((a) => a.id).join(','), 'first-take,night-owl');
-  const dan = b.members.find((m) => m.name === 'Dan'); assert.equal(dan.xp, 71 + Math.round(0.75 * 15)); assert.equal(dan.level.title, 'Open Mic'); assert.equal(dan.perSong[0].pct, 75);
+  const dan = b.members.find((m) => m.name === 'Dan'); assert.equal(dan.xp, 71 + Math.round(0.75 * 15)); assert.equal(dan.level.title, 'Roadie'); assert.equal(dan.level.n, 1); assert.equal(Q.levelXp(10), Math.round(25 * Math.pow(10, 1.75))); assert.equal(Q.MEMBER_LEVELS.length, 100); assert.equal(Q.MEMBER_LEVELS[99][1], 'Never a Doubt'); assert.equal(dan.perSong[0].pct, 75);
   const s = b.songs[0]; assert.equal(s.prog.find((p) => p.member === 'Dan').pct, 75); assert.equal(s.prog.find((p) => p.member === 'Logan').pct, 0);
   assert.ok(s.milestones.find((x) => x.id === 'laidout').done && s.milestones.find((x) => x.id === 'bounce').done && !s.milestones.find((x) => x.id === 'chords').done && !s.milestones.find((x) => x.id === 'fullband').done);
   assert.equal(s.xp, 15 + 10 + Math.round(0.75 * 15 + 0.25 * 15 + 0.25 * 15) + 10 + 10, 'goal + task + coverage (Dan, Zach, Jeff via the linked copy) + laid out + bounced');

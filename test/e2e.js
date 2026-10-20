@@ -1227,7 +1227,18 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/quest', { todo: { id: td.id, done: true } }); q = await jeff.get('/quest'); assert.ok(q.todos.find((t) => t.id === td.id).done, 'checked off');
       assert.ok(q.members.some((m) => m.name === 'Jeff' && m.xp > 0), 'XP to the doer');
       await jeff.shot('band-todos');
-      assert.ok(await jeff.evalJs(`document.querySelectorAll('#qb-members .lvl-sprite .gi').length >= 1 && !!document.querySelector('#qb-boss .gi-dragon')`), 'level sprites + boss dragon');
+      assert.ok(await jeff.evalJs(`document.querySelectorAll('#qb-members .char .gi').length >= 4 && !!document.querySelector('#qb-boss .gi-dragon')`), 'character sprites + boss dragon');
+      // the level-up show (no take rolling → full show with sound), then dismissed
+      await jeff.evalJs(`window.bandpadDebug_levelUp(21); true`); await sleep(900);
+      assert.ok(await jeff.evalJs(`!!document.querySelector('#levelup') && /LEVEL 21/.test(document.querySelector('#levelup .lu-n').textContent) && document.querySelectorAll('#levelup .p').length > 50`), 'level-up show');
+      await jeff.shot('level-up'); await jeff.evalJs(`document.querySelector('#levelup').click(); true`); await sleep(600);
+      assert.ok(await jeff.evalJs(`!document.querySelector('#levelup')`), 'show dismissed');
+      // choose your character
+      await jeff.evalJs(`document.querySelector('#qb-members .qb-member.me .char').click(); true`); await sleep(400);
+      assert.ok(await jeff.evalJs(`document.querySelector('#charpick') && document.querySelector('#charpick').open && document.querySelectorAll('#charpick .char-pick').length >= 10`), 'character picker');
+      await jeff.evalJs(`[...document.querySelectorAll('#charpick .char-pick')].find((c) => /Thumper/.test(c.textContent)).click(); true`); await jeff.shot('char-pick');
+      await jeff.evalJs(`document.querySelector('#charpick form').requestSubmit(document.querySelector('#charpick menu button.primary')); true`); await sleep(900);
+      q = await jeff.get('/quest'); assert.equal(q.members.find((m) => m.name === 'Jeff').character, 'thumper', 'character saved');
       await jeff.post('/quest', { todo: { id: td.id, delete: true } }); q = await jeff.get('/quest'); assert.ok(!q.todos.find((t) => t.id === td.id), 'removed');
       await jeff.post('/workspace', { ws: 'write' });
       { const names = (await jeff.get('/songs')).map((x) => x.folder); if (!names.includes('Fourteen')) { await jeff.post('/song/create', { name: 'Fourteen', bpm: 120 }); await jeff.post('/song/patch', { addTrack: { kind: 'guitar', name: 'Gtr' } }); } else await jeff.post('/song/open', { folder: 'Fourteen' }); await sleep(600); }

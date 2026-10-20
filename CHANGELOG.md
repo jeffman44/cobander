@@ -3,7 +3,10 @@
 ## 0.15.2
 - New wordmark up top in the tofu-shop stencil spirit: コバンダー · COBANDER · 麺 seal · (noodle together).
 - Real icons instead of system emoji: OpenMoji for the kitchen (noodles, takeout, chopsticks, pot…) and game-icons sprites for the Band page — so nothing shows as a box on Windows. Credits under ⚙.
-- Every bandmate has a level sprite on the Band page: box → mic → guitar → star → trophy → curtains → tour bus → crowned skull → laurels → dragon, coloured by level; the boss battle is a dragon with noodles.
+- 100 levels instead of 10, a new name every ten (Roadie → Open Mic → Garage Hero → Basement Star → Local Legend → Headliner → Touring Act → Rock Star → Hall of Famer → Never a Doubt). The old ladder topped out after one good night; this one takes a band a year or two of weekly work. XP for level n = 25·n^1.75. Your level number changes once; nothing else does.
+- Choose your character (Band page → click your sprite): Shredder, Low End, Thumper, Howler, Frontman, Keys Wizard, Horn, Noodle, Dumpling, Picker, The Booth, Volt. Until you pick, your role picks for you. The sprite grows with every new name — badge, ring, glow, and a dragon at the top.
+- LEVEL UP: a full-screen show — confetti and noodles, screen shake, your character spinning in, and a power-chord fanfare with a crowd (synthesized, no files). It stays quiet while a take is rolling (you just get the toast). Click anywhere to dismiss.
+- The boss battle is a dragon with noodles.
 - Mix keeps the timeline: track heads become mini channel strips (volume, pan, LC / EQ / CMP, M / S, fix) with the console below, and the takes get mixing handles — drag the top corners for fades, the line up / down for take level; right-click → Normalize sets a take's level from its loudest moment.
 - Practice: "words flying at you (3D)" — lyrics approach from the horizon and hit the line when it's time to sing them; the play-along highway is in perspective too. Practice now lives in the song area (top bar and songs list stay).
 - Tooltips rewritten for total beginners: click, count-in, loop, punch, monitor, key, lock, and ~40 more say what, when and what happens; hovering a chip's label shows its control's tip.

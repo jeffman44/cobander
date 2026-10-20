@@ -38,8 +38,19 @@
   // band level by share of the setlist's possible XP; member level by their own XP
   // band levels: a pot of noodles coming together (the band's whole-catalog progress)
   const BAND_LEVELS = [[0, 'Dry Noodles'], [0.1, 'Water\'s Boiling'], [0.3, 'Al Dente'], [0.5, 'Saucy'], [0.7, 'Chef\'s Kiss'], [0.9, 'Never a Doubt']];
-  // [xp, title, sprite] — sprites are game-icons.net classes (see icons/CREDITS.md)
-  const MEMBER_LEVELS = [[0, 'Roadie', 'gi-box'], [60, 'Open Mic', 'gi-mic'], [200, 'Garage Hero', 'gi-guitar'], [450, 'Basement Star', 'gi-star'], [800, 'Local Legend', 'gi-trophy'], [1300, 'Headliner', 'gi-curtains'], [2000, 'Touring Act', 'gi-bus'], [3000, 'Rock Star', 'gi-skull'], [4500, 'Hall of Famer', 'gi-laurel'], [6500, 'Never a Doubt', 'gi-dragon']];
+  // 100 levels; a new name every ten (the tier). XP for level n = 25·n^1.75 (lv 2 = 84, lv 10 ≈ 1.4k, lv 50 ≈ 23k, lv 100 ≈ 79k):
+  // a band that records every week spends a year or two getting to the top names instead of a night.
+  const TIERS = ['Roadie', 'Open Mic', 'Garage Hero', 'Basement Star', 'Local Legend', 'Headliner', 'Touring Act', 'Rock Star', 'Hall of Famer', 'Never a Doubt'];
+  const TIER_BADGE = [null, 'gi-star', 'gi-trophy', 'gi-curtains', 'gi-bus', 'gi-crown', 'gi-skull', 'gi-laurel', 'gi-fire', 'gi-dragon'];   // what sits on your sprite at each tier
+  const levelXp = (n) => (n <= 1 ? 0 : Math.round(25 * Math.pow(n, 1.75)));
+  const MEMBER_LEVELS = Array.from({ length: 100 }, (_, i) => { const n = i + 1; const tier = Math.min(9, Math.floor((n - 1) / 10)); return [levelXp(n), TIERS[tier], TIER_BADGE[tier], tier + 1]; });
+  // Characters: pick yours on the Band page. The sprite stays; the badge, ring and glow grow with the tier.
+  const CHARACTERS = [
+    ['shredder', 'Shredder', 'gi-guitar', 'six strings, too loud'], ['lowend', 'Low End', 'gi-bass', 'holds it all together'], ['thumper', 'Thumper', 'gi-drum', 'hits things on purpose'],
+    ['howler', 'Howler', 'gi-howl', 'sings, screams, both'], ['frontman', 'Frontman', 'gi-mic', 'owns the mic'], ['wizard', 'Keys Wizard', 'gi-keys', 'eighty-eight spells'],
+    ['horn', 'Horn', 'gi-sax', 'brings the brass'], ['noodle', 'Noodle', 'gi-noodles', 'the house mascot'], ['dumpling', 'Dumpling', 'gi-dumpling', 'small, dense, delicious'],
+    ['picker', 'Picker', 'gi-banjo', 'faster than you'], ['booth', 'The Booth', 'gi-boombox', 'presses the buttons'], ['volt', 'Volt', 'gi-bolt', 'pure energy'],
+  ];
   const ACHIEVEMENTS = [
     ['first-take', '🎙', 'First Take', 'recorded a take', (m) => m.takes + m.midi >= 1],
     ['ten-takes', '🔟', 'Double Digits', '10 takes', (m) => m.takes >= 10],
@@ -130,13 +141,13 @@
   const isCover = (s) => /\((official\s+)?cover\)/i.test(String(s || ''));
   const clampPct = (x) => Math.max(0, Math.min(100, Math.round(Number(x) || 0)));
   function memberFor(members, user) { const u = String(user || '').trim().toLowerCase(); if (!u) return null; return (members || []).find((mb) => mb.name.toLowerCase() === u || (mb.aliases || []).some((a) => String(a).toLowerCase() === u)) || null; }
-  function levelOf(xp, levels) { let i = 0; for (let k = 0; k < levels.length; k++) if (xp >= levels[k][0]) i = k; const hi = i + 1 < levels.length ? levels[i + 1][0] : null; return { n: i + 1, title: levels[i][1], sprite: levels[i][2] || null, next: hi != null ? levels[i + 1][1] : null, lo: levels[i][0], hi, toNext: hi != null ? Math.max(0, Math.ceil(hi - xp)) : 0, frac: hi != null ? Math.max(0, Math.min(1, (xp - levels[i][0]) / (hi - levels[i][0]))) : 1 };
+  function levelOf(xp, levels) { let i = 0; for (let k = 0; k < levels.length; k++) if (xp >= levels[k][0]) i = k; const hi = i + 1 < levels.length ? levels[i + 1][0] : null; return { n: i + 1, title: levels[i][1], badge: levels[i][2] || null, tier: levels[i][3] || 1, next: hi != null ? levels[i + 1][1] : null, lo: levels[i][0], hi, toNext: hi != null ? Math.max(0, Math.ceil(hi - xp)) : 0, frac: hi != null ? Math.max(0, Math.min(1, (xp - levels[i][0]) / (hi - levels[i][0]))) : 1 };
   }
 
   // ---- the board: songs from Cobander (each with .quest = songStats output, from listSongs) + the shared fields ----
   function board(fields, bpSongs = [], { me = null } = {}) {
     const m = fields instanceof Map ? fields : merge(fields);
-    const configured = (Array.isArray(val(m, 'band:members')) ? val(m, 'band:members') : DEFAULT_MEMBERS).filter((x) => x && x.name).map((x) => ({ name: String(x.name).slice(0, 30), role: String(x.role || '').slice(0, 30), icon: String(x.icon || '🎵').slice(0, 4), aliases: Array.isArray(x.aliases) ? x.aliases.map(String) : [] }));
+    const configured = (Array.isArray(val(m, 'band:members')) ? val(m, 'band:members') : DEFAULT_MEMBERS).filter((x) => x && x.name).map((x) => ({ name: String(x.name).slice(0, 30), role: String(x.role || '').slice(0, 30), icon: String(x.icon || '🎵').slice(0, 4), aliases: Array.isArray(x.aliases) ? x.aliases.map(String) : [], character: CHARACTERS.some(([id]) => id === x.character) ? x.character : null }));
     const members = configured.slice();
     const songsIn = (bpSongs || []).filter((s) => s && s.folder && !(s.quest && s.quest.stats && s.quest.stats.sandbox) && !/^noodle pad\b/i.test(s.folder));
     // anyone who did work in a song but isn't configured joins as a member (a new bandmate, or a test user)
@@ -261,5 +272,5 @@
     }
     return out.filter((x) => x.song !== undefined).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, limit);
   }
-  return { WORTH, MILESTONES, GOALS, GOAL_XP, PCT_XP, WRITTEN_XP, TASK_XP, DEFAULT_MEMBERS, BAND_LEVELS, MEMBER_LEVELS, ACHIEVEMENTS, songStats, memberXp, merge, board, bandLevel, levelOf, memberFor, xpForLabel, events, norm, clampPct };
+  return { WORTH, MILESTONES, GOALS, GOAL_XP, PCT_XP, WRITTEN_XP, TASK_XP, DEFAULT_MEMBERS, BAND_LEVELS, MEMBER_LEVELS, TIERS, TIER_BADGE, CHARACTERS, levelXp, ACHIEVEMENTS, songStats, memberXp, merge, board, bandLevel, levelOf, memberFor, xpForLabel, events, norm, clampPct };
 });

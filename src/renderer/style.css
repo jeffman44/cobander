@@ -814,3 +814,47 @@ body.ws-record .track-head button.arm.active::after { content: ' REC'; }
 .qb-boss .gi { width: 1.3em; height: 1.3em; color: #d8392b; } .qb-boss .gi-noodles { color: #f2b534; margin-left: -2px; margin-right: 2px; }
 .xp-chip .xp-lvl .gi { width: 1em; height: 1em; vertical-align: -0.15em; }
 .qb-mrow { align-items: center; }
+
+.gi-bass { -webkit-mask-image: url(icons/gi-delapouite-guitar-bass-head.svg); mask-image: url(icons/gi-delapouite-guitar-bass-head.svg); }
+.gi-drum { -webkit-mask-image: url(icons/gi-delapouite-drum.svg); mask-image: url(icons/gi-delapouite-drum.svg); }
+.gi-howl { -webkit-mask-image: url(icons/gi-lorc-wolf-howl.svg); mask-image: url(icons/gi-lorc-wolf-howl.svg); }
+.gi-keys { -webkit-mask-image: url(icons/gi-delapouite-piano-keys.svg); mask-image: url(icons/gi-delapouite-piano-keys.svg); }
+.gi-sax { -webkit-mask-image: url(icons/gi-delapouite-saxophone.svg); mask-image: url(icons/gi-delapouite-saxophone.svg); }
+.gi-banjo { -webkit-mask-image: url(icons/gi-delapouite-banjo.svg); mask-image: url(icons/gi-delapouite-banjo.svg); }
+.gi-boombox { -webkit-mask-image: url(icons/gi-delapouite-boombox.svg); mask-image: url(icons/gi-delapouite-boombox.svg); }
+.gi-bolt { -webkit-mask-image: url(icons/gi-lorc-lightning-helix.svg); mask-image: url(icons/gi-lorc-lightning-helix.svg); }
+.gi-headphones { -webkit-mask-image: url(icons/gi-delapouite-headphones.svg); mask-image: url(icons/gi-delapouite-headphones.svg); }
+/* character sprite: the class icon, a ring and a badge that grow with the tier (1–10) */
+.char { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: var(--bg3); border: 2px solid var(--line); flex: none; color: #cfd3dc; }
+.char .gi { width: 26px; height: 26px; }
+.char .badge { position: absolute; right: -6px; bottom: -6px; width: 20px; height: 20px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+.char .badge .gi { width: 13px; height: 13px; }
+.char.t1 { } .char.t2 { border-color: #8d94a3; color: #d9dde6; } .char.t3 { border-color: #6fb3ff; color: #9ccaff; } .char.t4 { border-color: #f2b534; color: #ffd666; }
+.char.t5 { border-color: #e6c15a; color: #ffe27a; box-shadow: 0 0 8px rgba(242,181,52,.35); } .char.t6 { border-color: #d8392b; color: #ff8a7a; box-shadow: 0 0 10px rgba(216,57,43,.4); }
+.char.t7 { border-color: #4caf7d; color: #8be0b0; box-shadow: 0 0 12px rgba(76,175,125,.45); } .char.t8 { border-color: #ff6a3d; color: #ffb199; background: #2d2230; box-shadow: 0 0 14px rgba(255,106,61,.5); }
+.char.t9 { border-color: #ffd666; color: #fff1b8; background: #2f2a1a; box-shadow: 0 0 16px rgba(255,214,102,.6); animation: char-glow 2.4s ease-in-out infinite; }
+.char.t10 { border-color: #ff4d6d; color: #ffd0d9; background: #301a22; box-shadow: 0 0 20px rgba(255,77,109,.7), 0 0 40px rgba(255,77,109,.3); animation: char-glow 1.6s ease-in-out infinite; }
+.char.t10 .badge { background: #ff4d6d; color: #1d1d1d; border-color: #ff4d6d; }
+@keyframes char-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
+.char.big { width: 120px; height: 120px; border-width: 4px; } .char.big .gi { width: 70px; height: 70px; } .char.big .badge { width: 44px; height: 44px; right: -8px; bottom: -8px; } .char.big .badge .gi { width: 28px; height: 28px; }
+/* choose your character */
+.char-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0; }
+.char-pick { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg3); cursor: pointer; text-align: center; }
+.char-pick:hover { border-color: var(--accent); } .char-pick.sel { border-color: #f2b534; box-shadow: 0 0 0 2px rgba(242,181,52,.35); }
+.char-pick b { font-size: 13px; } .char-pick small { color: var(--muted); font-size: 11px; }
+.char-tiers { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 6px 0 2px; } .char-tiers .char { width: 30px; height: 30px; } .char-tiers .char .gi { width: 17px; height: 17px; } .char-tiers .char .badge { width: 14px; height: 14px; right: -4px; bottom: -4px; } .char-tiers .char .badge .gi { width: 9px; height: 9px; }
+/* LEVEL UP */
+#levelup { position: fixed; inset: 0; z-index: 9000; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(242,181,52,.18), rgba(0,0,0,.82)); animation: lu-in .25s ease-out; cursor: pointer; overflow: hidden; }
+#levelup.out { animation: lu-out .4s ease-in forwards; }
+@keyframes lu-in { from { opacity: 0; } to { opacity: 1; } } @keyframes lu-out { to { opacity: 0; } }
+#levelup .lu-title { font-family: Impact, "Arial Black", sans-serif; font-size: 72px; letter-spacing: 6px; color: #fff; text-shadow: 0 0 20px #f2b534, 0 0 60px #d8392b; animation: lu-pop .7s cubic-bezier(.2,1.6,.4,1) both; }
+#levelup .lu-n { font-size: 30px; color: #f2b534; letter-spacing: 3px; margin-top: 8px; animation: lu-pop .7s .15s cubic-bezier(.2,1.6,.4,1) both; }
+#levelup .lu-name { font-size: 20px; color: #fff; margin-top: 4px; opacity: .9; animation: lu-pop .7s .3s cubic-bezier(.2,1.6,.4,1) both; }
+#levelup .char.big { margin: 18px 0; animation: lu-spin 1s .1s cubic-bezier(.2,1.4,.4,1) both; }
+#levelup .lu-hint { color: var(--muted); font-size: 12px; margin-top: 16px; }
+@keyframes lu-pop { from { transform: scale(.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes lu-spin { from { transform: scale(0) rotate(-720deg); } to { transform: scale(1) rotate(0); } }
+#levelup .p { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; border-radius: 3px; animation: lu-p 1.6s ease-out forwards; }
+@keyframes lu-p { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) rotate(720deg); opacity: 0; } }
+body.lu-shake #main, body.lu-shake #topbar, body.lu-shake #sidebar { animation: lu-shake .5s ease-in-out; }
+@keyframes lu-shake { 0%, 100% { transform: translate(0); } 20% { transform: translate(-6px, 3px); } 40% { transform: translate(6px, -3px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(4px, -2px); } }

@@ -312,7 +312,7 @@
   // level-ups and new achievements (mine) → toasts, once
   function questCelebrate() {
     const m = myQuest(); if (!m) return; const seen = QSEEN(); let changed = false;
-    if (seen.level != null && m.level.n > seen.level) { toast(`⚔ Level up — you're level ${m.level.n}: ${m.level.title} (${m.xp} XP)`, { kind: 'ok', ms: 9000 }); }
+    if (seen.level != null && m.level.n > seen.level) levelUpShow(m);
     if (seen.level !== m.level.n) { seen.level = m.level.n; changed = true; }
     const had = new Set(seen.ach || []); const now = m.achievements.map((a) => a.id);
     if (seen.ach) for (const a of m.achievements) if (!had.has(a.id)) toast(`${a.icon} Achievement: ${a.title} — ${a.desc}`, { kind: 'ok', ms: 9000 });
@@ -324,7 +324,7 @@
   }
   function renderXpChip() {
     const c = $('#xp-chip'); if (!c) return; const m = myQuest(); if (!m) { c.hidden = true; return; }
-    c.hidden = false; c.querySelector('.xp-lvl').innerHTML = ''; { const i = el('i', `gi ${m.level.sprite || 'gi-box'}`); c.querySelector('.xp-lvl').append(i, document.createTextNode(` Lv ${m.level.n}`)); } c.querySelector('.xp-title').textContent = m.level.title;
+    c.hidden = false; c.querySelector('.xp-lvl').innerHTML = ''; { const i = el('i', `gi ${charOf(m)[2]}`); c.querySelector('.xp-lvl').append(i, document.createTextNode(` Lv ${m.level.n}`)); } c.querySelector('.xp-title').textContent = m.level.title;
     c.querySelector('.xp-bar i').style.width = `${(100 * m.level.frac).toFixed(0)}%`; c.querySelector('.xp-num').textContent = `${m.xp} XP`;
     c.title = `${m.name} — level ${m.level.n} ${m.level.title} · ${m.xp} XP${m.level.next ? ` · ${m.level.toNext} to ${m.level.next}` : ''} · ${m.achievements.length} achievement${m.achievements.length === 1 ? '' : 's'}\n${quest.board.name}: level ${quest.board.level.n} ${quest.board.level.title}`;
     const tb = $('#tb-band'); if (tb) tb.textContent = quest.board.boss && quest.board.boss.date && bossDays(quest.board.boss) >= 0 && bossDays(quest.board.boss) <= 7 ? `${bossDays(quest.board.boss)}d` : '';
@@ -364,7 +364,7 @@
     const mw = $('#qb-members'); mw.innerHTML = '';
     for (const m of b.members.slice().sort((x, y) => y.xp - x.xp)) {
       const row = el('div', 'qb-member' + (m.isMe ? ' me' : '') + (quest.sel === m.name ? ' sel' : ''));
-      const top = el('div', 'qb-mrow'); const sp = el('span', `lvl-sprite l${m.level.n}`); sp.append(el('i', `gi ${m.level.sprite || 'gi-box'}`)); sp.title = `Level ${m.level.n}: ${m.level.title}${m.level.next ? ` — ${m.level.toNext} XP to ${m.level.next}` : ' — max level'}`; top.append(sp, el('span', 'qb-icon', m.icon), el('b', null, m.name), el('span', 'qb-role muted', m.role || ''), el('span', 'qb-mlvl', `Lv ${m.level.n} ${m.level.title}`), el('span', 'qb-mxp mono', `${m.xp}`));
+      const top = el('div', 'qb-mrow'); const sp = charSprite(m); if (m.isMe) sp.addEventListener('click', (e) => { e.stopPropagation(); chooseCharacter(m).catch(fail); }); top.append(sp, el('span', 'qb-icon', m.icon), el('b', null, m.name), el('span', 'qb-role muted', m.role || ''), el('span', 'qb-mlvl', `Lv ${m.level.n} ${m.level.title}`), el('span', 'qb-mxp mono', `${m.xp}`));
       row.append(top, xpBar(m.level.frac));
       const ach = el('div', 'qb-ach'); for (const a of m.achievements) { const t = el('span', 'qb-a', a.icon); t.title = `${a.title} — ${a.desc}`; ach.append(t); } if (!m.achievements.length) ach.append(el('span', 'muted small', 'no achievements yet'));
       row.append(ach);
@@ -377,7 +377,7 @@
         row.append(d);
       }
       row.addEventListener('click', (e) => { if (e.target.closest('.qb-detail')) return; quest.sel = quest.sel === m.name ? null : m.name; renderBandPane(); });
-      M.attach(row, () => [{ title: m.name }, { label: 'Role / icon…', action: () => editMember(m).catch(fail) }, { label: `Also known in Cobander as… (${(m.aliases || []).join(', ') || 'nobody else'})`, action: () => editAliases(m).catch(fail) }, ...(m.auto ? [{ label: 'Add to the band for good', action: () => questWrite({ 'band:members': [...b.members.filter((x) => !x.auto).map(({ name, role, icon, aliases }) => ({ name, role, icon, aliases })), { name: m.name, role: '', icon: '🎵', aliases: [] }] }).catch(fail) }] : [])]);
+      M.attach(row, () => [{ title: m.name }, ...(m.isMe ? [{ label: 'Choose your character…', action: () => chooseCharacter(m).catch(fail) }] : []), { label: 'Role / icon…', action: () => editMember(m).catch(fail) }, { label: `Also known in Cobander as… (${(m.aliases || []).join(', ') || 'nobody else'})`, action: () => editAliases(m).catch(fail) }, ...(m.auto ? [{ label: 'Add to the band for good', action: () => questWrite({ 'band:members': [...b.members.filter((x) => !x.auto).map(({ name, role, icon, aliases }) => ({ name, role, icon, aliases })), { name: m.name, role: '', icon: '🎵', aliases: [] }] }).catch(fail) }] : [])]);
       mw.append(row);
     }
     // this song
@@ -446,15 +446,71 @@
     $('#qb-next').textContent = b.next ? `Then: ${b.next}` : 'Then: … (click to set the target after the boss battle)';
   }
   function questPopRaw(xp, what) { const p = el('div', 'xp-pop', `+${xp} XP`); p.append(el('small', null, what)); document.body.append(p); setTimeout(() => p.remove(), 1800); }
+  // ---- characters & level sprites ----
+  const charOf = (m) => Q.CHARACTERS.find(([id]) => id === (m && m.character)) || Q.CHARACTERS.find(([id]) => id === roleGuess(m)) || Q.CHARACTERS[0];
+  function roleGuess(m) { const r = String((m && m.role) || '').toLowerCase(); if (/bass/.test(r)) return 'lowend'; if (/drum/.test(r)) return 'thumper'; if (/vo(x|cal)|sing/.test(r)) return 'howler'; if (/key|piano|synth/.test(r)) return 'wizard'; if (/sax|horn|trumpet|brass/.test(r)) return 'horn'; if (/banjo|mandolin/.test(r)) return 'picker'; if (/guitar|gtr/.test(r)) return 'shredder'; return 'noodle'; }
+  function charSprite(m, { tier = null, big = false, title = true } = {}) {
+    const ch = charOf(m); const lv = m && m.level ? m.level : { tier: 1, n: 1, title: Q.TIERS[0] }; const t = tier || lv.tier || 1;
+    const box = el('span', `char t${t}${big ? ' big' : ''}`); box.append(el('i', `gi ${ch[2]}`));
+    const badge = Q.TIER_BADGE[t - 1]; if (badge) { const b = el('span', 'badge'); b.append(el('i', `gi ${badge}`)); box.append(b); }
+    if (title && m) box.title = `${ch[1]} — level ${lv.n}, ${lv.title}${lv.next ? ` · ${lv.toNext} XP to ${lv.next === lv.title ? `level ${lv.n + 1}` : lv.next}` : ' · max level'}${m.isMe ? ' · click to choose your character' : ''}`;
+    return box;
+  }
+  async function chooseCharacter(mb) {
+    let d = $('#charpick'); if (d) d.remove();
+    d = document.createElement('dialog'); d.id = 'charpick'; const f = document.createElement('form'); f.method = 'dialog';
+    f.append(el('h3', null, 'Choose your character'), el('p', 'muted small', 'Your sprite on the Band page. It levels up with you: a badge, a ring and a glow at every new name (every 10 levels). Change it any time.'));
+    const grid = el('div', 'char-grid'); let sel = (charOf(mb) || [])[0];
+    for (const [id, name, , blurb] of Q.CHARACTERS) {
+      const c = el('div', 'char-pick' + (sel === id ? ' sel' : '')); c.append(charSprite({ ...mb, character: id }, { title: false }), el('b', null, name), el('small', null, blurb));
+      c.addEventListener('click', () => { sel = id; for (const x of grid.children) x.classList.toggle('sel', x === c); tiers.innerHTML = ''; for (let t = 1; t <= 10; t++) tiers.append(charSprite({ ...mb, character: id }, { tier: t, title: false })); });
+      grid.append(c);
+    }
+    const tiers = el('div', 'char-tiers'); for (let t = 1; t <= 10; t++) tiers.append(charSprite({ ...mb, character: sel }, { tier: t, title: false }));
+    const menu = document.createElement('menu'); const ok = el('button', 'primary', 'That\'s me'); ok.value = 'ok'; const cancel = el('button', 'cancel', 'Cancel'); cancel.value = 'cancel'; cancel.setAttribute('formnovalidate', ''); menu.append(cancel, ok);
+    f.append(grid, el('div', 'muted small', 'How it grows:'), tiers, menu); d.append(f); document.body.append(d);
+    const r = await new Promise((res) => { d.addEventListener('close', () => res(d.returnValue), { once: true }); d.showModal(); });
+    d.remove(); if (r !== 'ok') return;
+    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null })).map((x) => (x.name === mb.name ? { ...x, character: sel } : x));
+    await questWrite({ 'band:members': list }); toast(`You are ${Q.CHARACTERS.find(([id]) => id === sel)[1]}. 🤘`, { kind: 'ok', ms: 5000 });
+  }
+  // LEVEL UP: the full obnoxious show — unless a take is rolling
+  let luAudio = null;
+  function levelUpSound(tier) {
+    try {
+      const ctx = engine.ctx || (luAudio = luAudio || new (window.AudioContext || window.webkitAudioContext)()); const t0 = ctx.currentTime + 0.02; const out = ctx.createGain(); out.gain.value = 0.22; out.connect(ctx.destination);
+      // power-chord fanfare: root–fifth–octave stabs, then a rising arpeggio; higher tiers get a longer, brighter run
+      const stab = (f, at, len) => { for (const [mul, g] of [[1, 1], [1.5, 0.7], [2, 0.5]]) { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f * mul; const env = ctx.createGain(); env.gain.setValueAtTime(0, at); env.gain.linearRampToValueAtTime(g, at + 0.01); env.gain.exponentialRampToValueAtTime(0.001, at + len); const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(600, at); lp.frequency.exponentialRampToValueAtTime(5000, at + 0.08); o.connect(lp); lp.connect(env); env.connect(out); o.start(at); o.stop(at + len + 0.05); } };
+      stab(110, t0, 0.22); stab(110, t0 + 0.26, 0.22); stab(146.8, t0 + 0.52, 0.5);
+      const run = [220, 277, 330, 440, 554, 660, 880, 1109, 1319, 1760].slice(0, 5 + Math.min(5, tier)); run.forEach((f, i) => { const at = t0 + 0.95 + i * 0.07; const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = f; const env = ctx.createGain(); env.gain.setValueAtTime(0, at); env.gain.linearRampToValueAtTime(0.35, at + 0.01); env.gain.exponentialRampToValueAtTime(0.001, at + 0.25); o.connect(env); env.connect(out); o.start(at); o.stop(at + 0.3); });
+      // crowd: filtered noise swell
+      const n = ctx.createBufferSource(); const b = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length); n.buffer = b; const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 0.6; const ng = ctx.createGain(); ng.gain.setValueAtTime(0, t0 + 0.9); ng.gain.linearRampToValueAtTime(0.5, t0 + 1.3); ng.gain.exponentialRampToValueAtTime(0.001, t0 + 2.8); n.connect(bp); bp.connect(ng); ng.connect(out); n.start(t0 + 0.9);
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    } catch (_) { /* no audio, no problem */ }
+  }
+  function levelUpShow(m) {
+    if (engine.recording || finishing || sketchRec) { toast(`⚔ Level up — you're level ${m.level.n}: ${m.level.title}`, { kind: 'ok', ms: 9000 }); return; }
+    const old = $('#levelup'); if (old) old.remove();
+    const o = el('div'); o.id = 'levelup'; const newName = (m.level.n - 1) % 10 === 0;
+    o.append(el('div', 'lu-title', 'LEVEL UP'), charSprite(m, { big: true, title: false }), el('div', 'lu-n', `LEVEL ${m.level.n}${newName ? ' — NEW NAME' : ''}`), el('div', 'lu-name', `${m.name} the ${m.level.title}`), el('div', 'lu-hint', 'click anywhere'));
+    const cols = ['#f2b534', '#d8392b', '#fff', '#5b8def', '#4caf7d', '#ff4d6d']; const N = 70 + m.level.tier * 10;
+    for (let i = 0; i < N; i++) { const p = el('span', 'p'); const a = Math.random() * Math.PI * 2, r = 180 + Math.random() * 520; p.style.setProperty('--dx', `${Math.cos(a) * r}px`); p.style.setProperty('--dy', `${Math.sin(a) * r + 200}px`); p.style.background = cols[i % cols.length]; p.style.animationDelay = `${(Math.random() * 0.35).toFixed(2)}s`; p.style.width = p.style.height = `${8 + Math.random() * 12}px`; if (i % 7 === 0) { p.className = 'p gi gi-noodles'; p.style.background = '#f2b534'; p.style.width = p.style.height = '26px'; } o.append(p); }
+    document.body.append(o); document.body.classList.add('lu-shake'); setTimeout(() => document.body.classList.remove('lu-shake'), 600);
+    levelUpSound(m.level.tier);
+    const close = () => { if (!o.isConnected) return; o.classList.add('out'); setTimeout(() => o.remove(), 420); };
+    o.addEventListener('click', close); setTimeout(close, 6500);
+    logActivity(`hit level ${m.level.n}${newName ? ` — ${m.level.title}` : ''}`);
+  }
+  window.bandpadDebug_levelUp = (n) => { const m = myQuest() || { name: me(), role: '', level: Q.levelOf(Q.levelXp(n || 10), Q.MEMBER_LEVELS) }; levelUpShow({ ...m, level: Q.levelOf(Q.levelXp(n || m.level.n), Q.MEMBER_LEVELS) }); };
   async function editMember(mb) {
     const v = await promptName('Name · role · icon (e.g. "Zach · Drums · 🥁")', `${mb.name} · ${mb.role} · ${mb.icon}`); if (!v) return;
     const [name, role, icon] = v.split('·').map((x) => x.trim());
-    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [] })).map((x) => (x.name === mb.name ? { ...x, name: name || x.name, role: role ?? x.role, icon: icon || x.icon } : x));
+    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null })).map((x) => (x.name === mb.name ? { ...x, name: name || x.name, role: role ?? x.role, icon: icon || x.icon } : x));
     await questWrite({ 'band:members': list });
   }
   async function editAliases(mb) {
     const v = await promptName(`${mb.name} shows up in Cobander as… (comma-separated display names, e.g. FossTheBoss)`, (mb.aliases || []).join(', ')); if (v === null) return;
-    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [] })).map((x) => (x.name === mb.name ? { ...x, aliases: v.split(',').map((a) => a.trim()).filter(Boolean).slice(0, 6) } : x));
+    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null })).map((x) => (x.name === mb.name ? { ...x, aliases: v.split(',').map((a) => a.trim()).filter(Boolean).slice(0, 6) } : x));
     await questWrite({ 'band:members': list });
   }
   $('#qb-boss').addEventListener('click', () => editBoss().catch(fail));
@@ -6762,7 +6818,7 @@
       case 'changes': return computeChanges(args.since || state.lastSeenAtOpen);
       case 'sharePart': { const sc = liveSections().find((x) => x.id === args.section || x.name === args.section); if (!sc) throw new Error(`no part ${args.section}`); return sharePart(sc, { copy: false }); }
       case 'comp': { const f = findClip(args.clipId); if (!f) throw new Error(`no take ${args.clipId}`); const r = compTake(f.t, f.c, Number(args.from), Number(args.to), args.what || 'the range'); return { changed: r ? r.changed : 0 }; }
-      case 'quest': { await loadQuest(); if (!quest.board) throw new Error('no shared folder'); const b = quest.board; return { name: b.name, level: b.level, xp: b.xp, max: b.max, boss: b.boss, next: b.next, practice: b.practice, todos: b.todos, members: b.members.map((m) => ({ name: m.name, role: m.role, xp: m.xp, level: m.level, achievements: m.achievements, takes: m.takes, midi: m.midi, notes: m.notes, replies: m.replies, chords: m.chords, lyrics: m.lyrics, sections: m.sections, needsDone: m.needsDone, perSong: m.perSong })), songs: b.songs.map((s) => ({ qid: s.qid, name: s.name, folder: s.folder, xp: s.xp, max: s.max, goals: s.goals, parts: s.prog.map((p) => ({ member: p.member, pct: p.pct, written: p.written, takes: p.takes, midi: p.midi, xp: p.xp, manual: p.manual })), tasks: s.tasks, milestones: s.milestones })) }; }
+      case 'quest': { await loadQuest(); if (!quest.board) throw new Error('no shared folder'); const b = quest.board; return { name: b.name, level: b.level, xp: b.xp, max: b.max, boss: b.boss, next: b.next, practice: b.practice, todos: b.todos, members: b.members.map((m) => ({ name: m.name, role: m.role, character: m.character || null, xp: m.xp, level: m.level, achievements: m.achievements, takes: m.takes, midi: m.midi, notes: m.notes, replies: m.replies, chords: m.chords, lyrics: m.lyrics, sections: m.sections, needsDone: m.needsDone, perSong: m.perSong })), songs: b.songs.map((s) => ({ qid: s.qid, name: s.name, folder: s.folder, xp: s.xp, max: s.max, goals: s.goals, parts: s.prog.map((p) => ({ member: p.member, pct: p.pct, written: p.written, takes: p.takes, midi: p.midi, xp: p.xp, manual: p.manual })), tasks: s.tasks, milestones: s.milestones })) }; }
       case 'questSet': {
         await loadQuest(); if (!quest.board) throw new Error('no shared folder'); const b = quest.board; const patch = {};
         const songOf = (x) => { const s = b.songs.find((y) => y.folder === x || y.name === x || y.qid === x); if (!s) throw new Error(`no song "${x}" on the board`); return s; };
