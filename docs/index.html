@@ -4,101 +4,221 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cobander — noodle together</title>
-<meta name="description" content="A band sketchpad: record, write, mix and practice with your band through the cloud folder you already share. No server, no accounts, no subscription.">
+<meta name="description" content="Cobander is a sketchpad for your whole band. Record, write, mix and practice together through the cloud folder you already share. No server, no accounts, no subscription.">
+<meta property="og:title" content="Cobander — noodle together">
+<meta property="og:description" content="A sketchpad for your whole band. No server, no accounts, no subscription.">
+<meta property="og:image" content="img/band.jpg">
 <link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
-  :root { --bg: #15171d; --bg2: #1f222b; --bg3: #2a2e39; --fg: #e8e9ee; --muted: #9aa0ad; --line: #343946; --accent: #5b8def; --noodle: #f2b534; --ok: #4caf7d; }
-  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #faf8f3; --bg2: #fff; --bg3: #f0ece2; --fg: #1d1d1d; --muted: #666; --line: #e3ded2; } }
+  :root {
+    --ink: #15171d; --ink-2: #1e2129; --steel: #9aa0ad; --line: #2f3340; --paper: #f3ecdd; --paper-2: #e9dfc8; --noodle: #f2b534; --chili: #d8392b; --white: #f6f6f8;
+    --display: "Big Shoulders Display", Impact, "Arial Narrow", sans-serif; --body: "Atkinson Hyperlegible", system-ui, sans-serif;
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  .wrap { max-width: 920px; margin: 0 auto; padding: 32px 16px 64px; }
-  header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-  header img { width: 96px; height: 96px; border-radius: 22px; }
-  h1 { margin: 0; font-size: 40px; letter-spacing: -0.5px; }
-  h1 small { display: block; font-size: 18px; font-weight: 400; color: var(--muted); }
-  h2 { font-size: 22px; margin: 40px 0 10px; }
-  p { margin: 8px 0; } .muted { color: var(--muted); }
-  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 16px 0; }
-  .card { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  .card h3 { margin: 0 0 6px; font-size: 17px; }
-  .tier { text-align: center; cursor: pointer; transition: transform .1s, border-color .1s; }
-  .tier:hover, .tier.pick { border-color: var(--noodle); transform: translateY(-2px); }
-  .tier .price { font-size: 34px; font-weight: 700; color: var(--noodle); }
-  .tier .name { font-weight: 600; } .tier .why { color: var(--muted); font-size: 14px; }
-  .btn { display: inline-block; background: var(--noodle); color: #1d1d1d; font-weight: 700; padding: 12px 22px; border-radius: 10px; text-decoration: none; border: 0; font-size: 16px; cursor: pointer; }
-  .btn.quiet { background: var(--bg3); color: var(--fg); font-weight: 500; }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 14px 0; }
-  ul { padding-left: 20px; } li { margin: 4px 0; }
-  code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-size: 14px; }
-  pre { background: var(--bg3); padding: 12px; border-radius: 8px; overflow: auto; font-size: 14px; }
-  footer { margin-top: 48px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 16px; }
-  a { color: var(--accent); }
-  .shot { width: 100%; border-radius: 12px; border: 1px solid var(--line); margin: 12px 0; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition: none !important; } }
+  body { margin: 0; background: var(--ink); color: var(--white); font: 17px/1.55 var(--body); -webkit-font-smoothing: antialiased; }
+  a { color: var(--noodle); } a:focus-visible, button:focus-visible { outline: 3px solid var(--noodle); outline-offset: 3px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  h1, h2, h3 { font-family: var(--display); font-weight: 900; line-height: .95; margin: 0; letter-spacing: .5px; }
+  h2 { font-size: clamp(40px, 6vw, 64px); margin-bottom: 18px; }
+  p { margin: 0 0 14px; max-width: 62ch; }
+  .muted { color: var(--steel); }
+
+  /* nav */
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+  .mark { display: inline-grid; grid-template-columns: auto auto; column-gap: 8px; align-items: center; text-decoration: none; color: var(--white); }
+  .mark b { font-family: var(--display); font-weight: 900; font-size: 26px; letter-spacing: 2px; }
+  .mark .seal { width: 26px; height: 26px; border: 2px solid var(--chili); border-radius: 5px; transform: rotate(-6deg); display: inline-flex; align-items: center; justify-content: center; }
+  .mark .seal .gi { width: 17px; height: 17px; }
+  nav .links { display: flex; gap: 22px; font-size: 15px; } nav .links a { color: var(--steel); text-decoration: none; } nav .links a:hover { color: var(--white); }
+
+  /* hero: the band, drawn by a human, cheering on the hit line */
+  .hero { padding: 48px 0 24px; position: relative; overflow: hidden; }
+  .hero h1 { font-size: clamp(84px, 16vw, 200px); letter-spacing: 3px; color: var(--white); line-height: .85; }
+  .hero h1 small { display: block; font-family: var(--display); font-weight: 700; font-size: clamp(22px, 3.2vw, 36px); letter-spacing: 6px; color: var(--noodle); margin-top: 10px; }
+  .hero .lede { font-size: clamp(19px, 2.2vw, 23px); max-width: 38ch; margin: 26px 0 22px; }
+  .cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+  .btn { display: inline-block; font: 700 17px/1 var(--body); padding: 15px 22px; border-radius: 8px; text-decoration: none; border: 2px solid transparent; cursor: pointer; }
+  .btn.hot { background: var(--noodle); color: #1d1d1d; } .btn.hot:hover { background: #ffc94d; }
+  .btn.cool { background: transparent; color: var(--white); border-color: var(--line); } .btn.cool:hover { border-color: var(--steel); }
+  .stage { position: relative; height: 190px; margin-top: 18px; }
+  .stage .line { position: absolute; left: 0; right: 0; bottom: 36px; height: 3px; background: var(--noodle); box-shadow: 0 0 14px rgba(242,181,52,.6); }
+  .stage .band { position: absolute; left: 0; right: 0; bottom: 30px; display: flex; justify-content: center; gap: clamp(6px, 3vw, 40px); align-items: flex-end; }
+  .stage .m { position: relative; width: 96px; height: 128px; }
+  .stage .m img { width: 96px; height: 128px; display: block; }
+  .stage .m .ins { position: absolute; right: -4px; bottom: 8px; width: 34px; height: 34px; border-radius: 50%; background: var(--ink-2); border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; }
+  .stage .m .ins .gi { width: 20px; height: 20px; }
+  .stage .m:nth-child(2) { animation: bounce 1.6s .2s ease-in-out infinite; } .stage .m:nth-child(4) { animation: bounce 1.6s .6s ease-in-out infinite; }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .stage .say { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; color: var(--steel); font-size: 14px; }
+  .gi { display: inline-block; width: 1em; height: 1em; vertical-align: -.15em; }
+  .om { display: inline-block; width: 1.2em; height: 1.2em; background: center / contain no-repeat; vertical-align: -.25em; }
+
+  /* the pitch */
+  .pitch { padding: 40px 0 10px; }
+  .pitch p { font-size: 19px; }
+  .shots { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; margin: 26px 0 10px; }
+  .shots figure { margin: 0; }
+  .shots img { width: 100%; height: auto; display: block; border-radius: 10px; border: 1px solid var(--line); }
+  .shots figcaption { color: var(--steel); font-size: 14px; margin-top: 8px; }
+  .shots .tall { display: grid; gap: 14px; }
+
+  /* what it does */
+  .does { padding: 54px 0 30px; }
+  .does ul { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 10px 28px; }
+  .does li { padding: 14px 0; border-top: 1px solid var(--line); }
+  .does li b { display: block; font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: 1px; margin-bottom: 4px; }
+  .does li b .om { margin-right: 6px; }
+  .does li span { color: var(--steel); font-size: 16px; }
+
+  /* the menu: pricing as a takeout menu */
+  .menu { padding: 54px 0; }
+  .carton { background: var(--paper); color: #241f16; border-radius: 14px; padding: 34px 34px 28px; max-width: 760px; position: relative; box-shadow: 0 30px 60px rgba(0,0,0,.45); }
+  .carton h2 { color: #241f16; }
+  .carton .sub { color: #5e564a; margin-bottom: 22px; }
+  .dish { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 12px; padding: 12px 0; border: 0; background: none; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; border-radius: 6px; }
+  .dish:hover, .dish.pick { background: var(--paper-2); padding-left: 10px; padding-right: 10px; }
+  .dish .name { font-family: var(--display); font-weight: 700; font-size: 28px; letter-spacing: 1px; white-space: nowrap; }
+  .dish .name small { display: block; font: 400 15px/1.3 var(--body); color: #5e564a; letter-spacing: 0; white-space: normal; margin-top: 2px; }
+  .dish .dots { flex: 1; border-bottom: 2px dotted #8e8371; transform: translateY(-6px); grid-column: 1; }
+  .dish .price { font-family: var(--display); font-weight: 900; font-size: 34px; color: var(--chili); }
+  .dish .row { display: flex; align-items: baseline; gap: 8px; }
+  .carton .go { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 22px; }
+  .carton .btn.hot { background: var(--chili); color: #fff; } .carton .btn.hot:hover { background: #ef4a3b; }
+  .carton .fine { color: #5e564a; font-size: 14px; }
+  .stamp { position: absolute; top: -18px; right: 24px; transform: rotate(6deg); border: 3px solid var(--chili); color: var(--chili); border-radius: 8px; padding: 6px 12px; font-family: var(--display); font-weight: 900; font-size: 20px; letter-spacing: 2px; line-height: 1.05; text-align: center; background: rgba(243,236,221,.9); }
+  .free { margin-top: 26px; max-width: 760px; }
+  .free pre { background: var(--ink-2); border: 1px solid var(--line); padding: 14px 16px; border-radius: 8px; overflow: auto; font-size: 14px; }
+
+  /* setup + faq */
+  .setup { padding: 20px 0 40px; }
+  .setup ol { padding-left: 22px; max-width: 62ch; } .setup li { margin: 6px 0; }
+  .faq { padding: 10px 0 50px; }
+  .faq details { border-top: 1px solid var(--line); padding: 14px 0; max-width: 72ch; }
+  .faq summary { cursor: pointer; font-weight: 700; font-size: 18px; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+  .faq summary::after { content: '+'; color: var(--noodle); font-family: var(--display); font-size: 26px; line-height: 1; } .faq details[open] summary::after { content: '–'; }
+  .faq details p { margin-top: 10px; color: #cfd3dc; }
+
+  footer { border-top: 1px solid var(--line); padding: 26px 0 50px; color: var(--steel); font-size: 14px; }
+  footer p { max-width: none; }
+
+  @media (max-width: 760px) {
+    .shots { grid-template-columns: 1fr; }
+    .stage .m:nth-child(5), .stage .m:nth-child(6) { display: none; }
+    .carton { padding: 26px 18px 22px; } .stamp { right: 10px; font-size: 16px; }
+    .dish .name { font-size: 24px; } .dish .price { font-size: 28px; }
+    nav .links { display: none; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <img src="icon.png" alt="noodles in a colander">
-    <h1>Cobander <small>Noodle together. A sketchpad for your whole band.</small></h1>
+  <nav>
+    <a class="mark" href="#"><b>COBANDER</b><span class="seal"><img class="gi" src="icons/gi-delapouite-noodles.svg" alt=""></span></a>
+    <div class="links"><a href="#does">What it does</a><a href="#menu">Takeout</a><a href="#setup">Setup</a><a href="#faq">Questions</a><a class="repo-link" href="https://github.com/OWNER/cobander">Source</a></div>
+  </nav>
+
+  <header class="hero">
+    <h1>COBANDER<small>NOODLE TOGETHER</small></h1>
+    <p class="lede">A sketchpad for your whole band. Everyone records, writes, mixes and practices on their own computer; the song lives in the folder you already share.</p>
+    <div class="cta">
+      <a class="btn hot" href="#menu">Get Cobander</a>
+      <a class="btn cool" href="#does">See what it does</a>
+      <span class="muted">Windows &amp; Mac · no server · no accounts · no subscription</span>
+    </div>
+    <div class="stage" aria-hidden="true">
+      <div class="line"></div>
+      <div class="band">
+        <div class="m"><img src="sprites/madv/cheer0.png" alt=""><span class="ins"><img class="gi" src="icons/gi-lorc-guitar.svg" alt=""></span></div>
+        <div class="m"><img src="sprites/fper/cheer1.png" alt=""><span class="ins"><img class="gi" src="icons/gi-delapouite-microphone.svg" alt=""></span></div>
+        <div class="m"><img src="sprites/mper/show.png" alt=""><span class="ins"><img class="gi" src="icons/gi-delapouite-guitar-bass-head.svg" alt=""></span></div>
+        <div class="m"><img src="sprites/zombie/cheer0.png" alt=""><span class="ins"><img class="gi" src="icons/gi-delapouite-drum.svg" alt=""></span></div>
+        <div class="m"><img src="sprites/robot/idle.png" alt=""><span class="ins"><img class="gi" src="icons/gi-lorc-dragon-head.svg" alt=""></span></div>
+        <div class="m"><img src="sprites/fadv/jump.png" alt=""><span class="ins"><img class="gi" src="icons/gi-lorc-guitar.svg" alt=""></span></div>
+      </div>
+      <div class="say">Characters by Kenney. Yes, you pick yours. Yes, there's a zombie.</div>
+    </div>
   </header>
 
-  <p>Everyone in the band records, writes, mixes and practices on their own computer, and the song lives in the one
-  folder you already share — Google Drive, OneDrive, iCloud Drive or Dropbox. <b>No server, no accounts, no
-  subscription.</b> Whatever one of you noodles, the rest get in seconds.</p>
+  <section class="pitch">
+    <p>Somebody records a riff at 11 pm. By 11:01 it's on everyone else's screen, on its own track, in the right place in the song. The drummer adds a take at lunch. The singer pins the words to where she sings them. Nobody uploaded anything, nobody made an account, and nobody paid for a plan — the band's Google Drive (or OneDrive, iCloud, Dropbox) is the server.</p>
+    <p class="muted">It's for the band that has songs in a group chat and voice memos, not for mixing an album. Although it mixes pretty well.</p>
+    <div class="shots">
+      <figure><img src="img/mix.jpg" alt="The Mix workspace: timeline on top, a console of faders below, Track FX on the right" loading="lazy"><figcaption>Mix: a real console, with one-click fixes in plain words ("sit the vocal", "less mud", "more punch").</figcaption></figure>
+      <div class="tall">
+        <figure><img src="img/practice.jpg" alt="Practice: lyrics flying toward you in 3D over the song" loading="lazy"><figcaption>Practice: the words fly at you and hit the line when it's time to sing them.</figcaption></figure>
+        <figure><img src="img/band.jpg" alt="The Band page: levels, loose ends, the setlist, the band feed" loading="lazy"><figcaption>Band: levels, achievements, the setlist, the next show, the to-do list that isn't a song.</figcaption></figure>
+      </div>
+    </div>
+  </section>
 
-  <div class="grid">
-    <div class="card"><h3>✍️ Write</h3><p class="muted">Parts, chords, lyrics pinned where they're sung (speech-to-text on your computer), notes on the timeline, a parts bin, a noodle pad.</p></div>
-    <div class="card"><h3>⏺ Record</h3><p class="muted">Arm a track, hit R. Lossless takes, punch-in, comp the best bits, a tuner, a drum machine, MIDI guitar / bass / keys for sketching without a mic.</p></div>
-    <div class="card"><h3>🎚 Mix</h3><p class="muted">A real console. Auto mix, Auto master, tighten a sloppy take, pitch check on vocals, a timing report, stems and a DAW hand-off when a song outgrows it.</p></div>
-    <div class="card"><h3>🎙 Practice</h3><p class="muted">Big words and chords that follow the song, loop a part, slow it down, a note highway of what to play, Show mode with a pedal, your phone follows along.</p></div>
-    <div class="card"><h3>⚔ Band</h3><p class="muted">Levels and achievements, the setlist, a boss battle (the next show), loose ends, who's rehearsing right now.</p></div>
-    <div class="card"><h3>🤝 Together</h3><p class="muted">Song and track locks so two people can work at once, @mentions, a band feed, in-app updates — all through the shared folder.</p></div>
-  </div>
+  <section class="does" id="does">
+    <h2>What it does</h2>
+    <ul>
+      <li><b><i class="om" style="background-image:url(icons/om-270D.svg)"></i>Write</b><span>Parts (intro, verse, chorus…), a chord lane, lyrics pinned where they're sung — speech-to-text runs on your computer — notes on the timeline, a parts bin, your own noodle pad for riffs.</span></li>
+      <li><b><i class="om" style="background-image:url(icons/om-23FA.svg)"></i>Record</b><span>Arm a track, hit R. Lossless takes, punch in to fix one bar, keep several takes and comp the best bits, a tuner, a drum machine, MIDI guitar / bass / keys for sketching without a mic.</span></li>
+      <li><b><i class="om" style="background-image:url(icons/om-1F39A.svg)"></i>Mix</b><span>Faders, pan, sends, EQ, compression, Auto mix, Auto master to a normal loudness, tighten a sloppy take to the grid, pitch check on vocals, a timing report, stems and a hand-off to a real DAW when a song outgrows it.</span></li>
+      <li><b><i class="om" style="background-image:url(icons/om-1F399.svg)"></i>Practice</b><span>Big words and chords that follow the song, loop a part, slow it down without changing pitch, take your own part out, a note highway of what to play, Show mode with a pedal, your phone follows along.</span></li>
+      <li><b><i class="om" style="background-image:url(icons/om-2694.svg)"></i>Band</b><span>Levels and achievements for everyone (pick your character), the setlist, a boss battle for the next show, loose ends, who's rehearsing right now.</span></li>
+      <li><b><i class="om" style="background-image:url(icons/om-1F35C.svg)"></i>Together</b><span>Song and track locks so two people can work on the same song at once, @mentions, a band feed, one-click updates — all through the shared folder. Hover anything in the app for a plain-English tip; F1 opens a glossary.</span></li>
+    </ul>
+  </section>
 
-  <h2 id="takeout">🥡 Takeout — pay what you want, once, per band</h2>
-  <p>The ready-made installers for Windows and Mac, signed so your computer doesn't panic, with one-click updates
-  forever. Pick what the band can spare:</p>
-  <div class="grid">
-    <div class="card tier" data-amt="12"><div class="price">$12</div><div class="name">A round for the band</div><div class="why">the floor — four tallboys</div></div>
-    <div class="card tier pick" data-amt="25"><div class="price">$25</div><div class="name">A round and the jukebox</div><div class="why">what most bands pick</div></div>
-    <div class="card tier" data-amt="60"><div class="price">$60</div><div class="name">Roadie</div><div class="why">your band's name in the credits</div></div>
-  </div>
-  <div class="row">
-    <a class="btn" id="buy" href="https://ko-fi.com/jdeuel44" target="_blank" rel="noopener">Get Cobander — $25</a>
-    <span class="muted">Windows 10+ · macOS 13+ (Apple silicon and Intel)</span>
-  </div>
-  <p class="muted">Updates are included for good. Already have it and want to say thanks? <a href="https://ko-fi.com/jdeuel44">Ko-fi</a> or Venmo <b>@jdeuel44</b> — buy Jeff a PBR 🍺</p>
+  <section class="menu" id="menu">
+    <div class="carton">
+      <div class="stamp">NO SERVER<br>NO ACCOUNTS<br>NO SUBSCRIPTION</div>
+      <h2>Takeout</h2>
+      <p class="sub">The ready-made Windows and Mac installers, signed so your computer doesn't panic, with updates forever. Pay what the band can spare, once, per band.</p>
+      <button class="dish" data-amt="12"><span class="name">A round for the band<small>the floor — four tallboys</small></span><span class="row"><span class="price">$12</span></span></button>
+      <button class="dish pick" data-amt="25"><span class="name">A round and the jukebox<small>what most bands pick</small></span><span class="row"><span class="price">$25</span></span></button>
+      <button class="dish" data-amt="60"><span class="name">Roadie<small>your band's name in the credits</small></span><span class="row"><span class="price">$60</span></span></button>
+      <div class="go">
+        <a class="btn hot" id="buy" href="https://ko-fi.com/jdeuel44" target="_blank" rel="noopener">Get Cobander for $25</a>
+        <span class="fine">Windows 10+ · macOS 13+ · Apple silicon and Intel</span>
+      </div>
+    </div>
+    <div class="free">
+      <h3 style="font-size:32px;margin-bottom:8px">Or build it yourself, free</h3>
+      <p class="muted">The whole thing is open source (MIT) and nothing is held back. If you're fine with a terminal, this is the same app:</p>
+      <pre>git clone https://github.com/<span class="repo">OWNER/cobander</span>
+cd cobander &amp;&amp; npm install &amp;&amp; npm start</pre>
+      <p class="muted">Builds you make yourself aren't code-signed, so Windows asks "Run anyway" and a Mac wants right-click → Open the first time. That, and the time, is what Takeout pays for.</p>
+    </div>
+  </section>
 
-  <h2>Free — build it yourself</h2>
-  <p>The whole thing is open source (MIT) and nothing is held back. If you're comfortable with a terminal:</p>
-  <pre>git clone https://github.com/<span class="repo">OWNER/cobander</span>
-cd cobander &amp;&amp; npm install &amp;&amp; npm start      # run it
-bash scripts/build.sh all                    # or build the installers</pre>
-  <p class="muted">Builds you make yourself aren't code-signed, so Windows SmartScreen asks "Run anyway" and a Mac wants right-click → Open the first time. That, and not having to do this, is what Takeout pays for.</p>
+  <section class="setup" id="setup">
+    <h2>Setup, in one breath</h2>
+    <ol>
+      <li>Open Cobander and type your name.</li>
+      <li>Point it at a folder inside the cloud folder your band shares (Google Drive, OneDrive, iCloud Drive or Dropbox). Make a new one if you like: <code>Band stuff / Cobander</code>.</li>
+      <li>Every bandmate does the same, same folder. That's it — songs, takes, chords and words show up for everyone within seconds.</li>
+    </ol>
+  </section>
 
-  <h2>Setup, in one breath</h2>
-  <ul>
-    <li>Open Cobander, type your name.</li>
-    <li>Point it at a folder inside the cloud folder your band shares (make one: <code>Band stuff/Cobander</code>).</li>
-    <li>Every bandmate does the same, same folder. Done — songs, takes and chords show up for everyone.</li>
-  </ul>
+  <section class="faq" id="faq">
+    <h2>Questions</h2>
+    <details><summary>Do we all need to pay?</summary><p>No. One Takeout per band; send the installer to your bandmates. Updates come to everyone through the shared folder.</p></details>
+    <details><summary>What if we don't share a cloud folder?</summary><p>Make one — a free Google Drive or OneDrive account is enough. Cobander needs a folder every bandmate's computer syncs; that's the whole system. There's no Cobander server, which is why there's no subscription.</p></details>
+    <details><summary>Is it a real DAW?</summary><p>It records real takes, mixes with real EQ and compression, bounces stems, and hands off to Logic / REAPER / Ableton with markers when a song is ready for the studio. It is built for getting ideas down fast with a band, not for engineering a record.</p></details>
+    <details><summary>Does my stuff leave my computer?</summary><p>Only to your band's shared folder. No telemetry, no accounts, no uploads. Speech-to-text, chord detection and pitch check all run locally.</p></details>
+    <details><summary>Mac or Windows?</summary><p>Both. One person on a Mac and three on Windows works fine — it's all files in a folder.</p></details>
+    <details><summary>Already have it and want to say thanks?</summary><p><a href="https://ko-fi.com/jdeuel44">Ko-fi</a> or Venmo <b>@jdeuel44</b>. Buy Jeff a PBR.</p></details>
+  </section>
 
   <footer>
-    Made by Jeff Deuel for a band in a basement. <a class="repo-link" href="https://github.com/OWNER/cobander">Source on GitHub</a> ·
-    <a class="repo-link" href="https://github.com/OWNER/cobander/issues">Report a bug</a> · MIT license.
+    <p>Made by Jeff Deuel for a band in a basement. MIT license · <a class="repo-link" href="https://github.com/OWNER/cobander">source on GitHub</a> · <a class="repo-link" href="https://github.com/OWNER/cobander/issues">report a bug</a></p>
+    <p>Characters by <a href="https://kenney.nl">Kenney</a> (CC0). Icons by <a href="https://openmoji.org">OpenMoji</a> (CC BY-SA 4.0) and <a href="https://game-icons.net">game-icons.net</a> (CC BY 3.0: Lorc, Delapouite). Speech-to-text by whisper.cpp.</p>
   </footer>
 </div>
 <script>
-  // tier buttons set the suggested amount on the buy link (the storefront takes the final amount)
-  const BUY = { base: 'https://ko-fi.com/jdeuel44', amounts: true };
-  const buy = document.getElementById('buy');
-  for (const t of document.querySelectorAll('.tier')) t.addEventListener('click', () => {
-    for (const x of document.querySelectorAll('.tier')) x.classList.toggle('pick', x === t);
-    buy.textContent = `Get Cobander — $${t.dataset.amt}`; buy.href = BUY.base;
-  });
-  // repo links are filled from the page's own location on GitHub Pages (user.github.io/cobander → user/cobander)
-  const m = /^([^.]+)\.github\.io$/.exec(location.hostname); if (m) { const repo = `${m[1]}/cobander`; for (const r of document.querySelectorAll('.repo')) r.textContent = repo; for (const a of document.querySelectorAll('.repo-link')) a.href = a.href.replace('OWNER/cobander', repo); }
+  const buy = document.getElementById('buy'); const BUY = 'https://ko-fi.com/jdeuel44';
+  for (const d of document.querySelectorAll('.dish')) d.addEventListener('click', () => { for (const x of document.querySelectorAll('.dish')) x.classList.toggle('pick', x === d); buy.textContent = `Get Cobander for $${d.dataset.amt}`; buy.href = BUY; });
+  const m = /^([^.]+)\.github\.io$/.exec(location.hostname); const repo = m ? `${m[1]}/cobander` : null;
+  if (repo) { for (const r of document.querySelectorAll('.repo')) r.textContent = repo; for (const a of document.querySelectorAll('.repo-link')) a.href = a.href.replace('OWNER/cobander', repo); }
 </script>
 </body>
 </html>
