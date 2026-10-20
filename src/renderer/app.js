@@ -339,10 +339,10 @@
   const qKey = (s, rest) => `song:${s.qid}:${rest}`;
   const bossDays = (boss) => { if (!boss || !boss.date) return null; const d = Math.round((new Date(`${boss.date}T12:00:00`) - new Date()) / 86400000); return Number.isFinite(d) ? d : null; };
   function bossText(b) {
-    const boss = b.boss; if (!boss) return '⚔ No boss battle set — click to aim at the next practice or show';
+    const boss = b.boss; if (!boss) return '🐉🍜 No boss battle set — click to aim at the next practice or show';
     const d = bossDays(boss); const when = d == null ? '' : d > 1 ? ` · in ${d} days` : d === 1 ? ' · tomorrow' : d === 0 ? ' · TODAY' : ` · ${-d} day${d === -1 ? '' : 's'} ago`;
     const targets = (boss.songs || []).map((id) => b.songs.find((s) => s.qid === id)).filter(Boolean); const ready = targets.filter((s) => s.goals.find((g) => g.id === 'show').done).length;
-    return `⚔ ${boss.title}${when}${targets.length ? ` · ${ready}/${targets.length} show-ready` : ''}`;
+    return `🐉🍜 ${boss.title}${when}${targets.length ? ` · ${ready}/${targets.length} show-ready` : ''}`;
   }
   async function editBoss() {
     const b = quest.board; const cur = b.boss || {};
@@ -5223,7 +5223,7 @@
         chips.append(c);
       }
       mx.append(chips);
-      const qf = el('button', 'quickfix', '✨ fix'); qf.title = 'Quick fixes: common mixing moves in plain words (sit the vocal, less mud, more punch, brighter…). Each one is undoable.'; qf.addEventListener('click', (e) => { e.stopPropagation(); state.selectedTrack = t.id; menuAt(qf, quickFixMenu(t)); }); mx.append(qf);
+      const qf = el('button', 'quickfix', '🧂 fix'); qf.title = 'Quick fixes: common mixing moves in plain words (sit the vocal, less mud, more punch, brighter…). Each one is undoable.'; qf.addEventListener('click', (e) => { e.stopPropagation(); state.selectedTrack = t.id; menuAt(qf, quickFixMenu(t)); }); mx.append(qf);
       s.append(mx);
     }
     if (t) { const b = el('div', 'btns'); const mu = el('button', 'mute' + (t.mute ? ' active' : ''), 'M'); mu.addEventListener('click', () => { change(() => engine.updateTrack(t.id, { mute: !t.mute }), { undoable: false }); renderAll(); }); const so = el('button', 'solo' + (t.solo ? ' active' : ''), 'S'); so.addEventListener('click', () => { change(() => engine.updateTrack(t.id, { solo: !t.solo }), { undoable: false }); renderAll(); }); b.append(mu, so); s.appendChild(b); s.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') { state.selectedTrack = t.id; renderTracks(); renderFx(); } }); }
@@ -5686,8 +5686,8 @@
   $('#btn-share').addEventListener('click', () => {
     const t = engine.playhead; const sc = state.song ? CB.sectionAt(state.song, t) : null;
     menuAt($('#btn-share'), [{ title: 'Share' },
-      { label: 'Bounce the mix (WAV in bounces/)', action: () => bounce('mix').catch(fail) },
-      { label: 'Bounce stems', action: () => bounce('stems').catch(fail) },
+      { label: '🥡 Bounce the mix (WAV in bounces/)', action: () => bounce('mix').catch(fail) },
+      { label: '🍜 Bounce stems (one file per instrument)', action: () => bounce('stems').catch(fail) },
       { label: sc ? `Share ${sc.name} — mix + chart` : 'Share a part — mix + chart', hint: 'for the group chat', sub: liveSections().map((x) => ({ label: x.name, action: () => sharePart(x).catch(fail) })), disabled: !liveSections().length },
       { label: 'Copy the chord chart', action: () => navigator.clipboard.writeText(chartText(0)).then(() => status('Chart copied.')).catch(fail) },
       'sep',
@@ -5700,7 +5700,7 @@
     menuAt($('#btn-more'), [{ title: state.song ? state.song.name : 'Song' },
       { label: 'Show the song folder', action: () => $('#btn-open-folder').click() },
       { label: nDel ? `Deleted takes (${nDel}) — restore…` : 'Deleted takes: none', action: () => recoverTakes().catch(fail), disabled: !nDel || state.readOnly },
-      { label: 'Lighten the folder… (FLAC + clear unused audio)', action: () => compactDrive().catch(fail) },
+      { label: '🫗 Lighten the folder… (FLAC + clear unused audio)', action: () => compactDrive().catch(fail) },
       { label: `Clear parked takes…${state.unreferenced && state.unreferenced.length ? ` (${state.unreferenced.length}, ${mb(state.unreferenced.reduce((n, u) => n + (u.size || 0), 0))})` : ''}`, hint: 'audio nothing in this song uses', action: () => clearParked().catch(fail), disabled: state.readOnly || !(state.unreferenced && state.unreferenced.length) },
       'sep',
       { label: 'What the words mean (glossary)', hint: 'F1', action: showGlossary }, { label: 'Keyboard shortcuts', hint: '?', action: showShortcuts }]);

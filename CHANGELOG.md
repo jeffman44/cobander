@@ -1,5 +1,9 @@
 # Cobander changelog
 
+## 0.15.1
+- Kitchen icons next to the names (names unchanged): 🍜 Songs, 📋 Setlist, 🐉🍜 boss battle, 🥡 Parts, 🥢 Ideas, 🍲 Versions, 🍳 Band feed, 🍽️ Show, 🧂 Auto mix / fix, 🍽️ Auto master, 🥡 Bounce, 🫗 Lighten the folder.
+- 🍺 Ko-fi joins Venmo in the tip jar (⚙ and the Band page).
+
 ## 0.15.0
 - Hover anything for a plain-English tip (no studio jargon). F1 (or the ? button) turns on help mode — little ? marks on everything, tips show instantly — and F1 again opens a glossary of the words that trip people up.
 - BandPad is now **Cobander — noodle together.** New name, new icon (noodles in a colander), same app, same band folder, same settings. Windows: after this update open Cobander from the Start menu once (the BandPad shortcut goes away). Mac: the app keeps working from wherever it is.

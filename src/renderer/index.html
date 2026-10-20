@@ -56,8 +56,8 @@
         <span id="midi-led" class="chip muted" title="MIDI activity: lights up when a MIDI keyboard sends notes">midi</span>
       </span>
       <span class="grp only-mix" title="mixing">
-        <button id="btn-automix" class="chip" title="Auto mix: sets each track's volume, left/right position, tone (EQ), evens out loud and quiet moments (compression) and adds room sound (reverb) from what's recorded — a rough mix to start from. Undo or A/B to compare.">✨ Auto mix</button>
-        <button id="btn-automaster" class="chip" title="Auto master: makes the whole song as loud as a streaming release without distorting (a limiter catches the peaks)">✨ Auto master</button>
+        <button id="btn-automix" class="chip" title="Auto mix: sets each track's volume, left/right position, tone (EQ), evens out loud and quiet moments (compression) and adds room sound (reverb) from what's recorded — a rough mix to start from. Undo or A/B to compare.">🧂 Auto mix</button>
+        <button id="btn-automaster" class="chip" title="Auto master: makes the whole song as loud as a streaming release without distorting (a limiter catches the peaks)">🍽️ Auto master</button>
         <button id="btn-mixab" class="chip" title="A/B (B): flip between how the mix sounded before and after Auto mix / Auto master" disabled>A/B</button>
         <span id="mix-ab-state" class="muted small"></span>
       </span>
@@ -67,13 +67,13 @@
   <div id="body">
     <aside id="sidebar">
       <div class="side-head">
-        <span>Songs</span>
+        <span>🍜 Songs</span>
         <span><button id="btn-noodle" title="Noodle pad: your own scratch song to record random riffs and save the good ones to the Parts bin">🎸</button> <button id="btn-new-song" title="New song: start a fresh song from a style template">+</button></span>
       </div>
       <div id="folder-line" class="muted small"></div>
       <select id="song-stage-filter" title="Show only songs at this stage (idea, writing, demo, done)"><option value="">all songs</option><option value="idea">💡 ideas</option><option value="writing">✍️ writing</option><option value="demo">🎙 demos</option><option value="done">✅ done</option><option value="none">no stage yet</option></select>
       <ul id="song-list"></ul>
-      <div id="band-feed-head" class="side-head small" title="Everything the band did, across every song — live · click to minimize / expand"><span><span id="band-feed-caret">▾</span> Band feed <span id="band-feed-new" class="bf-new" hidden></span></span><span id="band-feed-live" class="muted">live</span></div>
+      <div id="band-feed-head" class="side-head small" title="Everything the band did, across every song — live · click to minimize / expand"><span><span id="band-feed-caret">▾</span> 🍳 Band feed <span id="band-feed-new" class="bf-new" hidden></span></span><span id="band-feed-live" class="muted">live</span></div>
       <ul id="band-feed" class="small"></ul>
     </aside>
     <div class="vsplit" data-target="#sidebar" data-key="bp.sideW" data-min="160" data-max="520" data-side="left" title="drag to resize · double-click to reset"></div>
@@ -92,9 +92,9 @@
                 <div id="qb-members"></div>
                 <div class="tab-tools small"><b id="qb-song-title">This song</b></div>
                 <div id="qb-song"></div>
-                <div class="tab-tools small"><b>Loose ends</b><span class="muted">band to-dos that aren't a song — book the gig, fix the PA, buy PBR (@Name assigns)</span></div>
+                <div class="tab-tools small"><b>🧶 Loose ends</b><span class="muted">band to-dos that aren't a song — book the gig, fix the PA, buy PBR (@Name assigns)</span></div>
                 <div id="qb-todos" class="qb-tasks"></div>
-                <div class="tab-tools small"><b>Setlist</b><button id="qb-chart-all" title="Open each song in turn, listen to its guitar / keys / bass takes and draft the chords it doesn't have yet (chords anyone typed are never touched). Songs someone else has open are skipped.">🎼 Chart every song</button><input id="qb-new" title="Type a song that isn't in Cobander yet (a cover) and press + to add it to the setlist" placeholder="add a song not in Cobander (a cover)…"><button id="qb-add" title="Add it to the setlist">+</button></div>
+                <div class="tab-tools small"><b>📋 Setlist</b><button id="qb-chart-all" title="Open each song in turn, listen to its guitar / keys / bass takes and draft the chords it doesn't have yet (chords anyone typed are never touched). Songs someone else has open are skipped.">🎼 Chart every song</button><input id="qb-new" title="Type a song that isn't in Cobander yet (a cover) and press + to add it to the setlist" placeholder="add a song not in Cobander (a cover)…"><button id="qb-add" title="Add it to the setlist">+</button></div>
                 <ul id="qb-setlist" class="small"></ul>
                 <div id="qb-next" class="muted small qb-next" title="click to edit"></div>
               </div>
@@ -104,7 +104,7 @@
           <ul id="bp-live" class="small"></ul>
           <div class="panel-title">Practice this week</div>
           <ul id="bp-practice" class="small"></ul>
-          <div class="panel-title">Band feed</div>
+          <div class="panel-title">🍳 Band feed</div>
           <ul id="bp-feed" class="small"></ul>
           <div id="bp-pbr" class="small muted">Cobander is free. If it's earning its keep, <button type="button" class="link-btn pbr" data-link="venmo" title="Venmo @jdeuel44">🍺 buy Jeff a PBR</button><button type="button" class="link-btn pbr" data-link="kofi" hidden>or a Ko-fi</button></div>
         </div>
@@ -155,10 +155,10 @@
               <button data-tab="chart" data-ws="write" title="Chords: the chord chart, plus chords Cobander hears in the recordings">Chords</button>
               <button data-tab="notes" data-ws="write record" class="active" title="Notes: comments pinned to the timeline, and scratch notes for this song">Notes<span class="tab-badge" id="tb-notes"></span></button>
               <button data-tab="needs" data-ws="write record" title="Needs: what this song is still missing (needs bass, needs a harmony…)">Needs<span class="tab-badge" id="tb-needs"></span></button>
-              <button data-tab="ideas" data-ws="write" title="Ideas: quick sketches and voice memos for this song, kept off the timeline">Ideas<span class="tab-badge" id="tb-ideas"></span></button>
-              <button data-tab="parts" data-ws="write" title="Parts: sections and riffs saved to reuse — in this song or any other">Parts</button>
+              <button data-tab="ideas" data-ws="write" title="Ideas: quick sketches and voice memos for this song, kept off the timeline">🥢 Ideas<span class="tab-badge" id="tb-ideas"></span></button>
+              <button data-tab="parts" data-ws="write" title="Parts: sections and riffs saved to reuse — in this song or any other">🥡 Parts</button>
               <button data-tab="feed" data-ws="write" title="History: every save of this song — click a row to roll back to it">History</button>
-              <button data-tab="versions" data-ws="write" title="Versions: snapshots of the song you tagged (compare them A/B), and bounces (the audio files you shared)">Versions</button>
+              <button data-tab="versions" data-ws="write" title="Versions: snapshots of the song you tagged (compare them A/B), and bounces (the audio files you shared)">🍲 Versions</button>
             </div>
             <div class="side-tab" data-tab="takes" hidden>
               <div class="tab-tools"><b id="takes-track" class="small"></b><span class="spacer"></span><button id="btn-recover" hidden class="small" title="Deleted takes: bring back a take that was deleted (or lost when two people saved at once) — the audio is still in the song folder">Deleted takes</button></div>
@@ -445,7 +445,7 @@
     <span class="k-sp"></span>
     <span id="k-setnav" class="k-group" hidden><button id="k-prevsong" title="Previous song in the setlist (Shift+↑)">⏮ song</button><button id="k-nextsong" title="Next song in the setlist (Shift+↓)">song ⏭</button><label class="chip" title="Pause between songs in the setlist — time to swap guitars or catch your breath"><select id="k-gap"><option value="0">no gap</option><option value="3">3 s gap</option><option value="5" selected>5 s gap</option><option value="10">10 s gap</option><option value="20">20 s gap</option></select></label></span>
     <span id="k-showbar" class="k-group" hidden><label class="chip" title="Show mode: what the band hears from Cobander on stage — just the click, or the backing tracks too"><select id="k-backing"><option value="click">click only</option><option value="backing">click + backing tracks</option></select></label><button id="k-pedal" class="chip" title="Teach Cobander your foot pedal: next song, previous song, start / stop (keyboard pedals and MIDI pedals both work)">🦶 pedal…</button></span>
-    <button id="k-show" title="Show mode: the setlist locked in order, big words and chords, next / previous song by pedal, nothing to edit by accident">🎤 Show</button>
+    <button id="k-show" title="Show mode: the setlist locked in order, big words and chords, next / previous song by pedal, nothing to edit by accident">🍽️ Show</button>
     <button id="k-phone" title="Follow along on your phone (same Wi-Fi)">📱</button>
     <button id="k-set" title="Rehearse the setlist: every song back to back">▶▶ setlist</button>
     <button id="k-close" title="Back (Esc)">✕</button>
