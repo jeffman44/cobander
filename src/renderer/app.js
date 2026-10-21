@@ -1100,7 +1100,7 @@
     state.songs = state.songs.map((s) => (s.folder === state.folder ? { ...s, lock: null, lockMine: false, lockSameMachine: false } : s));
     state.pendingTakes.clear();
     state.folder = null; state.song = null; state.lock = null; state.readOnly = false; state.dirty = false; state.pendingExternal = null; state.lastSaveError = null; state.backup = null;
-    state.undo = []; state.redo = []; state.snapshots = []; state.unreferenced = []; state.pendingActivity = []; presenceSent = ''; ideaBufs.clear();
+    state.undo = []; state.redo = []; state.snapshots = []; state.unreferenced = []; state.pendingActivity = []; state.earsOnly = {}; presenceSent = ''; ideaBufs.clear();
     engine.buffers.clear(); engine.loadSong({ tracks: [] }); engine.playhead = 0; stopPreview();
     $('#bpm').value = engine.bpm; syncTsSelect(); $('#loop-on').checked = false; loopBarsFromEngine(); positionPlayhead();
     $('#song').hidden = true; $('#no-song').hidden = state.ws === 'band';
@@ -1236,8 +1236,19 @@
 
   function collectSong() {
     if (state.ab) return { ...JSON.parse(state.ab.current), ...collabFields(state.song) };   // engine holds the version being auditioned; the song is what it was
-    return { ...state.song, ...engine.toSongFields(), notes: $('#notes').value };
+    const f = engine.toSongFields();
+    // mute / solo on someone else's track is for your ears only: put the song's own values back before anything is saved
+    if (state.earsOnly && Object.keys(state.earsOnly).length && Array.isArray(f.tracks)) f.tracks = f.tracks.map((t) => { const o = state.earsOnly[t.id]; if (!o) return t; const st = ((state.base && state.base.tracks) || []).find((x) => x.id === t.id); const back = { ...t }; for (const k of Object.keys(o)) back[k] = st ? !!st[k] : false; return back; });   /* state.base = the song as last loaded/saved (state.song.tracks share objects with the engine) */
+    return { ...state.song, ...f, notes: $('#notes').value };
   }
+  // Mute / solo from anywhere (head, console strip, menu): a real edit on my track, ears-only on anyone else's.
+  function toggleMS(t, k) {
+    if (mineT(t.id)) change(() => engine.updateTrack(t.id, { [k]: !t[k] }), { undoable: false });
+    else { earsOnly(t.id, k); engine.updateTrack(t.id, { [k]: !t[k] }); status(`${k === 'mute' ? 'Muted' : 'Soloed'} just for you — it's not your track, so it isn't saved.`, 4000); }
+    renderAll();
+  }
+  // Remember what the song says for a track that isn't mine, the first time I touch its mute/solo locally.
+  function earsOnly(id, k) { state.earsOnly = state.earsOnly || {}; (state.earsOnly[id] = state.earsOnly[id] || {})[k] = true; }   // collectSong puts the song's own value back for that field
   const collabFields = (song) => Object.fromEntries(CB.COLLECTIONS.filter((k) => song && song[k] !== undefined).map((k) => [k, song[k]]));
   // "tracks & takes" from an older save, today's notes / lyrics / chords / needs. With linked sections the takes only make
   // sense with the sections + link groups they were laid out in (mirrors and rooms), so those come back with them.
@@ -1498,7 +1509,7 @@
   async function unlockTrack(id, { quiet = false } = {}) {
     if (!state.folder) return false; const t = engine.track(id); if (!t) return false;
     const r = await bp.tlock.claim(state.folder, id).catch((err) => ({ ok: false, err }));
-    if (r && r.ok) { state.tlocks[id] = { ...r.lock, idle: false }; if (!quiet) { renderAll(); status(`${t.name} is yours — it locks again if you leave it alone for 10 minutes.`, 5000); } return true; }
+    if (r && r.ok) { state.tlocks[id] = { ...r.lock, idle: false }; if (state.earsOnly && state.earsOnly[id]) { const st = ((state.base && state.base.tracks) || []).find((x) => x.id === id); const back = {}; for (const k of Object.keys(state.earsOnly[id])) back[k] = st ? !!st[k] : false; engine.updateTrack(id, back); delete state.earsOnly[id]; }   /* it's mine now: ears-only mute/solo ends, the song's own values come back, changes from here are real */ if (!quiet) { renderAll(); status(`${t.name} is yours — it locks again if you leave it alone for 10 minutes.`, 5000); } return true; }
     if (!quiet) status(r && r.lock ? `${r.lock.user} has ${t.name} unlocked right now.` : `Couldn't unlock ${t.name}.`, 6000);
     return false;
   }
@@ -1950,8 +1961,8 @@
           'sep', { label: 'Chords from this track (listen to the takes)', action: () => chordsFromTracks([t]).catch(fail), disabled: ro() },
           { label: 'Play-along highway (Practice → play along)', action: () => { setWorkspace('practice'); setTimeout(() => { const al = $('#k-along'); if (al) { al.value = bassTrack(t) ? 'bass' : 'chords'; al.dispatchEvent(new Event('change')); } }, 300); } }] },
         { label: '🔁 Transpose the whole song (re-tunes the recordings too)', sub: transposeItems(null), disabled: state.readOnly }] : []),
-      { label: t.mute ? 'Un-mute track' : 'Mute track', action: () => { change(() => engine.updateTrack(t.id, { mute: !t.mute }), { undoable: false }); renderAll(); }, disabled: ro() },
-      { label: t.solo ? 'Un-solo track' : 'Solo track', action: () => { change(() => engine.updateTrack(t.id, { solo: !t.solo }), { undoable: false }); renderAll(); }, disabled: ro() },
+      { label: t.mute ? 'Un-mute track' : 'Mute track', action: () => toggleMS(t, 'mute') },
+      { label: t.solo ? 'Un-solo track' : 'Solo track', action: () => toggleMS(t, 'solo') },
       'sep',
       { label: 'Rename…', action: async () => { const n = await promptName('Track name', t.name); if (n) { change(() => engine.updateTrack(t.id, { name: n }), { label: `rename track to ${n}` }); fixTrackTypes({ quiet: false }); renderAll(); } }, disabled: ro() },
       { label: 'Save as my track setup… (amp, FX, level — for new tracks)', action: () => saveTrackSetup(t).catch(fail) },
@@ -4217,20 +4228,27 @@
         const words = l.words && l.words.length ? l.words : [{ w: l.text || '', t: l.time, e: l.time + 2 }];
         const widths = words.map((w) => { meas.textContent = w.w; return meas.offsetWidth; }); const gap = 14; const total = widths.reduce((n, w) => n + w, 0) + gap * (words.length - 1);
         let x = -total / 2;
-        words.forEach((w, k) => { const n = el('div', 'k-cw'); n.textContent = w.w; const ch = (l.chords || []).filter((c) => c.wi === k); if (ch.length) { const c = el('span', 'k-chord', ch.map((x) => x.chord).join(' ')); n.prepend(c); } n.style.left = `calc(50% + ${x.toFixed(0)}px)`; n.dataset.t = String(w.t); n.dataset.e = String(w.e); n.dataset.line = String(i); crawl.nodes.set(`${i}:${k}`, n); plane.append(n); x += widths[k] + gap; });
+        words.forEach((w, k) => { const n = el('div', 'k-cw'); n.textContent = w.w; const ch = (l.chords || []).filter((c) => c.wi === k); if (ch.length) { const c = el('span', 'k-chord', ch.map((x) => x.chord).join(' ')); n.prepend(c); } n.dataset.x = String(x + widths[k] / 2); n.dataset.t = String(w.t); n.dataset.e = String(w.e); n.dataset.line = String(i); crawl.nodes.set(`${i}:${k}`, n); plane.append(n); x += widths[k] + gap; });
       });
       meas.remove();
     }
-    const H = plane.clientHeight || 600; const px = H / crawl.lookahead;
+    // Screen-space pseudo-3D: a word's distance from the line is LINEAR in time (constant approach speed, so the eye can
+    // predict the landing), and it shrinks + converges to the centre with distance for the depth. A real tilted plane
+    // made words crawl far away and rush the last metre, which read as bad timing.
+    const W = plane.clientWidth || 800, H = plane.clientHeight || 600; const lineY = H * 0.84, farY = H * 0.08, cx = W / 2;
     for (const [, n] of crawl.nodes) {
-      const wt = Number(n.dataset.t), we = Number(n.dataset.e); const dt = wt - t;
+      const wt = Number(n.dataset.t), we = Number(n.dataset.e), wx = Number(n.dataset.x || 0); const dt = wt - t;
       const gone = we + crawl.hold;   // leaves the line only after it has been sung AND held a beat
       if (dt > crawl.lookahead || gone < t - crawl.back) { n.style.display = 'none'; continue; }
-      n.style.display = ''; const y = dt > 0 ? dt * px : Math.max(-crawl.back, Math.min(0, gone - t)) * px;   // flies in, SNAPS to the line at its time, hangs, then drops away
+      n.style.display = '';
       const now = dt <= 0 && t <= gone, sung = t > gone;
+      const z = dt > 0 ? Math.min(1, dt / crawl.lookahead) : 0;                 // 0 = on the line, 1 = far away
+      const drop = sung ? Math.min(crawl.back, t - gone) : 0;                   // sung words slide down off the line
+      const y = lineY - z * (lineY - farY) + drop * (H * 0.18 / crawl.back);
+      const sc = 1 - 0.66 * z;
       n.className = 'k-cw' + (now ? ' now' : sung ? ' sung' : '');
-      n.style.transform = `translateY(${(-y).toFixed(1)}px) translateY(50%)`;
-      n.style.opacity = sung ? String(Math.max(0, 1 + (gone - t) / crawl.back)) : String(Math.min(1, 0.3 + (1 - Math.max(0, dt) / crawl.lookahead)));
+      n.style.transform = `translate(${(cx + wx * sc).toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%) scale(${sc.toFixed(3)})`;
+      n.style.opacity = sung ? String(Math.max(0, 1 - drop / crawl.back)) : String(0.35 + 0.65 * (1 - z));
     }
   }
   function karaFrame() {
@@ -4895,7 +4913,7 @@
       const arm = el('button', 'arm' + (state.armedTrack === t.id ? ' active' : ''), '●'); arm.title = 'Arm: record onto this track next. Hit R (or ● up top) and this is where the take goes. Only one track at a time.';
       arm.addEventListener('click', (e) => { e.stopPropagation(); if (!mine) { if (hb) status(lk.dataset.tip || lk.title, 6000); else lockNudge(t.id); return; } state.armedTrack = state.armedTrack === t.id ? null : t.id; renderTracks(); });
       // mute / solo on a track that isn't yours: just for your ears (not saved)
-      const ms = (k) => (e) => { e.stopPropagation(); if (mine) change(() => engine.updateTrack(t.id, { [k]: !t[k] }), { undoable: false }); else { engine.updateTrack(t.id, { [k]: !t[k] }); status(`${k === 'mute' ? 'Muted' : 'Soloed'} just for you — it's not your track, so it isn't saved.`, 4000); } renderAll(); };
+      const ms = (k) => (e) => { e.stopPropagation(); toggleMS(t, k); };
       const mute = el('button', 'mute' + (t.mute ? ' active' : ''), 'M'); mute.title = 'Mute: silence this track (it stays in the song). On someone else\'s track it\'s just for your ears.'; mute.addEventListener('click', ms('mute'));
       const solo = el('button', 'solo' + (t.solo ? ' active' : ''), 'S'); solo.title = 'Solo: hear only this track (and any other soloed ones). Handy for checking one part.'; solo.addEventListener('click', ms('solo'));
       const del = el('button', null, '✕'); del.title = `Delete this track from the song. The recordings stay on disk; ${MOD}+Z brings it back.`;
@@ -5434,7 +5452,7 @@
       const qf = el('button', 'quickfix'); qf.append(el('i', 'om om-spoon'), document.createTextNode(' fix')); qf.title = 'Quick fixes: common mixing moves in plain words (sit the vocal, less mud, more punch, brighter…). Each one is undoable.'; qf.addEventListener('click', (e) => { e.stopPropagation(); state.selectedTrack = t.id; menuAt(qf, quickFixMenu(t)); }); mx.append(qf);
       s.append(mx);
     }
-    if (t) { const b = el('div', 'btns'); const mu = el('button', 'mute' + (t.mute ? ' active' : ''), 'M'); mu.addEventListener('click', () => { change(() => engine.updateTrack(t.id, { mute: !t.mute }), { undoable: false }); renderAll(); }); const so = el('button', 'solo' + (t.solo ? ' active' : ''), 'S'); so.addEventListener('click', () => { change(() => engine.updateTrack(t.id, { solo: !t.solo }), { undoable: false }); renderAll(); }); b.append(mu, so); s.appendChild(b); s.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') { state.selectedTrack = t.id; renderTracks(); renderFx(); } }); }
+    if (t) { const b = el('div', 'btns'); const mu = el('button', 'mute' + (t.mute ? ' active' : ''), 'M'); mu.addEventListener('click', () => toggleMS(t, 'mute')); const so = el('button', 'solo' + (t.solo ? ' active' : ''), 'S'); so.addEventListener('click', () => toggleMS(t, 'solo')); b.append(mu, so); s.appendChild(b); s.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') { state.selectedTrack = t.id; renderTracks(); renderFx(); } }); }
     return s;
   }
 
@@ -7083,7 +7101,7 @@
     }
   });
 
-  window.bandpadDebug = { engine, state, kara: () => kara, timingReport: (id) => timingReport(engine.track(id), null), closeSong, addNote, insertSongPart, songPartList, renderAll: () => renderAll(), editTrack: (id, patch) => change(() => engine.updateTrack(id, patch), { label: `edit ${(engine.track(id) || {}).name}` }), mineT, heldBy, unlockAll, lockAll, rollAt: (i) => { const G = rollGeom(); const z = G && G.g.notes[i]; if (!z) return null; const r = RC.cv().getBoundingClientRect(); return { x: r.left + (G.xOf(z.t) + Math.max(G.xOf(z.t) + 3, G.xOf(z.t + z.d))) / 2, y: r.top + G.yOf(z.n) + G.rowH / 2, rowH: G.rowH, grid: G.grid, pxPerSec: (G.w - G.gut) / G.W, left: r.left, top: r.top, gut: G.gut, topPad: G.top }; } };
+  window.bandpadDebug = { engine, state, collectSong, kara: () => kara, timingReport: (id) => timingReport(engine.track(id), null), closeSong, addNote, insertSongPart, songPartList, renderAll: () => renderAll(), editTrack: (id, patch) => change(() => engine.updateTrack(id, patch), { label: `edit ${(engine.track(id) || {}).name}` }), mineT, heldBy, unlockAll, lockAll, rollAt: (i) => { const G = rollGeom(); const z = G && G.g.notes[i]; if (!z) return null; const r = RC.cv().getBoundingClientRect(); return { x: r.left + (G.xOf(z.t) + Math.max(G.xOf(z.t) + 3, G.xOf(z.t + z.d))) / 2, y: r.top + G.yOf(z.n) + G.rowH / 2, rowH: G.rowH, grid: G.grid, pxPerSec: (G.w - G.gut) / G.W, left: r.left, top: r.top, gut: G.gut, topPad: G.top }; } };
   // ---------- boot ----------
   (async () => {
     await loadSettings();

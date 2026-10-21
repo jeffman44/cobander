@@ -1,6 +1,9 @@
 # Cobander changelog
 
 ## 0.15.6
+- Mute / solo on a bandmate's track is for your ears only — it never ends up in the saved song (it used to leak in on the next save). Unlocking the track puts the song's own values back.
+- 3D practice view: words approach at a steady speed and land on the line exactly when they're sung (the tilted-plane version read as off-time).
+- The master strip is back in Record.
 - The playhead line reaches every track, however many you have (it stopped partway down a tall song).
 - A user manual, at cobander.com/manual — linked under ⚙ and from the glossary (F1 twice).
 - Roadies: bands who sent noods with extra sauce are listed under ⚙ (and on cobander.com). Thanks.

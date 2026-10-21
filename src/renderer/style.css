@@ -641,8 +641,7 @@ body.ws-record #topbar .row2 .grp.only-record { display: inline-flex; }
 body.ws-mix #topbar .row2 .grp.only-mix { display: inline-flex; }
 #key-chip { border: 0; cursor: pointer; }
 #key-chip.muted { color: var(--muted); }
-/* Record: channel strips + FX + the takes / notes tabs (no master) */
-body.ws-record #master-area { display: none; }
+/* Record: channel strips + master + FX + the takes / notes tabs */
 /* Mix: mixer, master, FX — the song tabs go away */
 body.ws-mix #notes-panel, body.ws-mix #split-notes { display: none; }
 body.ws-mix #fx-panel { flex: 1; }
@@ -754,9 +753,9 @@ body.ws-record .track-head button.arm.active::after { content: ' REC'; }
 .track-head .mixchips button.quickfix { font-size: 10px; padding: 0 6px; margin-left: auto; }
 
 /* Practice: words flying at you (3D crawl) + the highway in perspective */
-.k-crawl { position: relative; width: min(1100px, 100%); flex: 1; min-height: 0; perspective: 520px; perspective-origin: 50% 20%; overflow: hidden; }
+.k-crawl { position: relative; width: min(1100px, 100%); flex: 1; min-height: 0; overflow: hidden; }
 .k-crawl[hidden] { display: none; }
-.k-plane { position: absolute; left: 0; right: 0; bottom: 16%; height: 160%; transform-origin: 50% 100%; transform: rotateX(58deg); transform-style: preserve-3d; }
+.k-plane { position: absolute; inset: 0; }
 .k-cl { position: absolute; left: 0; right: 0; text-align: center; font-size: calc(30px * var(--ks)); font-weight: 700; line-height: 1.2; white-space: nowrap; will-change: transform, opacity; transform: translateY(50%); }
 .k-cl.dim { color: var(--muted); font-weight: 500; }
 .k-cl.cur { color: #fff; font-size: calc(34px * var(--ks)); }
@@ -894,7 +893,7 @@ dialog#charpick { max-width: 1100px; width: min(1100px, 96vw); max-height: 96vh;
 .char-grid .char-pick .char { width: 36px; height: 36px; } .char-grid .char-pick .char .gi { width: 22px; height: 22px; }
 
 /* crawl: one flyer per word */
-.k-cw { position: absolute; bottom: 0; font-size: calc(30px * var(--ks)); font-weight: 700; line-height: 1.2; white-space: nowrap; will-change: transform, opacity; color: #e8e9ee; }
+.k-cw { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; font-size: calc(30px * var(--ks)); font-weight: 700; line-height: 1.2; white-space: nowrap; will-change: transform, opacity; color: #e8e9ee; }
 .k-cw.meas { visibility: hidden; position: absolute; left: -9999px; }
 .k-cw.now { color: var(--xp); font-size: calc(36px * var(--ks)); text-shadow: 0 0 18px rgba(242,181,52,.6); }
 .k-cw.sung { color: var(--muted); }

@@ -152,6 +152,11 @@ export default {
       const evt = JSON.parse(raw);
       if (evt.type === 'email.received' && env.NOTIFY) {
         const d = evt.data || {}; const from = Array.isArray(d.from) ? d.from.join(', ') : String(d.from || '?');
+        // Receiving is domain-wide, so spam to made-up addresses arrives too. Only the real mailboxes ring the bell.
+        const boxes = String(env.INBOXES || 'noods,support,hello,jeff').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+        const to = (d.to || []).map((x) => String(x).toLowerCase());
+        if (!to.some((addr) => boxes.includes(addr.split('@')[0].replace(/^.*</, '')))) return json({ ok: true, ignored: 'not a real mailbox', to });
+        if (/no-?reply@|noreply@|notifications?@|newsletter|mailer-daemon/i.test(from)) return json({ ok: true, ignored: 'automated sender' });
         await sendEmail(env, env.NOTIFY, { subject: `[noods] ${d.subject || '(no subject)'} — from ${from}`, text: `New mail to ${(d.to || []).join(', ')} from ${from}.\n\nRead it: https://resend.com/emails/${d.email_id || ''}\n\n(Reply from the Resend inbox or from your own mail, as you like.)` });
       }
       return json({ ok: true });
