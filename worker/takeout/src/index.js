@@ -188,9 +188,8 @@ export default {
       const form = await req.formData(); let d; try { d = JSON.parse(form.get('data') || '{}'); } catch (_) { return json({ error: 'bad data' }, 400); }
       if (!env.KOFI_TOKEN || !timingEq(String(d.verification_token || ''), env.KOFI_TOKEN)) return json({ error: 'bad token' }, 401);
       const sale = saleFromKofi(d); if (!sale) return json({ error: 'no buyer email' }, 400);
-      if (sale.cents < Number(env.MIN_CENTS || 2500)) return json({ ok: true, ignored: 'under $25 — a tip (send noods), thanks' });
-      const rec = await issue(sale, env); const mail = await sendEmail(env, rec.email, emailFor(rec)); await notifyRoadie(env, rec);
-      return json({ ok: true, band: rec.band, tier: rec.tier, mail });
+      // Ko-fi is the tip jar only (Send noods) — licenses are sold on Lemon Squeezy. No key, whatever the amount.
+      return json({ ok: true, ignored: 'a tip (send noods), thanks — no key' });
     }
     // Resend → POST /webhook/resend (Svix-signed). Mail to noods@cobander.com lands in Resend's inbox; this pings the owner (NOTIFY) so it isn't missed.
     if (req.method === 'POST' && url.pathname === '/webhook/resend') {

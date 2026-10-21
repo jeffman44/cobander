@@ -78,8 +78,9 @@
   .does li span { color: var(--steel); font-size: 16px; }
 
   .dl-notes { margin: -6px 0 10px; max-width: 620px; }
-  .kofi-steps[hidden] { display: none; }
-  .kofi-steps { display: block; margin-top: 8px; padding: 10px 12px; border: 2px dashed currentColor; border-radius: 10px; }
+  .free-dl { margin: 4px 0 18px; }
+  .soon { opacity: .55; pointer-events: none; cursor: default; }
+  .soon-note { display: block; margin-top: 6px; font-weight: 700; }
   .carton .go { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
   .carton .go .band-name { width: 100%; max-width: 460px; }
   .member-boxes { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
@@ -210,7 +211,8 @@
     <div class="carton">
       <div class="stamp">NO SERVER<br>NO ACCOUNTS<br>NO SUBSCRIPTION</div>
       <h2>Licenses</h2>
-      <p class="sub"><b>Groupie</b> is free — the download up top is the whole app, every feature, every update, one song per band. To make more songs, get a <b>license</b>: a key that unlocks the whole band, once. Not $90 a head.</p>
+      <p class="sub"><b>Groupie</b> is free — the whole app, every feature, every update, one song per band. To make more songs, get a <b>license</b>: a key that unlocks the whole band, once.</p>
+      <div class="cta free-dl"><a class="btn hot dl" href="https://takeout.cobander.com/download/win">Download for Windows</a><a class="btn hot dl" href="https://takeout.cobander.com/download/mac-arm64">Download for Mac</a></div>
       <button class="dish pick" id="roadie" data-amt="25" data-tier="Roadie"><span class="name">Roadie<small>all the songs you want. One key for the whole band, yours for good</small></span><span class="row"><span class="price">$25</span></span></button>
       <button class="dish" id="vip" data-amt="60" data-tier="VIP"><span class="name">VIP<small>same key, plus your band on the VIP wall — here and in the app. Legends never die</small></span><span class="row"><span class="price">$60</span></span></button>
       <div class="go">
@@ -218,8 +220,8 @@
         <label class="band-name" id="count-wrap">How many in the band? <select id="count"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label>
         <div class="band-name" id="members-wrap">Bandmates' names <span class="fine">(they go on the key; leave any blank)</span><div id="member-boxes" class="member-boxes"></div></div>
         <input type="hidden" id="members">
-        <a class="btn hot" id="buy" href="https://ko-fi.com/jdeuel44" target="_blank" rel="noopener">Purchase Roadie — $25</a>
-        <span class="fine">The key arrives by email. Paste it once; the band folder keeps it.<span id="kofi-note" class="kofi-steps"><b>Checkout is on Ko-fi for now.</b> Purchase copies your band line, then opens Ko-fi: type <b id="kofi-amt">25</b> as the amount and paste into the message box — <i id="kofi-line">The Colanders (Riley, Sam, Alex, Jo)</i>. That's what goes on the key.</span></span>
+        <a class="btn hot" id="buy" href="#menu" target="_blank" rel="noopener">Purchase Roadie — $25</a>
+        <span class="fine">The key arrives by email. Paste it once; the band folder keeps it.</span>
       </div>
     </div>
     <img class="jump" src="img/levelup.jpg" alt="The colander leaping with a bass guitar, confetti everywhere" loading="lazy">
@@ -264,30 +266,28 @@
   // Both download buttons stay put (Windows and Mac); on a phone they explain instead of downloading.
   { const mobile = /Android|iPhone|iPad/.test(navigator.userAgent);
     if (mobile) for (const a of document.querySelectorAll('a.dl')) a.addEventListener('click', (e) => { e.preventDefault(); alert('Cobander runs on Windows and Mac. Open cobander.com on that computer.'); }); }
-  // Storefront: LS (Lemon Squeezy checkout, live mode) when set, else Ko-fi. With LS the band name rides along as
-  // checkout[custom][band] (→ the key's band); the buyer types the amount (LS ignores a price prefill on share links).
-  // Lemon Squeezy checkout links (Share panel, one variant enabled each). LS_LIVE flips to true once the store is out of
-  // test mode — until then the Buy button goes to Ko-fi. Roadie ($25) = variant 2275059, VIP ($60) = variant 2278488.
+  // Storefront: Lemon Squeezy only (Ko-fi/Venmo are the tip jar). The band name + members ride along as checkout[custom][band]/[members].
+  // LS_LIVE flips to true once the store is out of test mode (new live-mode links!) — until then Purchase reads
+  // "Licenses open soon" and does nothing. Roadie ($25) = variant 2275059, VIP ($60) = variant 2278488 (test mode ids).
   const LS_LIVE = false;
   const LS = LS_LIVE ? 'https://cobander.lemonsqueezy.com/checkout/buy/1e28640f-46d0-450e-8059-75d9574901d6?enabled=2275059' : null;
   const LS_ROADIE = LS_LIVE ? 'https://cobander.lemonsqueezy.com/checkout/buy/62b6f7b9-c75a-4f50-b43f-2caefca4f65f?enabled=2278488' : null;
-  const KOFI = 'https://ko-fi.com/jdeuel44';
   const buy = document.getElementById('buy'), band = document.getElementById('band'); let amt = 25;
   const members = document.getElementById('members'), count = document.getElementById('count'), boxes = document.getElementById('member-boxes');
-  if (LS) document.getElementById('kofi-note').hidden = true;
+  if (!LS) { buy.classList.add('soon'); buy.removeAttribute('target'); buy.insertAdjacentHTML('afterend', '<span class="fine soon-note">Licenses open soon. Grab the free version now; your songs carry over when you get a key.</span>'); }
   // one name box per bandmate (keeps what's typed when the count changes)
   const drawBoxes = () => { const keep = [...boxes.querySelectorAll('input')].map((i) => i.value); boxes.innerHTML = ''; for (let i = 0; i < Number(count.value); i++) { const inp = document.createElement('input'); inp.maxLength = 30; inp.placeholder = `bandmate ${i + 1}`; inp.value = keep[i] || ''; inp.addEventListener('input', () => { collect(); sync(); }); boxes.append(inp); } collect(); };
   const collect = () => { members.value = [...boxes.querySelectorAll('input')].map((i) => i.value.trim()).filter(Boolean).join(', '); };
   const bandLine = () => { const b = band.value.trim() || 'Your band'; return members.value ? `${b} (${members.value})` : b; };
   count.addEventListener('change', () => { drawBoxes(); sync(); });
-  const buyHref = () => { if (!LS) return KOFI; const q = new URLSearchParams(); const b = band.value.trim(), mm = members.value.trim(); if (b) q.set('checkout[custom][band]', b); if (mm) q.set('checkout[custom][members]', mm); const u = amt >= 60 ? (LS_ROADIE || LS) : LS; return q.toString() ? `${u}${u.includes('?') ? '&' : '?'}${q}` : u; };
+  const buyHref = () => { if (!LS) return '#menu'; const q = new URLSearchParams(); const b = band.value.trim(), mm = members.value.trim(); if (b) q.set('checkout[custom][band]', b); if (mm) q.set('checkout[custom][members]', mm); const u = amt >= 60 ? (LS_ROADIE || LS) : LS; return q.toString() ? `${u}${u.includes('?') ? '&' : '?'}${q}` : u; };
   let tier = 'Roadie';
-  const sync = () => { buy.textContent = `Purchase ${tier} — $${amt}`; buy.href = buyHref(); const ka = document.getElementById('kofi-amt'); if (ka) ka.textContent = String(amt); const kl = document.getElementById('kofi-line'); if (kl) kl.textContent = band.value.trim() ? bandLine() : 'The Colanders (Riley, Sam, Alex, Jo)'; };
+  const sync = () => { buy.textContent = LS ? `Purchase ${tier} — $${amt}` : 'Licenses open soon'; buy.href = buyHref(); };
   for (const d of document.querySelectorAll('button.dish')) d.addEventListener('click', () => { for (const x of document.querySelectorAll('button.dish')) x.classList.toggle('pick', x === d); amt = Number(d.dataset.amt); tier = d.dataset.tier; sync(); });
   // links from the app: cobander.com/#roadie or #vip picks that license
   { const want = (location.hash || '').slice(1); const d = want === 'vip' || want === 'roadie' ? document.getElementById(want) : null; if (d) { d.click(); document.getElementById('menu').scrollIntoView(); } }
   band.addEventListener('input', sync); members.addEventListener('input', sync);
-  buy.addEventListener('click', (e) => { if (!band.value.trim()) { e.preventDefault(); band.focus(); band.placeholder = 'type your band name first'; return; } if (!LS) { try { navigator.clipboard.writeText(bandLine()); } catch (_) {} } });
+  buy.addEventListener('click', (e) => { if (!LS) { e.preventDefault(); return; } if (!band.value.trim()) { e.preventDefault(); band.focus(); band.placeholder = 'type your band name first'; } });
   drawBoxes();
   sync();
   const m = /^([^.]+)\.github\.io$/.exec(location.hostname); const repo = m ? `${m[1]}/cobander` : 'jeffman44/cobander';

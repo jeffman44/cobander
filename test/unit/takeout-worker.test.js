@@ -76,5 +76,5 @@ test('worker: bandmates from the Ko-fi message / LS field ride on the key; $25 f
   const rec = await W.issue(k, env); const c = T.verify(rec.key, pub); assert.deepEqual(c.members, ['Kat', 'Sam']); assert.equal(c.band, 'Fuzz Lords');
   assert.match(W.emailFor(rec).text, /\(Kat, Sam\)/);
   const Wd = W.default; const form = new FormData(); form.set('data', JSON.stringify({ verification_token: 't', email: 'x@y.z', amount: '12.00', message: 'Cheap' }));
-  const r = await Wd.fetch(new Request('https://t/webhook/kofi', { method: 'POST', body: form }), { ...env, KOFI_TOKEN: 't' }); assert.match((await r.json()).ignored, /under \$25/);
+  const r = await Wd.fetch(new Request('https://t/webhook/kofi', { method: 'POST', body: form }), { ...env, KOFI_TOKEN: 't' }); assert.match((await r.json()).ignored, /tip/);
 });
