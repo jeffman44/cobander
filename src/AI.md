@@ -11,7 +11,7 @@ songs without touching the GUI.
 <Shared>/
   AI.md                       this file (Cobander re-copies it when its version is newer)
   _takeout.json               the band's Send noods key {key, band, tier}. Free Cobander keeps ONE song per folder; with a valid
-                              key (Ed25519-signed by Jeff, verified offline) the band adds as many as it likes. POST /song/create
+                              key (Ed25519-signed, verified offline) the band adds as many as it likes. POST /song/create
                               on a free folder that already has its song fails with "Send noods lifts the limit".
   <Song Name>/
     song.json                 the whole project: tempo, tracks, mix, FX, clip placement, notes
@@ -38,7 +38,7 @@ person's version, keeping any takes/tracks the other person added.
 {
   "format": 1, "name": "Can't Argue", "id": "…",
   "rev": 12, "saveId": "3f9a1c…",                         // rev counts saves; saveId is random per save and is what conflict detection compares
-  "savedBy": "Jeff", "savedAt": "2026-10-13T03:12:00.000Z",
+  "savedBy": "Riley", "savedAt": "2026-10-13T03:12:00.000Z",
   "bpm": 120, "timeSig": [4, 4], "sampleRate": 48000,
   "notes": "Verse: G D Em C …",
   "loop": { "enabled": false, "start": 0, "end": 8 },          // seconds
@@ -54,7 +54,7 @@ person's version, keeping any takes/tracks the other person added.
     },
     "clips": [{ "id": "0f1e2d3c4b5a", "name": "take 2", "start": 4.0, "gainDb": 0, "mute": false,
                 "trimStart": 0, "trimEnd": 0, "fadeIn": 0, "fadeOut": 0.2, "duration": 31.9, "channels": 1,
-                "takenBy": "Jeff", "takenAt": "…",
+                "takenBy": "Riley", "takenAt": "…",
                 "src": "0f1e2d3c4b5a" }]                         // src (optional): the audio file id when this clip is a split/copy of
                                                              // another take; absent ⇒ the clip's own id is the file. Several clips may share one file.
   }],

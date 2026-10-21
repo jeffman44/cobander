@@ -1,6 +1,6 @@
 // Auto mix / auto master planning (pure: no audio graph). The app measures each track solo (post-FX, unity fader),
 // hands the numbers here, and gets back fader / pan / FX patches it applies through change() — so one Undo puts it back.
-// Rules are the ones that worked on American Appetites: an instrument bed at fixed loudness targets per role, vocals
+// Rules are the ones that worked on a real band demo: an instrument bed at fixed loudness targets per role, vocals
 // fitted on top of the bed's short-term loudness, per-role HPF / comp / sends, guitars spread, everything clamped to the
 // engine's ranges. Never touches a track's amp (that's the player's tone) or a muted / silent track.
 (function (root, factory) {

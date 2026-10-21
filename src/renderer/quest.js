@@ -1,4 +1,4 @@
-// Cobander's game layer (after Dan's "Never a Doubt — Quest Board"). Everything is DERIVED from the songs themselves:
+// Cobander's game layer (after a bandmate's hand-made band quest board). Everything is DERIVED from the songs themselves:
 // a take you recorded, a note, a reply, a chord, a lyric line, a section, a need you closed — every piece of a song
 // carries who made it (takenBy / by), so XP is counted from the song files on the Drive, the same for everyone,
 // retroactively, with nothing to keep in sync. "Parts written %" = how much of the song's sections a member's takes cover.

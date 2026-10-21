@@ -26,7 +26,7 @@ whole band opens at practice.
   setlist, who's rehearsing right now, practice minutes, loose ends (to-dos that aren't a song), chart every song
   with one button.
 - **Together** — one shared folder; song locks and per-track locks so two people can work on the same song at
-  once; presence ("Dan is recording"); @mentions; a band feed; in-app updates.
+  once; presence ("Sam is recording"); @mentions; a band feed; in-app updates.
 
 ## Install
 
@@ -37,8 +37,9 @@ Cobander checks for updates and installs them itself.
 
 **Send noods 🍜** — a key that lifts the one-song limit for everyone in the band, once:
 
-- **$25** — Groupie: one key for the whole band
-- **$60** — Roadie: same key, plus your band on the Roadies wall
+- **Free** — Groupie: the whole app, one song per band folder
+- **$25** — Roadie: one key for the whole band
+- **$60** — VIP: same key, plus your band on the VIP wall. Legends never die
 
 Download: [Windows](https://takeout.cobander.com/download/win) · [Mac, Apple silicon](https://takeout.cobander.com/download/mac-arm64) · [Mac, Intel](https://takeout.cobander.com/download/mac-x64). Get a key at [cobander.com](https://cobander.com/#menu). The key arrives by
 email; paste it under ⚙ → **Enter a key** (or when the second song asks). It lives in the shared folder, verifies offline,
@@ -74,4 +75,4 @@ Caro Asercion); see `src/renderer/icons/CREDITS.md`. Band-page characters are bu
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Made by Jeff Deuel for a band in a basement.
+MIT — see [LICENSE](LICENSE). Made for a band in a basement.

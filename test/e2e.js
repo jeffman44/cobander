@@ -1297,7 +1297,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       // practice: words flying at you (3D crawl)
       await jeff.post('/lyrics', { add: [{ text: 'noodles in the colander tonight', bar: 1 }, { text: 'strain it out and let it ring', bar: 3 }, { text: 'every take is just a thing', bar: 5 }, { text: 'we never had a doubt', bar: 7 }] });
       await jeff.post('/practice', { open: true }); await sleep(400);
-      await jeff.evalJs(`const v = document.querySelector('#k-view'); v.value = 'crawl'; v.dispatchEvent(new Event('change')); true`); await sleep(600);
+      await jeff.evalJs(`(() => { const v = document.querySelector('#k-view'); v.value = 'crawl'; v.dispatchEvent(new Event('change')); return true; })()`); await sleep(600);
       assert.ok(await jeff.evalJs(`document.querySelectorAll('#k-plane .k-cw').length >= 8`), 'crawl words on the plane');
       // a word being sung sits ON the line (translateY 0), not past it
       { const r = await jeff.evalJs(`(() => { const hl = document.querySelector('#k-crawl .k-hitline').getBoundingClientRect(); return [...document.querySelectorAll('#k-plane .k-cw.now')].map((n) => { const b = n.getBoundingClientRect(); return Math.abs((b.top + b.bottom) / 2 - (hl.top + hl.bottom) / 2); }); })()`); assert.ok(r.length && r.every((d) => d < 8), `sung words sit on the line (off by ${JSON.stringify(r)} px)`); }
@@ -1346,17 +1346,42 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/clip/import', { path: path.join(WORK, 'drums.wav'), trackId: tr('Drums').id, start: 0, name: 'take 2' });
       await jeff.post('/clip/import', { path: path.join(WORK, 'sung.wav'), trackId: tr('Lead vox').id, start: 3.75, name: 'take 4' });
       await jeff.post('/chords', { fromBar: 1, bars: 'G D | Em C | G D | Em C | G D | Em C | G D | Em C | G D | Em C' });
-      await jeff.post('/lyrics', { add: [{ text: 'noodles in the colander tonight', bar: 3 }, { text: 'strain it out and let it ring', bar: 5 }, { text: 'every take is just a thing', bar: 7 }, { text: 'we never had a doubt', bar: 9 }] });
-      await jeff.post('/quest', { todo: { text: 'book the Halloween show', who: 'Dan' } }); await jeff.post('/quest', { todo: { text: 'new strings before practice' } });
+      await jeff.post('/lyrics', { add: [{ text: 'noodles in the colander tonight', bar: 3 }, { text: 'strain it out and let it ring', bar: 5 }, { text: 'every take is just a thing', bar: 7 }, { text: 'we turn it up and let it out', bar: 9 }] });
+      await jeff.post('/quest', { todo: { text: 'book the Halloween show', who: 'Kat' } }); await jeff.post('/quest', { bandName: 'The Colanders' }); await jeff.post('/quest', { todo: { text: 'new strings before practice' } });
       await jeff.post('/quest', { boss: { title: 'Halloween show at the Hi-Dive', date: '2026-10-31' } });
       await jeff.post('/song/save'); await sleep(500);
-      const clean = () => jeff.evalJs(`(() => { for (const t of document.querySelectorAll('#toasts .toast, .toast')) t.remove(); const u = document.querySelector('#update-bar'); if (u) u.hidden = true; return true; })()`);
+      // site shots: no real names, test-song names or machine paths in the picture (Jeff/Kat are the harness users). A
+      // MutationObserver keeps rewriting, so a re-render after the swap can't bring the real text back.
+      await jeff.evalJs(`(() => {
+        const swap = [[/\\bJeff\\b/g, 'Riley'], [/\\bKat\\b/g, 'Sam'], [/E2E Band/g, 'The Colanders'], [/E2E Song/g, 'Parking Lot Anthem'], [/Ska API/g, 'Skank Pit'], [/Key Song/g, 'Late Bus'], [/Snap Song/g, 'Fourteen Again'], [/Link Song/g, 'Linked Up'], [/\\/[^\\s]*\\.e2e\\/shared[^\\s]*/g, 'Google Drive › Band stuff › Cobander']];
+        const fix = (n) => { let v = n.nodeValue; for (const [re, to] of swap) v = v.replace(re, to); if (v !== n.nodeValue) n.nodeValue = v; };
+        window.__scrub = () => { const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); for (let n; (n = w.nextNode());) fix(n); for (const e of document.querySelectorAll('[title]')) { let t = e.title; for (const [re, to] of swap) t = t.replace(re, to); if (t !== e.title) e.title = t; } };
+        if (!window.__scrubObs) { window.__scrubObs = new MutationObserver(() => window.__scrub()); window.__scrubObs.observe(document.body, { subtree: true, childList: true, characterData: true }); }
+        window.__scrub(); return true; })()`);
+      const clean = () => jeff.evalJs(`(() => { for (const t of document.querySelectorAll('#toasts .toast, .toast')) t.remove(); const u = document.querySelector('#update-bar'); if (u) { u.hidden = true; u.style.display = 'none'; } window.__scrub && window.__scrub(); return true; })()`);
       await jeff.post('/workspace', { ws: 'write' }); await sleep(600); await clean(); await jeff.shot('site-write');
       await jeff.post('/workspace', { ws: 'mix' }); await sleep(600); await clean(); await jeff.shot('site-mix');
       await jeff.post('/workspace', { ws: 'band' }); await sleep(800); await clean(); await jeff.shot('site-band');
+      // character builder: a fresh look, an instrument, a hair pick — then cancel (nothing saved)
+      await jeff.evalJs(`document.querySelector('#qb-members .qb-member.me .char').click(); true`); await sleep(500);
+      await jeff.evalJs(`(() => { [...document.querySelectorAll('#charpick .char-pick')].find((c) => /Shredder/.test(c.textContent)).click(); const h = [...document.querySelectorAll('#charpick .cb-row[data-key=hair] .cb-opt')].find((o) => o.title === 'Longhawk'); if (h) h.click(); return true; })()`); await sleep(700); await clean(); await jeff.shot('site-char');
+      await jeff.evalJs(`document.querySelector('#charpick menu button.cancel').click(); true`); await sleep(400);
+      // the level-up show (forced to a new-name level)
+      await jeff.evalJs(`window.cobanderDebug_levelUp(21); true`); await sleep(1300); await clean(); await jeff.shot('site-levelup');
+      await jeff.evalJs(`(() => { const o = document.querySelector('#levelup'); if (o) o.click(); return true; })()`); await sleep(600);
       await jeff.post('/workspace', { ws: 'write' }); await jeff.post('/practice', { open: true }); await sleep(400);
-      await jeff.evalJs(`const v = document.querySelector('#k-view'); v.value = 'crawl'; v.dispatchEvent(new Event('change')); true`); await jeff.post('/transport', { action: 'seek', time: 4.2 }).catch(() => {}); await sleep(700); await clean(); await jeff.shot('site-practice');
+      await jeff.evalJs(`(() => { const v = document.querySelector('#k-view'); v.value = 'crawl'; v.dispatchEvent(new Event('change')); return true; })()`); await jeff.post('/transport', { action: 'seek', time: 4.2 }).catch(() => {}); await sleep(700); await clean(); await jeff.shot('site-practice');
       await jeff.post('/practice', { open: false }); await jeff.post('/song/close');
+      await jeff.evalJs(`(() => { if (window.__scrubObs) window.__scrubObs.disconnect(); window.__scrubObs = null; return true; })()`);
+    });
+    await step('opening a song: the screen is usable when the loading bar goes (longest freeze after it is logged)', async () => {
+      const songs = await jeff.get('/songs'); const pick = songs.map((x) => x.folder).find((f) => /Basement Anthem|Link Song|Tremors/.test(f)) || (songs[0] && songs[0].folder);
+      if (!pick) return; await jeff.post('/song/close').catch(() => {});
+      await jeff.evalJs(`(() => { window.__lt = []; try { window.__po && window.__po.disconnect(); window.__po = new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lt.push([Math.round(e.startTime), Math.round(e.duration)]); }); window.__po.observe({ entryTypes: ['longtask'] }); } catch (_) {} return true; })()`);
+      await jeff.post('/song/open', { folder: pick }); const t0 = await jeff.evalJs('Math.round(performance.now())'); await sleep(6000);
+      const after = await jeff.evalJs(`(window.__lt || []).filter(([t]) => t >= ${t0} - 50)`); const worst = after.reduce((m, [, d]) => Math.max(m, d), 0);
+      console.log(`  open "${pick}": longest freeze after the bar ${worst} ms (${after.length} long tasks)`);
+      assert.ok(worst < 2500, `the screen froze ${worst} ms after the loading bar went away`);
     });
     await step('no renderer errors in either window', async () => {
       for (const a of [jeff, kat]) { const errs = await a.evalJs(`(window.__errs || []).slice(0, 5)`); assert.deepEqual(errs, [], `${a.name}: ${JSON.stringify(errs)}`); }

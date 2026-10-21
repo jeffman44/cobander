@@ -14,7 +14,7 @@ test('key carries the bandmates (trimmed, capped at 8); status shows them', asyn
   assert.deepEqual(T.verify(T.sign({ band: 'Solo' }, priv)).members, [], 'old-style keys (no members) still verify');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cob-rev-'));
   await T.write(root, k);
-  const st = T.status(root, 5); assert.equal(st.unlocked, true); assert.equal(st.tierName, 'Groupie'); assert.deepEqual(st.members.slice(0, 2), ['Jeff', 'Logan']);
+  const st = T.status(root, 5); assert.equal(st.unlocked, true); assert.equal(st.tierName, 'Roadie'); assert.deepEqual(st.members.slice(0, 2), ['Jeff', 'Logan']);
 });
 test('a revoked key: folder goes back to free (songs stay), the leaked band is named, it can\'t be pasted again; fresh key works', async () => {
   const leaked = T.sign({ band: 'Never a Doubt', order: '1' }, priv), fresh = T.sign({ band: 'Never a Doubt', order: '1b' }, priv);

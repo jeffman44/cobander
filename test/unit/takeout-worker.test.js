@@ -27,7 +27,7 @@ test('worker: sales map from both stores, tier by amount, KV + email records', a
   const r1 = await W.issue(ls, env); assert.equal(r1.tier, 'roadie'); assert.equal(T.verify(r1.key, pub).band, 'The Tallboys');
   const r2 = await W.issue(kofi, env); assert.equal(r2.tier, 'takeout');
   assert.ok(kv.has('email:a@b.co') && kv.has('order:kofi:abc'));
-  const m = W.emailFor(r1); assert.match(m.subject, /Tallboys/); assert.match(m.text, /Roadie/); assert.ok(m.text.includes(r1.key));
+  const m = W.emailFor(r1); assert.match(m.subject, /Tallboys/); assert.match(m.text, /VIP/); assert.ok(m.text.includes(r1.key));
   await assert.rejects(W.issue(kofi, { ...env, PUB: T.PUBLIC_KEY }), /does not match PUB/);
 });
 test('worker: support inbox — webhook stores, agent drafts, only the signed approve POST sends', async () => {

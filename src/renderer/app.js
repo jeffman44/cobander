@@ -12,7 +12,7 @@
 
   const engine = new Engine();
   const state = {
-    trackH: 84,   // track row height in px (Dan: fit more on screen) — thin / regular / thick noodles
+    trackH: 84,   // track row height in px (a bandmate's ask: fit more on screen) — thin / regular / thick noodles
     settings: null,
     songs: [],
     folder: null,        // open song folder name
@@ -234,7 +234,7 @@
     const who = st.members && st.members.length ? ` (${st.members.join(', ')})` : '';
     const t = st.unlocked ? `${st.tierName}: licensed to ${st.band}${who} — unlimited songs. Thanks for the noods.`
       : st.revoked ? `This copy was unlocked with a leaked key (${st.leakedFrom}'s), so it's back to one song per band folder. Your songs are all still here — send noods to keep adding.`
-      : `Free Cobander: one song per band folder${st.songs >= (st.limit || 1) ? ' (this folder has its song)' : ''}.`;
+      : `Groupie (free): one song per band folder${st.songs >= (st.limit || 1) ? ' (this folder has its song)' : ''}.`;
     for (const id of ['#s-takeout', '#bp-takeout']) { const n = $(id); if (n) n.textContent = t; }
     const get = $('#s-takeout-get'); if (get) get.hidden = st.unlocked || !get.dataset.has;
     const k = $('#s-takeout-key'); if (k) k.hidden = st.unlocked;
@@ -454,7 +454,7 @@
       ab.addEventListener('click', doAdd); inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } e.stopPropagation(); });
       add.append(inp, ab); tl.append(add); sw.append(tl);
     }
-    // band to-dos (Dan: "an overall to-do list, not for a specific song")
+    // band to-dos ("an overall to-do list, not for a specific song")
     { const tl = $('#qb-todos'); tl.innerHTML = '';
       if (!b.todos.length) tl.append(el('div', 'muted small', 'Nothing loose. Add one below.'));
       for (const t of b.todos) {
@@ -591,13 +591,13 @@
     await questWrite(patch);
   }
   async function editMember(mb) {
-    const v = await promptName('Name · role · icon (e.g. "Zach · Drums · 🥁")', `${mb.name} · ${mb.role} · ${mb.icon}`); if (!v) return;
+    const v = await promptName('Name · role · icon (e.g. "Alex · Drums · 🥁")', `${mb.name} · ${mb.role} · ${mb.icon}`); if (!v) return;
     const [name, role, icon] = v.split('·').map((x) => x.trim());
     const ch = {}; if (role != null) ch.role = role; if (icon) ch.icon = icon;
     await memberWrite(mb, name && name !== mb.name ? { ...memberRow(mb), ...ch } : ch, { rename: name && name !== mb.name ? name : null });
   }
   async function editAliases(mb) {
-    const v = await promptName(`${mb.name} shows up in Cobander as… (comma-separated display names, e.g. FossTheBoss)`, (mb.aliases || []).join(', ')); if (v === null) return;
+    const v = await promptName(`${mb.name} shows up in Cobander as… (comma-separated display names, e.g. AlexOnDrums)`, (mb.aliases || []).join(', ')); if (v === null) return;
     await memberWrite(mb, { aliases: v.split(',').map((a) => a.trim()).filter(Boolean).slice(0, 6) });
   }
   // The band's name: typed here on the free version; with a key, the key's band name wins (it's who the key is for).
@@ -1151,6 +1151,12 @@
       r0 = await bp.song.open(folder, { force, quiet }); showLoading(`Opening ${folder}… loading takes`, 0.1);
       state.loadProgress = (d, n) => showLoading(n ? `Opening ${folder}… takes ${d}/${n}` : `Opening ${folder}…`, 0.1 + 0.85 * (n ? d / n : 1));
       await applyLoaded(folder, r0, { fresh: true });
+      // keep the bar up until the song is really usable: let the tracks and waveforms paint, then do the one heavy
+      // after-open job (hearing the key from the bass line) here instead of freezing the screen a few seconds later.
+      showLoading(`Opening ${folder}… drawing`, 0.96); await nextPaint(); await nextPaint();
+      state.keyDoubt = null;
+      if (keyCheckNeedsWork()) { showLoading(`Opening ${folder}… listening for the key`, 0.98); await nextPaint(); }
+      await keyCheck().catch(() => null);
     } finally { state.loadProgress = null; hideLoading(); }
     const r = r0;
     for (const x of document.querySelectorAll('#toasts .toast[data-song]')) if (x.dataset.song !== folder) x.remove();   // stale buttons from the last song
@@ -1159,7 +1165,7 @@
     if (!r.readOnly) scheduleTakeNameSync();
     setTimeout(() => checkCrashRecordings().catch(() => {}), 500);
     if (state.lastSeenAtOpen && !quiet) { const f = state.folder; setTimeout(() => { if (state.folder === f) showWhatChanged().catch(() => {}); }, 700); }
-    { const f = state.folder; state.keyDoubt = null; renderKeyChip(); setTimeout(() => { if (state.folder === f) keyCheck().catch(() => {}); }, 2500); }
+    renderKeyChip();
     if (!r.readOnly) fixTrackTypes();   // older songs: bring take file names up to "<track> - <take> - <who> - <id>.wav"
     const backup = await bp.song.readBackup(folder);
     if (backup && backup.song && backup.song.saveId !== undefined) {
@@ -2487,13 +2493,24 @@
   // Does what's recorded agree with the key label? Runs in the background after a song loads and after a bass take
   // lands; a disagreement shows on the key chip (⚠) with a one-click fix — the label is never changed by itself.
   let keyCheckBusy = false;
+  // The key check listens to every take (seconds of CPU on a long song), so its answer is remembered per song and only
+  // redone when the audio that feeds it changes: which clips, where, how loud, muted or not.
+  const nextPaint = () => new Promise((res) => requestAnimationFrame(() => res()));
+  const KEYCACHE = 'bp.keyHeard';
+  function keySig() {
+    try { return JSON.stringify(engine.tracks.filter((t) => t.instrument === 'audio' && engine.audible(t)).map((t) => [t.id, t.type, t.name, t.clips.filter((c) => !engine.clipMuted(c)).map((c) => [audioId(c), +c.start.toFixed(3), +(c.trimStart || 0).toFixed(3), +(c.trimEnd || 0).toFixed(3), c.semis || 0, c.vs || 1])]).concat([engine.bpm])); } catch (_) { return null; }
+  }
+  function keyCacheGet(folder, sig) { try { const all = JSON.parse(localStorage.getItem(KEYCACHE) || '{}'); const e = all[folder]; return e && e.sig === sig ? e.hk : undefined; } catch (_) { return undefined; } }
+  function keyCachePut(folder, sig, hk) { try { const all = JSON.parse(localStorage.getItem(KEYCACHE) || '{}'); all[folder] = { sig, hk, at: Date.now() }; const keys = Object.keys(all); if (keys.length > 60) for (const k of keys.sort((a, b) => all[a].at - all[b].at).slice(0, keys.length - 60)) delete all[k]; localStorage.setItem(KEYCACHE, JSON.stringify(all)); } catch (_) {} }
+  const keyHasBass = () => engine.tracks.some((t) => t.instrument === 'audio' && window.BPAutoMix.role(t) === 'bass' && engine.audible(t) && t.clips.some((c) => !engine.clipMuted(c) && !state.missingClips.has(audioId(c))));
+  function keyCheckNeedsWork() { return !!state.folder && keyHasBass() && keyCacheGet(state.folder, keySig()) === undefined; }
   async function keyCheck({ quiet = true } = {}) {
     if (!state.folder || !state.song || keyCheckBusy) return null;
-    const hasBass = engine.tracks.some((t) => t.instrument === 'audio' && window.BPAutoMix.role(t) === 'bass' && engine.audible(t) && t.clips.some((c) => !engine.clipMuted(c) && !state.missingClips.has(audioId(c))));
-    if (!hasBass) return null;
+    if (!keyHasBass()) return null;
     keyCheckBusy = true; const folder = state.folder;
     try {
-      const hk = await hearKey(); if (state.folder !== folder) return null;
+      const sig = keySig(); let hk = keyCacheGet(folder, sig);
+      if (hk === undefined) { hk = await hearKey(); if (state.folder !== folder) return null; keyCachePut(folder, sig, hk); }
       const cur = state.song.key || '';
       const doubt = hk && hk.source === 'bass' && hk.confidence >= 0.6 && (!cur || !sameNotes(hk.key, cur)) ? { key: hk.key, confidence: hk.confidence, label: cur } : null;
       state.keyDoubt = doubt; renderKeyChip();
@@ -4622,7 +4639,7 @@
 
   // ---------- "needs" checklist ----------
   const liveNeeds = () => CB.live(CB.list(state.song, 'needs'));
-  // "needs bass on the chorus @Logan" → who: Logan, section: the first Chorus (when one exists)
+  // "needs bass on the chorus @Sam" → who: Sam, section: the first Chorus (when one exists)
   function addNeed(text, { who = null, sectionId = null } = {}) {
     const t = String(text || '').trim().slice(0, 120); if (!t) return null;
     const people = CB.knownPeople(collectSong(), [me()]); const ment = CB.mentionsIn(t, people);
@@ -4926,7 +4943,7 @@
       nm.addEventListener('dblclick', async (e) => { e.stopPropagation(); if (state.readOnly) return; const n = await promptName('Track name', t.name); if (n) { change(() => engine.updateTrack(t.id, { name: n }), { label: `rename track to ${n}` }); fixTrackTypes({ quiet: false }); renderAll(); } });
       nameRow.append(sw, nm);
       const btns = el('div', 'btns');
-      // track lock: 🔒 locked (click to unlock it for you) · 🔓 yours · 🔒 Dan (someone else has it)
+      // track lock: 🔒 locked (click to unlock it for you) · 🔓 yours · 🔒 Sam (someone else has it)
       const hb = heldBy(t.id), mine = mineT(t.id);
       const lk = el('button', 'tlock' + (mine ? ' mine' : hb ? ' theirs' : ''), mine ? '🔓' : hb ? `🔒 ${hb}` : '🔒');
       lk.title = mine ? 'Unlocked for you — click to lock it again (frees it for the band). It locks by itself after 10 min untouched.' : hb ? `${hb} has this track unlocked (it frees up when they lock it or leave it for 10 min)` : 'Locked — click to unlock it and work on it';
@@ -6967,6 +6984,7 @@
         if (args.todo) { if (args.todo.id) { const t = (b.todos || []).find((x) => x.id === args.todo.id); if (!t) throw new Error(`no to-do ${args.todo.id}`); patch[`band:todo:${t.id}`] = { text: t.text, who: t.who, done: args.todo.done !== undefined ? !!args.todo.done : t.done, doneBy: args.todo.done ? me() : t.doneBy, ...(args.todo.delete ? { deleted: true } : {}) }; } else { if (!args.todo.text) throw new Error('todo.text'); const mb = args.todo.who ? Q.memberFor(b.members, args.todo.who) : null; patch[`band:todo:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`] = { text: (mb ? String(args.todo.text).replace(/\s*@\w+/, '') : String(args.todo.text)).trim().slice(0, 200) || String(args.todo.text).slice(0, 200), done: false, who: mb ? mb.name : args.todo.who ? String(args.todo.who).slice(0, 30) : null }; } }
         if (args.boss !== undefined) patch['band:boss'] = args.boss ? { title: String(args.boss.title || '').slice(0, 80), date: /^\d{4}-\d\d-\d\d$/.test(String(args.boss.date || '')) ? args.boss.date : '', songs: (args.boss.songs || []).map((x) => songOf(x).qid) } : null;
         if (args.next !== undefined) patch['band:next'] = String(args.next || '').slice(0, 200);
+        if (args.bandName !== undefined) patch['band:name'] = String(args.bandName || '').slice(0, 60);
         if (args.manual) { const s = songOf(args.manual.song); const mb = Q.memberFor(b.members, args.manual.member); if (!mb) throw new Error(`no member ${args.manual.member}`); patch[qKey(s, `m:${mb.name}:${s.folder ? 'manual' : 'pct'}`)] = args.manual.pct == null ? null : Q.clampPct(args.manual.pct); }
         if (!Object.keys(patch).length) throw new Error('nothing to set'); await questWrite(patch); return { ok: true, xp: quest.board.xp };
       }

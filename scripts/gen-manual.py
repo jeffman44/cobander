@@ -150,7 +150,7 @@ write_page('write.html', 'Write', 'The Write workspace: parts, tracks, takes, ly
   <li>Click <b>+</b> next to <b>Songs</b> on the left. Give it a working title; you can rename it later.</li>
   <li>Pick a style (punk, folk, hip-hop, metal… 35 of them). It sets up the tempo, time signature, section order, starter tracks and a matching drum groove. Everything can be changed later.</li>
   <li>Not sure of the key? Guess. Cobander can hear it from a take later.</li>
-  <li>Free Cobander keeps one song per band folder. The second song asks for a Send noods key. See <a href="keys.html">Free &amp; Send noods</a>.</li>
+  <li>Groupie, the free version, keeps one song per band folder. The second song asks for a Send noods key. See <a href="keys.html">Free &amp; Send noods</a>.</li>
 </ul>
 
 <h2>The top row</h2>
@@ -585,7 +585,7 @@ write_page('together.html', 'Together', 'How a band works in one shared folder: 
 
 <h2>Two people on one song: track locks</h2>
 <ul>
-  <li>Every track has a 🔒. Click it to <b>unlock</b> the track for you. Nobody else can touch a track you've unlocked, and you can't touch theirs ("🔒 Dan" on the track).</li>
+  <li>Every track has a 🔒. Click it to <b>unlock</b> the track for you. Nobody else can touch a track you've unlocked, and you can't touch theirs ("🔒 Sam" on the track).</li>
   <li>While someone else has the song open, you can still unlock free tracks and record or edit on them. Your takes reach them in a few seconds and they save them into the song.</li>
   <li>Click 🔓 again (or <b>Lock all</b> / <b>🔓 Unlock all</b> at the top) to free it. A track nobody has touched for 10 minutes locks itself.</li>
   <li>Tempo, time signature, structure, master and track order stay with whoever holds the song. Whole-song changes (tempo, transpose, restructure) wait until nobody else has a track unlocked.</li>
@@ -634,9 +634,9 @@ write_page('together.html', 'Together', 'How a band works in one shared folder: 
 ''')
 
 # ---------------------------------------------------------------- keys
-write_page('keys.html', 'Free & Send noods', 'What free Cobander includes, what a Send noods key does, how to enter it, what to do if you lose it, and the Roadie wall.', '''
+write_page('keys.html', 'Free & Send noods', 'What free Cobander (Groupie) includes, what a Send noods key does, how to enter it, what to do if you lose it, and the VIP wall.', '''
 <h1>Free &amp; Send noods</h1>
-<p class="lede">Free Cobander is the whole app. Sending noods buys a key that lifts the one-song limit for everyone in the band: $25 for the band, once.</p>
+<p class="lede">Groupie, the free version, is the whole app. Sending noods buys a key that lifts the one-song limit for everyone in the band: $25 for the band, once.</p>
 
 <h2>What's free</h2>
 <ul>
@@ -656,8 +656,9 @@ write_page('keys.html', 'Free & Send noods', 'What free Cobander includes, what 
 
 <h2>What it costs</h2>
 <ul>
-  <li><b>$25</b>: <b>Groupie</b>. One key for the whole band.</li>
-  <li><b>$60</b>: <b>Roadie</b>. The same key, plus your band's name on the Roadies wall, on cobander.com and inside the app under ⚙.</li>
+  <li><b>Free</b>: <b>Groupie</b>. Everything, one song per band folder.</li>
+  <li><b>$25</b>: <b>Roadie</b>. One key for the whole band.</li>
+  <li><b>$60</b>: <b>VIP</b>. The same key, plus your band's name on the VIP wall, on cobander.com and inside the app under ⚙. Legends never die.</li>
   <li>Get it from the <b>Send noods</b> button under ⚙, on the Band page, or on <a href="../#menu">cobander.com</a>. Give your band's name (and your bandmates' names if you like). The key arrives by email, usually within a minute.</li>
 </ul>
 
@@ -668,7 +669,7 @@ write_page('keys.html', 'Free & Send noods', 'What free Cobander includes, what 
   <li>Or wait for the second song: when you make it, Cobander asks. Paste the key right there.</li>
 </ol>
 <ul>
-  <li>⚙ and the Band page then show who the key is licensed to instead of "Free Cobander: one song per band folder".</li>
+  <li>⚙ and the Band page then show who the key is licensed to instead of "Groupie (free): one song per band folder".</li>
   <li>Bandmates don't need to do anything. The key is in the folder they already share.</li>
 </ul>
 
@@ -690,16 +691,16 @@ write_page('keys.html', 'Free & Send noods', 'What free Cobander includes, what 
   <li>Already have it and want to say thanks? <b>Extra sauce</b> is a tip, any size, on Venmo (@jdeuel44) or Ko-fi. The links are under ⚙ and on the Band page.</li>
 </ul>
 
-<h2>The Roadie wall</h2>
+<h2>The VIP wall</h2>
 <ul>
-  <li>Bands who sent noods at the Roadie level are listed under ⚙ → Roadies and on cobander.com.</li>
+  <li>Bands who sent noods at the VIP level are listed under ⚙ → VIPs and on cobander.com.</li>
   <li>Your name goes up once you've confirmed how you'd like it to read. Names that are offensive or aren't yours can be declined.</li>
 </ul>
 
 <h2>Privacy, in short</h2>
 <ul>
   <li>The app sends nothing anywhere. No accounts, no telemetry, no crash reports.</li>
-  <li>It makes two read-only network requests: checking for updates, and fetching the Roadies list.</li>
+  <li>It makes two read-only network requests: checking for updates, fetching the VIP list, and fetching the list of switched-off keys.</li>
   <li>Speech-to-text, chord detection, key detection and pitch check all run on your computer.</li>
   <li>The source is open (MIT). The key check is one function anyone can read. It's a tip jar with a nudge, not copy protection.</li>
 </ul>
@@ -888,7 +889,7 @@ write_page('faq.html', 'Troubleshooting', 'Fixes for the usual Cobander problems
 
 <h2>"That's the free song" when I make a second song</h2>
 <ul>
-  <li>Free Cobander keeps one song per band folder. Paste a Send noods key right there, or click <b>Not now</b>. See <a href="keys.html">Free &amp; Send noods</a>.</li>
+  <li>Groupie (free) keeps one song per band folder. Paste a Send noods key right there, or click <b>Not now</b>. See <a href="keys.html">Free &amp; Send noods</a>.</li>
   <li>Folders that already held several songs before the limit arrived keep all of them.</li>
 </ul>
 

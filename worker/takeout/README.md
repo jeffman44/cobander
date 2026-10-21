@@ -22,13 +22,13 @@ npx wrangler deploy                          # prints https://takeout.cobander.c
   custom field named `band` ("Band name") so the key carries it.
 - Ko-fi: Settings → Webhooks → URL `https://takeout.cobander.com/webhook/kofi`. The buyer's message is used as the band name.
 
-Tier is by amount: ≥ $60 Roadie, ≥ $25 Groupie; anything under $25 is a tip (no key). Ko-fi: the message is "Band name (bandmate, bandmate…)"; Lemon Squeezy: checkout custom fields `band` and `members`.
+Tier is by amount: ≥ $60 VIP (tier id `roadie`), ≥ $25 Roadie (tier id `takeout`); anything under $25 is a tip (no key). Ko-fi: the message is "Band name (bandmate, bandmate…)"; Lemon Squeezy: checkout custom fields `band` and `members`.
 
 ## By hand
 
 ```
 curl -X POST https://takeout.cobander.com/issue -H "authorization: Bearer $ADMIN_TOKEN" -H 'content-type: application/json' \
-  -d '{"band":"Never a Doubt","email":"someone@x.y","cents":2500}'
+  -d '{"band":"The Colanders","email":"someone@x.y","cents":2500}'
 curl https://takeout.cobander.com/lookup?email=someone@x.y -H "authorization: Bearer $ADMIN_TOKEN"
 curl -X POST https://takeout.cobander.com/resend?email=someone@x.y -H "authorization: Bearer $ADMIN_TOKEN"
 ```

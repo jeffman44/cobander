@@ -2,7 +2,7 @@
 // (one per band, lives in <Shared>/_takeout.json so whoever pastes it unlocks everyone) lifts the limit.
 //
 // A key is `cob1.<payload>.<sig>`: payload = base64url JSON { band, tier, iat, members?, email?, order? }, sig = Ed25519 over the
-// payload bytes with Jeff's private key (scripts/takeout-key.js, or the Worker in worker/takeout). The app only
+// payload bytes with the owner's private key (scripts/takeout-key.js, or the Worker in worker/takeout). The app only
 // holds the public key, verifies offline, never phones home, and nothing expires. The source is MIT, so this check
 // is one function anyone can delete — it's a tip jar with a nudge, not DRM.
 'use strict';
@@ -13,7 +13,7 @@ const path = require('path');
 const PUBLIC_KEY = process.env.COBANDER_TAKEOUT_PUB || '6VNy5P50t96e5vKcEvpOGArFlX8z5l6t7Gak4JCBg1M';   // Ed25519, base64url raw 32 bytes (env override is for the test harness)
 const FILE = '_takeout.json';
 const FREE_SONGS = 1;
-const TIERS = { takeout: 'Groupie', roadie: 'Roadie' };   // tier ids stay 'takeout' (keys already issued carry them); the label is what people see
+const TIERS = { takeout: 'Roadie', roadie: 'VIP' };   // tier ids stay 'takeout' (keys already issued carry them); the label is what people see
 
 // Leaked keys: cobander.com/revoked.json lists fingerprints (sha256 of the key, 16 hex — one-way, reveals nothing).
 // Main fetches it read-only and hands it here; a revoked key drops its folder back to free (songs already there stay).
@@ -74,13 +74,13 @@ async function write(root, key) {
 // What the UI shows and what createSong asks: { unlocked, revoked, tier, band, members, songs, limit }.
 function status(root, songCount) {
   let k = root ? readSync(root) : null; const rev = !!(k && isRevoked(k.key)); const keyBand = k ? k.band : null; if (rev) k = null;
-  return { unlocked: !!k, revoked: rev, tier: k ? k.tier : 'free', tierName: k ? TIERS[k.tier] : 'Free', band: k ? k.band : null, members: k ? k.members || [] : [], leakedFrom: rev ? keyBand : null, songs: songCount, limit: k ? null : FREE_SONGS };
+  return { unlocked: !!k, revoked: rev, tier: k ? k.tier : 'free', tierName: k ? TIERS[k.tier] : 'Groupie', band: k ? k.band : null, members: k ? k.members || [] : [], leakedFrom: rev ? keyBand : null, songs: songCount, limit: k ? null : FREE_SONGS };
 }
 // Throws the error the renderer turns into the Takeout dialog when a free folder already holds its song.
 function assertCanAdd(root, songCount) {
   const st = status(root, songCount);
   if (st.unlocked || songCount < FREE_SONGS) return st;
-  const err = new Error(`Free Cobander keeps one song per band folder. Send noods lifts the limit — one key for the whole band.`);
+  const err = new Error(`Groupie (free) Cobander keeps one song per band folder. Send noods lifts the limit — one key for the whole band.`);
   err.code = 'TAKEOUT'; err.status = st;
   throw err;
 }

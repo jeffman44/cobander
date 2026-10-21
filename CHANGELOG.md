@@ -1,5 +1,9 @@
 # Cobander changelog
 
+## 0.15.10
+- New names: Groupie is the free version, Roadie is $25 for the band, VIP is $60 and puts your band on the VIP wall. Legends never die. Keys bought before keep working (a $60 key now says VIP).
+- Opening a song: the loading bar stays up until the song is really ready — no more frozen screen a few seconds after it goes away. Reopening a song is faster too (the key check is remembered).
+
 ## 0.15.9
 - Send noods is $25 for the band (Groupie), $60 for Roadie. Keys bought before keep working.
 - A key now carries your band's name and, if you gave them, your bandmates' names. With a key in the folder, Cobander calls the band by that name and shows who it's licensed to under ⚙.
@@ -44,7 +48,7 @@
 ## 0.15.2
 - New wordmark up top in the tofu-shop stencil spirit: COBANDER, a red noodle seal, (noodle together).
 - Real icons instead of system emoji: OpenMoji for the kitchen (noodles, takeout, chopsticks, pot…) and game-icons sprites for the Band page — so nothing shows as a box on Windows. Credits under ⚙.
-- 100 levels instead of 10, a new name every ten (Roadie → Open Mic → Garage Hero → Basement Star → Local Legend → Headliner → Touring Act → Rock Star → Hall of Famer → Never a Doubt). The old ladder topped out after one good night; this one takes a band a year or two of weekly work. XP for level n = 25·n^1.75. Your level number changes once; nothing else does.
+- 100 levels instead of 10, a new name every ten (Roadie → Open Mic → Garage Hero → Basement Star → Local Legend → Headliner → Touring Act → Rock Star → Hall of Famer → Living Legend). The old ladder topped out after one good night; this one takes a band a year or two of weekly work. XP for level n = 25·n^1.75. Your level number changes once; nothing else does.
 - Choose your character (Band page → click your sprite): a little person (Kenney's hand-drawn toon characters — adventurer, regular guy / gal, robot, zombie; everyone gets one from the start) plus what you play: Shredder, Low End, Thumper, Howler, Frontman, Keys Wizard, Horn, Noodle, Dumpling, Picker, The Booth, Volt. Until you pick, your role picks for you. The pose changes with every new name (idle → walk → talk → show → cheer → jump → attack → wide), with a badge, ring and glow on top; hover one and it walks.
 - LEVEL UP: a full-screen show — confetti and noodles, screen shake, your character spinning in, and a power-chord fanfare with a crowd (synthesized, no files). It stays quiet while a take is rolling (you just get the toast). Click anywhere to dismiss.
 - The boss battle is a dragon with noodles.
@@ -62,8 +66,8 @@
 - BandPad is now **Cobander — noodle together.** New name, new icon (noodles in a colander), same app, same band folder, same settings. Windows: after this update open Cobander from the Start menu once (the BandPad shortcut goes away). Mac: the app keeps working from wherever it is.
 - 🎚 Mix is a real mixing console now: no timeline — big faders, pan, reverb send and a meter for every track, the master strip with a loudness readout, Auto mix / Auto master / A/B across the top. Each strip has one-click FX on/off (LC · EQ · CMP · AMP · DLY) and ✨ fix: common mixing moves in plain words (sit the vocal, less mud, more punch, brighter, copy the sound from another track…).
 - Track heads show what each job needs: Write shows which parts a track covers; Record shows the arm button first and the last take (who, when).
-- ↕ Track height (next to + track, or Alt+wheel over the tracks): thin / regular / thick noodles, so more tracks fit on screen. Remembered per computer. (Dan's ask.) Heads drop the extras as they shrink so nothing mashes.
-- Loose ends on the Band page: the band's to-do list for things that aren't a song — book the gig, fix the PA, buy PBR. @Name assigns, checking one off earns XP, it shows in the feed. (Dan's ask.)
+- ↕ Track height (next to + track, or Alt+wheel over the tracks): thin / regular / thick noodles, so more tracks fit on screen. Remembered per computer. Heads drop the extras as they shrink so nothing mashes.
+- Loose ends on the Band page: the band's to-do list for things that aren't a song — book the gig, fix the PA, buy PBR. @Name assigns, checking one off earns XP, it shows in the feed.
 - 🎼 Chart every song (Band page, by the setlist): opens each song in turn, listens to its guitar / keys / bass takes and drafts the chords it doesn't have yet. Chords anyone typed are never touched; songs someone else has open are skipped.
 - Chords from the recordings now run once per linked part and leave silent bars blank; the song's key is heard from the bass line first and only set by itself when it's sure.
 - Key chip: ⚠ on the key when the takes disagree with the label — click it to see what the bass line says and set it.
@@ -73,12 +77,12 @@
 - ⏱ Timing report for every take (Record → Takes): how early / late each bar is, the worst bars, a one-click Nudge when it's a fixed offset or Tighten when it isn't.
 - Pitch check recalibrated on real takes: short notes ignored, slightly-off notes shown grey instead of flagged, wobbly only when the vibrato is wide.
 - The band folder can be in Google Drive, OneDrive, iCloud Drive or Dropbox (or any folder every bandmate syncs). Cobander names the provider in Settings and asks iCloud for takes it has evicted.
-- Cobander is free and open source: GitHub, Report a bug and 🍺 Buy Jeff a PBR (Venmo @jdeuel44) under ⚙ and on the Band page. Once it's on GitHub, updates can also come from the release there when there's no band folder.
-- Tuner: Done really stops listening — the mic the tuner opened is closed when the dialog closes (it used to stay open). (Dan's find.)
-- Band levels renamed for the pot: Dry Noodles → Water's Boiling → Al Dente → Saucy → Chef's Kiss → Never a Doubt. New achievements: Noodler, Tied Up.
+- Cobander is free and open source: GitHub, Report a bug and 🍺 a tip jar under ⚙ and on the Band page. Once it's on GitHub, updates can also come from the release there when there's no band folder.
+- Tuner: Done really stops listening — the mic the tuner opened is closed when the dialog closes (it used to stay open).
+- Band levels renamed for the pot: Dry Noodles → Water's Boiling → Al Dente → Saucy → Chef's Kiss → Michelin Star. New achievements: Noodler, Tied Up.
 
 ## 0.14.1
-- Chords from the recordings, tried on a real song: the bass line now names the roots (pitch-tracked bar by bar) and the key it implies names major / minor — on American Appetites that turns a smear of Db / Gb / Ab guesses into B · G#m · E · F#. One chord a bar unless the bass moves mid-bar. A key label the bass disagrees with is overruled, and BandPad offers to fix the song's key.
+- Chords from the recordings, tried on a real song: the bass line now names the roots (pitch-tracked bar by bar) and the key it implies names major / minor — on a real band demo that turns a smear of Db / Gb / Ab guesses into B · G#m · E · F#. One chord a bar unless the bass moves mid-bar. A key label the bass disagrees with is overruled, and BandPad offers to fix the song's key.
 - Key detection listens to the bass line first (the song's "Gm" label was a chroma misread; the bass says B).
 - Pitch check: when most notes fall outside the labelled key, it checks the key against the bass and tells you, instead of marking the singer wrong.
 - Tighten: a take that's late or early as a whole (a latency offset) is offered a one-nudge fix instead of warping. The toast says what the moved hits were off by, not the whole take.
@@ -137,10 +141,10 @@
 
 ## 0.12.0
 - ⚔ BandPad keeps score now — and it's all counted from the songs themselves, nothing to fill in. Every take you record (25 XP), MIDI / drum part (15), note (5), reply (3), chord (2), lyric line (3), part laid out (5), need closed (5), idea (5), version tag (10), part saved to the bin (10) and save (1) counts for whoever did it, in every song on the Drive, including everything already there.
-- Your level chip at the top (Roadie → Open Mic → Garage Hero → Basement Star → Local Legend → Headliner → Touring Act → Rock Star → Hall of Famer → Never a Doubt), a "+25 XP" pop when you do something that counts, level-up and achievement toasts (First Take, Scribe, Chord Nerd, Architect, Night Owl, Early Bird, On a Roll, Multi-Instrumentalist, Triple Threat, Parts Written, Everywhere…).
-- The ⚔ Band tab in every song: the band's level and XP (Garage Jammers → Finding the Groove → Basement Show Heroes → Opening Act → Headliners → Never a Doubt), the next boss battle with a countdown and how many target songs are show-ready, every bandmate with level, XP, achievements (click one for the breakdown), and THIS song as a quest: goals (Final Title / Final Structure / Show Ready), its milestones (structure laid out, chords, lyrics, everyone's taken a pass, bounced, demo, done), each member's parts written — the share of the song's parts their takes cover, counted live (a linked copy counts: your verse plays in every verse) — and tasks (@Name assigns one). Then the whole setlist with XP bars (right-click: boss target, hide, add a cover that isn't in BandPad).
+- Your level chip at the top (Roadie → Open Mic → Garage Hero → Basement Star → Local Legend → Headliner → Touring Act → Rock Star → Hall of Famer → Living Legend), a "+25 XP" pop when you do something that counts, level-up and achievement toasts (First Take, Scribe, Chord Nerd, Architect, Night Owl, Early Bird, On a Roll, Multi-Instrumentalist, Triple Threat, Parts Written, Everywhere…).
+- The ⚔ Band tab in every song: the band's level and XP (Garage Jammers → Finding the Groove → Basement Show Heroes → Opening Act → Headliners → Michelin Star), the next boss battle with a countdown and how many target songs are show-ready, every bandmate with level, XP, achievements (click one for the breakdown), and THIS song as a quest: goals (Final Title / Final Structure / Show Ready), its milestones (structure laid out, chords, lyrics, everyone's taken a pass, bounced, demo, done), each member's parts written — the share of the song's parts their takes cover, counted live (a linked copy counts: your verse plays in every verse) — and tasks (@Name assigns one). Then the whole setlist with XP bars (right-click: boss target, hide, add a cover that isn't in BandPad).
 - Song list shows every song's XP bar; the band feed shows the XP each thing earned and the goals / tasks people tick.
-- Dan's board is in: his setlist order, the covers that aren't BandPad songs, the Tremors task, the January house show, and his percentages for anyone who hasn't recorded in BandPad yet (the moment they do, the real count takes over; right-click a bandmate's row → "set by hand" for people who record elsewhere).
+- The band's hand-made quest board is in: setlist order, covers that aren't songs in the app, tasks, the next show, and percentages for anyone who hasn't recorded yet.
 - Band feed minimizes: click its header; folded, it counts what's new.
 - Low-pass filter on every track (FX → Low-pass, cut above … Hz): takes the pick / fret click off a bass DI, tames fizz. Bass preset "No Clicks" (DI, top rolled off at 2.5 kHz).
 - Hear yourself through the track: with monitoring on, the live input runs through the armed track's amp sim, EQ, compressor, sends and fader in real time — what you hear while you play is what the take will sound like (takes still record dry, so you can change the FX later). Right-click the monitor chip to switch to dry.
@@ -173,7 +177,7 @@
   - Chords, lyric lines and notes follow; one Undo puts it all back. A linked room has to be unlinked first.
 
 ## 0.9.0
-- Track locks — the whole band can work in one song at the same time. Every track has a 🔒: click it to unlock the track for you (or "🔓 Unlock all" at the top). Nobody else can touch a track you've unlocked; you can't touch theirs ("🔒 Dan" on the track). Click 🔓 again (or "Lock all") to free it — and a track nobody has touched for 10 minutes locks itself.
+- Track locks — the whole band can work in one song at the same time. Every track has a 🔒: click it to unlock the track for you (or "🔓 Unlock all" at the top). Nobody else can touch a track you've unlocked; you can't touch theirs ("🔒 Sam" on the track). Click 🔓 again (or "Lock all") to free it — and a track nobody has touched for 10 minutes locks itself.
 - While someone else has the song open you can still unlock free tracks and record / edit them; your tracks reach them in a few seconds and they save them into the song. Tempo, time signature, structure, master and track order stay with whoever has the song, and whole-song changes (tempo, transpose, restructure) wait until nobody else has a track unlocked.
 - Mute / solo on a track that isn't yours is just for your ears. Undo never rolls back a track someone else has unlocked.
 - Melody dialog: every part you write in one visit gets its lyrics placed (it used to place only the last part's). Right-click a melody take → "Use this melody in every Chorus" copies it (and its lyric lines) to the other choruses.
@@ -286,7 +290,7 @@
 - Writing mode (on by default): hides the mixer/FX so the screen is about parts, takes, lyrics and chords. ✍ Writing toggles it.
 - Chart tab: chord chart + lyric sheet by section, transposable; copy it to the group chat or save a printable copy.
 - Chord picker knows the song key: click the chord strip for the chords that fit, or lay a whole progression.
-- Needs can be assigned (@Logan, or right-click → Assign) and tied to a section; you get a "for you" badge on the song list. Songs get a stage (idea / writing / demo / done) with a filter.
+- Needs can be assigned (@Sam, or right-click → Assign) and tied to a section; you get a "for you" badge on the song list. Songs get a stage (idea / writing / demo / done) with a filter.
 - Practice: right-click a section or the loop → practice at 50–90% speed, same pitch.
 - Also: section markers, note reply threads with resolve, take voting (★), timed lyrics (press P to pin), chord lane, idea scratchpad, @mentions, version tags with A/B, "who's in the song" presence, Drums (mics) track type.
 - Safer collaboration: smarter merges when two people save, laptops waking from sleep can't steal the song, saved input device falls back to the default mic, AirPods/USB mic drop-outs are caught, Mac self-update rolls back if it fails.

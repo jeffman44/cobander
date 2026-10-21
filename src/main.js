@@ -375,7 +375,7 @@ ipcMain.handle('templates:write', (_e, t) => tracked(() => guardStore().writeTem
 ipcMain.handle('templates:delete', (_e, id) => guardStore().deleteTemplate(id));
 ipcMain.handle('history:read', (_e, folder, saveId) => guardStore().readHistory(folder, saveId));
 ipcMain.handle('songs:create', (_e, name) => guardStore().createSong(name));
-ipcMain.handle('takeout:status', () => store ? store.takeoutStatus() : { unlocked: false, tier: 'free', tierName: 'Free', band: null, songs: 0, limit: 1 });
+ipcMain.handle('takeout:status', () => store ? store.takeoutStatus() : { unlocked: false, tier: 'free', tierName: 'Groupie', band: null, songs: 0, limit: 1 });
 ipcMain.handle('takeout:enter', (_e, key) => guardStore().takeoutEnter(key));
 ipcMain.handle('songs:check', (_e, name) => guardStore().checkSongName(name));
 ipcMain.handle('song:open', (_e, folder, opts) => { guardStore(); return openSong(folder, opts || {}); });
@@ -471,7 +471,7 @@ ipcMain.handle('export:write', (_e, folder, name, files) => tracked(() => guardS
 ipcMain.handle('bounce:list', (_e, folder) => guardStore().listBounces(folder));
 ipcMain.handle('shell:showInFolder', (_e, p) => { shell.showItemInFolder(p); });
 ipcMain.handle('shell:links', () => LINKS);
-// Roadies: bands who paid the $60 tier. The list ships with the app (docs/roadies.json) and refreshes from the site when online.
+// VIPs (file still roadies.json — older apps fetch that name): bands who paid the $60 tier. The list ships with the app (docs/roadies.json) and refreshes from the site when online.
 let roadiesCache = null;
 ipcMain.handle('roadies:list', async () => {
   let list = []; try { list = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'docs', 'roadies.json'), 'utf8')); } catch (_) {}

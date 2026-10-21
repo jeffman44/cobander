@@ -1,6 +1,6 @@
 // Takeout key issuer — a Cloudflare Worker. A sale comes in (Lemon Squeezy or Ko-fi webhook), the Worker signs a
 // `cob1.…` key with the same Ed25519 private key as scripts/takeout-key.js, emails it to the buyer, and remembers it
-// so a lost key can be re-sent. No database beyond a KV namespace, no server of Jeff's to keep alive.
+// so a lost key can be re-sent. No database beyond a KV namespace, no server to keep alive.
 //
 // Secrets (wrangler secret put …):  TAKEOUT_PRIV (base64url raw Ed25519 private key, same as the script's),
 //   LS_SIGNING_SECRET (Lemon Squeezy webhook signing secret), KOFI_TOKEN (Ko-fi verification token),
@@ -51,9 +51,9 @@ async function svixOk(secret, headers, body) {
 }
 const timingEq = (a, b) => a.length === b.length && [...a].reduce((ok, c, i) => ok & (c === b[i]), 1) === 1;
 
-// Bandmates on the key: "Jeff, Logan & Dan" / ["Jeff","Logan"] → ['Jeff','Logan','Dan'] (max 8, 30 chars each). Must match src/takeout.js.
+// Bandmates on the key: "Riley, Sam & Alex" / ["Riley","Sam"] → ['Riley','Sam','Alex'] (max 8, 30 chars each). Must match src/takeout.js.
 export function splitMembers(m) { return (Array.isArray(m) ? m : String(m || '').split(/\s*(?:,|;|\/|\band\b|&|\n)\s*/i)).map((x) => String(x || '').trim().slice(0, 30)).filter(Boolean).slice(0, 8); }
-// Ko-fi has one message box: "Never a Doubt (Jeff, Logan, Dan, Zach)" — band name, bandmates in parentheses (optional).
+// Ko-fi has one message box: "The Colanders (Riley, Sam, Alex, Jo)" — band name, bandmates in parentheses (optional).
 export function parseBandMessage(msg) {
   const t = String(msg || '').trim(); const m = /^(.*?)\s*\(([^()]*)\)\s*$/s.exec(t);
   return m && m[1].trim() ? { band: m[1].trim().slice(0, 80), members: splitMembers(m[2]) } : { band: t.split('\n')[0].trim().slice(0, 80), members: splitMembers(t.split('\n').slice(1).join(',')) };
@@ -91,8 +91,8 @@ ${rec.key}
 In Cobander: ⚙ Settings → "Enter a key" (or just make a second song and paste it when it asks). It goes in the shared
 band folder, so whoever pastes it unlocks everyone. The key carries your band's name, and Cobander shows it.
 Keep it in the band — a key posted publicly gets switched off (you'd get a fresh one).
-${roadie ? '\nRoadie: your band goes on the Roadies wall. Reply with how you want the name to read if it\'s different from "' + rec.band + '".\n' : ''}
-Lost this email? Reply and it gets re-sent. — Jeff`;
+${roadie ? '\nVIP: your band goes on the VIP wall. Legends never die. Reply with how you want the name to read if it\'s different from "' + rec.band + '".\n' : ''}
+Lost this email? Reply and it gets re-sent. — Cobander`;
   return { subject: `${rec.band} — your Cobander key (noods received)`, text };
 }
 async function sendEmail(env, to, { subject, text }) {
@@ -101,10 +101,10 @@ async function sendEmail(env, to, { subject, text }) {
   if (!r.ok) throw new Error(`email failed: ${r.status} ${await r.text()}`);
   return r.json();
 }
-// A Roadie sale: Jeff adds the band to docs/roadies.json by hand (so nothing lands on the site unreviewed); this is the nudge.
+// A VIP sale: the owner adds the band to docs/roadies.json by hand (so nothing lands on the site unreviewed); this is the nudge.
 async function notifyRoadie(env, rec) {
   if (rec.tier !== 'roadie' || !env.NOTIFY) return;
-  try { await sendEmail(env, env.NOTIFY, { subject: `New Roadie: ${rec.band}`, text: `${rec.band} (${rec.email}) sent $${(rec.cents / 100).toFixed(2)} via ${rec.source}.\n\nAdd them to docs/roadies.json: { "band": "${rec.band}", "since": "${rec.at.slice(0, 7)}" }` }); } catch (_) {}
+  try { await sendEmail(env, env.NOTIFY, { subject: `New VIP: ${rec.band}`, text: `${rec.band} (${rec.email}) sent $${(rec.cents / 100).toFixed(2)} via ${rec.source}.\n\nAdd them to docs/roadies.json: { "band": "${rec.band}", "since": "${rec.at.slice(0, 7)}" }` }); } catch (_) {}
 }
 async function latestRelease(env) {
   const repo = env.REPO || 'jeffman44/cobander';
@@ -122,8 +122,8 @@ async function latestRelease(env) {
 
 // ---- support inbox (noods@ / support@ / hello@ / jeff@) ----
 // The Resend webhook stores each real message as KV `inbox:<id>`. A scheduled Claude task reads GET /inbox (AGENT_TOKEN),
-// writes a reply with POST /inbox/draft, and the Worker mails Jeff the draft with a link to an approve page. Nothing reaches a
-// customer until Jeff presses Send on that page (he can edit the text there first). Statuses: new → drafted → sent | done.
+// writes a reply with POST /inbox/draft, and the Worker mails the owner the draft with a link to an approve page. Nothing reaches a
+// customer until the owner presses Send on that page (he can edit the text there first). Statuses: new → drafted → sent | done.
 const INBOX_TTL = 60 * 60 * 24 * 120;
 const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const addr = (x) => (Array.isArray(x) ? x : [x]).filter(Boolean).map(String);
@@ -192,7 +192,7 @@ export default {
       const rec = await issue(sale, env); const mail = await sendEmail(env, rec.email, emailFor(rec)); await notifyRoadie(env, rec);
       return json({ ok: true, band: rec.band, tier: rec.tier, mail });
     }
-    // Resend → POST /webhook/resend (Svix-signed). Mail to noods@cobander.com lands in Resend's inbox; this pings Jeff so it isn't missed.
+    // Resend → POST /webhook/resend (Svix-signed). Mail to noods@cobander.com lands in Resend's inbox; this pings the owner (NOTIFY) so it isn't missed.
     if (req.method === 'POST' && url.pathname === '/webhook/resend') {
       const raw = await req.text();
       if (!env.RESEND_WEBHOOK_SECRET || !(await svixOk(env.RESEND_WEBHOOK_SECRET, req.headers, raw))) return json({ error: 'bad signature' }, 401);
@@ -228,7 +228,7 @@ export default {
       const mail = env.NOTIFY ? await sendEmail(env, env.NOTIFY, { subject: `[noods draft] Re: ${rec.subject}`, text: `${rec.from} wrote:\n\n${(rec.text || '(no text)').slice(0, 4000)}\n\n———— draft reply ————\n\n${rec.draft}\n\n————\n${rec.note ? 'Note: ' + rec.note + '\n' : ''}\nReview, edit and send: ${link}\n(Nothing goes out until you press Send there.)` }) : { skipped: 'no NOTIFY' };
       return json({ ok: true, mail });
     }
-    // Jeff's approve page: GET shows the message + an editable draft, POST sends it (link-scanners only ever GET).
+    // The owner's approve page: GET shows the message + an editable draft, POST sends it (link-scanners only ever GET).
     if (url.pathname === '/inbox/approve') {
       const id = String(url.searchParams.get('id') || ''), sig = String(url.searchParams.get('sig') || '');
       if (!env.ADMIN_TOKEN || !id || !timingEq(sig, await approveSig(env, id))) return page('Nope', '<p>That link is not valid.</p>');
@@ -247,7 +247,7 @@ export default {
       }
       return page(`Re: ${rec.subject}`, `<h2>${esc(rec.subject)}</h2><p><b>From</b> ${esc(rec.from)} · ${esc(rec.at)} · <b>${esc(rec.status)}</b></p><pre>${esc(rec.text || '(no text)')}</pre>${rec.note ? `<p><i>${esc(rec.note)}</i></p>` : ''}${rec.status === 'sent' ? `<h3>Sent ${esc(rec.sentAt)}</h3><pre>${esc(rec.sent)}</pre>` : `<form method="post"><h3>Reply to ${esc(replyTo(rec))}</h3><textarea name="reply">${esc(rec.draft || '')}</textarea><p><button name="act" value="send">Send</button><button class="alt" name="act" value="done">No reply needed</button></p></form>`}`);
     }
-    // Jeff's side: GET /lookup?email=  and POST /resend?email=   (Authorization: Bearer ADMIN_TOKEN)
+    // Owner side: GET /lookup?email=  and POST /resend?email=   (Authorization: Bearer ADMIN_TOKEN)
     if (url.pathname === '/lookup' || url.pathname === '/resend') {
       if (!env.ADMIN_TOKEN || (req.headers.get('authorization') || '') !== `Bearer ${env.ADMIN_TOKEN}`) return json({ error: 'nope' }, 401);
       const email = String(url.searchParams.get('email') || '').toLowerCase(); const raw = env.KEYS && (await env.KEYS.get(`email:${email}`));
