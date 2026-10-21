@@ -219,7 +219,7 @@
 <script>
   const buy = document.getElementById('buy'); const BUY = 'https://ko-fi.com/jdeuel44';
   for (const d of document.querySelectorAll('button.dish')) d.addEventListener('click', () => { for (const x of document.querySelectorAll('button.dish')) x.classList.toggle('pick', x === d); buy.textContent = `Send noods — $${d.dataset.amt}`; buy.href = BUY; });
-  const m = /^([^.]+)\.github\.io$/.exec(location.hostname); const repo = m ? `${m[1]}/cobander` : null;
+  const m = /^([^.]+)\.github\.io$/.exec(location.hostname); const repo = m ? `${m[1]}/cobander` : 'jeffman44/cobander';
   if (repo) { for (const r of document.querySelectorAll('.repo')) r.textContent = repo; for (const a of document.querySelectorAll('.repo-link')) a.href = a.href.replace('OWNER/cobander', repo); }
 </script>
 </body>
