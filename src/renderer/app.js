@@ -194,7 +194,7 @@
   bp.update.status().then(renderUpdate).catch(() => {});
   // public links: GitHub, bugs, the tip jar (Ko-fi shows once package.json names a page)
   for (const b of document.querySelectorAll('.link-btn[data-link]')) b.addEventListener('click', () => bp.shell.openLink(b.dataset.link).catch(fail));
-  bp.shell.links().then((l) => { for (const b of document.querySelectorAll('.link-btn[data-link]')) { const k = b.dataset.link; const has = k === 'kofi' ? !!l.kofi : k === 'venmo' ? !!l.venmo : k === 'takeout' ? !!l.takeout : (k === 'openmoji' || k === 'gameicons' || k === 'lpc' || k === 'manual' || k === 'site') ? true : !!l.repo; b.hidden = !has; if (k === 'takeout' && has) b.dataset.has = '1'; } renderTakeout(); }).catch(() => {});
+  bp.shell.links().then((l) => { for (const b of document.querySelectorAll('.link-btn[data-link]')) { const k = b.dataset.link; const has = k === 'kofi' ? !!l.kofi : k === 'venmo' ? !!l.venmo : k === 'takeout' ? !!l.takeout : (k === 'openmoji' || k === 'gameicons' || k === 'lpc' || k === 'manual' || k === 'site' || k === 'roadie' || k === 'vip') ? true : !!l.repo; b.hidden = !has; if (k === 'takeout' && has) b.dataset.has = '1'; } renderTakeout(); }).catch(() => {});
   $('#s-check-update').addEventListener('click', async () => { const b = $('#s-check-update'); b.disabled = true; try { const st = await bp.update.check(); renderUpdate(st); if (!st.available) toast(st.latest ? `You're on the latest (${st.current}).` : 'No installers folder in the shared band folder yet.', { ms: 5000 }); } catch (err) { fail(err); } finally { b.disabled = false; } });
 
   var MT = window.BPMeter;   // hoisted: used from init-time renders
@@ -207,18 +207,18 @@
   }
   // ---------- Takeout: the free-song gate ----------
   // createSong / restore throw when a free folder already holds its one song; this turns that into the dialog.
-  function isTakeoutErr(err) { return /Send noods lifts the limit/.test(err && err.message ? err.message : String(err)); }
+  function isTakeoutErr(err) { return /license lifts the limit|Send noods lifts the limit/.test(err && err.message ? err.message : String(err)); }
   async function takeoutDialog({ hit = false } = {}) {
     const d = $('#takeout'), inp = $('#takeout-key'), errEl = $('#takeout-err');
     inp.value = ''; errEl.hidden = true; d.returnValue = '';
-    $('#takeout-title').textContent = hit ? 'That\'s the free song' : 'Send noods';
+    $('#takeout-title').textContent = hit ? 'That\'s the free song' : 'Get a license';
     return new Promise((resolve) => {
       d.addEventListener('close', async function h() {
         d.removeEventListener('close', h);
         if (d.returnValue !== 'ok') return resolve(false);
         const key = inp.value.trim();
-        if (!key) { toast('Paste the key from your Send noods email first.', { kind: 'bad' }); return resolve(false); }
-        try { const st = await bp.shell.takeoutEnter(key); await renderTakeout(st); toast(`Noods received! ${st.band} is unlocked — every song you want.`, { ms: 6000 }); resolve(true); }
+        if (!key) { toast('Paste the key from your license email first.', { kind: 'bad' }); return resolve(false); }
+        try { const st = await bp.shell.takeoutEnter(key); await renderTakeout(st); toast(`${st.band} is unlocked — every song you want. Rock on.`, { ms: 6000 }); resolve(true); }
         catch (err) { fail(err); resolve(false); }
       });
       d.showModal(); setTimeout(() => inp.focus(), 0);
@@ -232,11 +232,13 @@
   async function renderTakeout(st) {
     try { st = st || await bp.shell.takeout(); } catch (_) { return; }
     const who = st.members && st.members.length ? ` (${st.members.join(', ')})` : '';
-    const t = st.unlocked ? `${st.tierName}: licensed to ${st.band}${who} — unlimited songs. Thanks for the noods.`
-      : st.revoked ? `This copy was unlocked with a leaked key (${st.leakedFrom}'s), so it's back to one song per band folder. Your songs are all still here — send noods to keep adding.`
+    const t = st.unlocked ? `${st.tierName}: licensed to ${st.band}${who} — unlimited songs.`
+      : st.revoked ? `This copy was unlocked with a leaked key (${st.leakedFrom}'s), so it's back to one song per band folder. Your songs are all still here — get a license to keep adding.`
       : `Groupie (free): one song per band folder${st.songs >= (st.limit || 1) ? ' (this folder has its song)' : ''}.`;
     for (const id of ['#s-takeout', '#bp-takeout']) { const n = $(id); if (n) n.textContent = t; }
-    const get = $('#s-takeout-get'); if (get) get.hidden = st.unlocked || !get.dataset.has;
+    // buy buttons: Roadie until the band has a key; VIP until the band is VIP (a Roadie band can still go VIP)
+    for (const bt of document.querySelectorAll('.link-btn[data-link=roadie]')) bt.hidden = !!st.unlocked;
+    for (const bt of document.querySelectorAll('.link-btn[data-link=vip]')) bt.hidden = !!st.unlocked && st.tier === 'roadie';
     const k = $('#s-takeout-key'); if (k) k.hidden = st.unlocked;
     for (const id of ['#s-takeout', '#bp-takeout']) { const n = $(id); if (n) n.classList.toggle('bad', !!st.revoked); }
     const changed = !state.takeout || state.takeout.band !== st.band || state.takeout.revoked !== st.revoked;
@@ -603,7 +605,7 @@
   // The band's name: typed here on the free version; with a key, the key's band name wins (it's who the key is for).
   $('#qb-lvl-title').addEventListener('click', async () => {
     if (!quest || !quest.board) return;
-    if (quest.board.licensedTo) { toast(`The Send noods key names the band: ${quest.board.licensedTo.band}. A different name needs a new key — email noods@cobander.com.`, { ms: 8000 }); return; }
+    if (quest.board.licensedTo) { toast(`The license key names the band: ${quest.board.licensedTo.band}. A different name needs a new key — email noods@cobander.com.`, { ms: 8000 }); return; }
     const v = await promptName('Band name', quest.board.name === 'Your band' ? '' : quest.board.name); if (v) questWrite({ 'band:name': v.slice(0, 60) }).catch(fail);
   });
   $('#qb-lvl-title').title = 'Your band\'s name — click to change it';

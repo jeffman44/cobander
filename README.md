@@ -35,7 +35,7 @@ whole band opens at practice.
 folder inside the cloud folder your band shares. Everyone in the band does the same with the same folder. That's the setup.
 Cobander checks for updates and installs them itself.
 
-**Send noods 🍜** — a key that lifts the one-song limit for everyone in the band, once:
+**Licenses** — a key that lifts the one-song limit for everyone in the band, once:
 
 - **Free** — Groupie: the whole app, one song per band folder
 - **$25** — Roadie: one key for the whole band
@@ -61,7 +61,7 @@ bash scripts/build.sh all   # Windows + macOS installers into release/
 Node 20+, Electron 44. `src/AI.md` documents the song format and the local control API (an assistant or a
 script can drive a running Cobander over HTTP or a file-drop inbox).
 
-## Extra sauce 🍲
+## Send noods 🍜
 
 Already have it and just want to say thanks? [Ko-fi](https://ko-fi.com/jdeuel44) or Venmo **@jdeuel44**
 (links are in the app under ⚙ and on the Band page).

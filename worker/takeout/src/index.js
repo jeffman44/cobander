@@ -82,7 +82,7 @@ export async function issue(sale, env) {
 }
 export function emailFor(rec) {
   const roadie = rec.tier === 'roadie';
-  const text = `Thanks for the noods${rec.name ? `, ${rec.name.split(' ')[0]}` : ''}.
+  const text = `Thanks for buying Cobander${rec.name ? `, ${rec.name.split(' ')[0]}` : ''}.
 
 Here's ${rec.band}'s key — one key for the whole band${rec.members && rec.members.length ? ` (${rec.members.join(', ')})` : ''}:
 
@@ -93,7 +93,7 @@ band folder, so whoever pastes it unlocks everyone. The key carries your band's 
 Keep it in the band — a key posted publicly gets switched off (you'd get a fresh one).
 ${roadie ? '\nVIP: your band goes on the VIP wall. Legends never die. Reply with how you want the name to read if it\'s different from "' + rec.band + '".\n' : ''}
 Lost this email? Reply and it gets re-sent. — Cobander`;
-  return { subject: `${rec.band} — your Cobander key (noods received)`, text };
+  return { subject: `${rec.band} — your Cobander license key`, text };
 }
 async function sendEmail(env, to, { subject, text }) {
   if (!env.RESEND_API_KEY) return { skipped: 'no RESEND_API_KEY' };
@@ -188,7 +188,7 @@ export default {
       const form = await req.formData(); let d; try { d = JSON.parse(form.get('data') || '{}'); } catch (_) { return json({ error: 'bad data' }, 400); }
       if (!env.KOFI_TOKEN || !timingEq(String(d.verification_token || ''), env.KOFI_TOKEN)) return json({ error: 'bad token' }, 401);
       const sale = saleFromKofi(d); if (!sale) return json({ error: 'no buyer email' }, 400);
-      if (sale.cents < Number(env.MIN_CENTS || 2500)) return json({ ok: true, ignored: 'under $25 — extra sauce, thanks' });
+      if (sale.cents < Number(env.MIN_CENTS || 2500)) return json({ ok: true, ignored: 'under $25 — a tip (send noods), thanks' });
       const rec = await issue(sale, env); const mail = await sendEmail(env, rec.email, emailFor(rec)); await notifyRoadie(env, rec);
       return json({ ok: true, band: rec.band, tier: rec.tier, mail });
     }

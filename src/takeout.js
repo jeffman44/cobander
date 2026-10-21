@@ -63,7 +63,7 @@ function readSync(root) {
 }
 async function write(root, key) {
   const claims = verify(key);
-  if (!claims) throw new Error('That isn\'t a Send noods key. Keys look like cob1.xxxx.xxxx — paste the whole thing from the email.');
+  if (!claims) throw new Error('That isn\'t a Cobander license key. Keys look like cob1.xxxx.xxxx — paste the whole thing from the email.');
   if (isRevoked(key)) throw new Error('That key was switched off after it was posted publicly. If it\'s yours, email noods@cobander.com and you\'ll get a fresh one.');
   const tmp = filePath(root) + '.tmp';
   await fs.promises.writeFile(tmp, JSON.stringify({ key: String(key).replace(/\s+/g, ''), band: claims.band, tier: claims.tier, added: new Date().toISOString() }, null, 2));
@@ -80,7 +80,7 @@ function status(root, songCount) {
 function assertCanAdd(root, songCount) {
   const st = status(root, songCount);
   if (st.unlocked || songCount < FREE_SONGS) return st;
-  const err = new Error(`Groupie (free) Cobander keeps one song per band folder. Send noods lifts the limit — one key for the whole band.`);
+  const err = new Error(`Groupie (free) Cobander keeps one song per band folder. A license lifts the limit — one key for the whole band.`);
   err.code = 'TAKEOUT'; err.status = st;
   throw err;
 }

@@ -77,6 +77,13 @@
   .does li b .om { margin-right: 6px; }
   .does li span { color: var(--steel); font-size: 16px; }
 
+  .dl-notes { margin: -6px 0 10px; max-width: 620px; }
+  .kofi-steps[hidden] { display: none; }
+  .kofi-steps { display: block; margin-top: 8px; padding: 10px 12px; border: 2px dashed currentColor; border-radius: 10px; }
+  .carton .go { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+  .carton .go .band-name { width: 100%; max-width: 460px; }
+  .member-boxes { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+  .member-boxes input, .band-name select { font: inherit; padding: 8px 10px; border: 2px solid currentColor; border-radius: 8px; background: transparent; color: inherit; }
   .band-name { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; margin-bottom: 8px; }
   .band-name[hidden] { display: none; }
   .band-name input { font: inherit; padding: 8px 10px; border: 2px solid currentColor; border-radius: 8px; background: transparent; color: inherit; max-width: 320px; }
@@ -93,7 +100,7 @@
   .dish .price { font-family: var(--display); font-weight: 900; font-size: 34px; color: var(--chili); }
   a.dish { text-decoration: none; } a.dish .price { color: #5e564a; }
   .dish .row { display: flex; align-items: baseline; gap: 8px; }
-  .carton .go { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 22px; }
+  .carton .go { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; margin-top: 22px; }
   .carton .btn.hot { background: var(--chili); color: #fff; } .carton .btn.hot:hover { background: #ef4a3b; }
   .carton .fine { color: #5e564a; font-size: 14px; } .carton .alt-dl { margin: 10px 0 0; } .carton .alt-dl a { color: var(--chili); }
   .stamp { position: absolute; top: -18px; right: 24px; transform: rotate(6deg); border: 3px solid var(--chili); color: var(--chili); border-radius: 8px; padding: 6px 12px; font-family: var(--display); font-weight: 900; font-size: 20px; letter-spacing: 2px; line-height: 1.05; text-align: center; background: rgba(243,236,221,.9); }
@@ -131,7 +138,7 @@
 <div class="wrap">
   <nav>
     <a class="mark" href="#"><b>COBANDER</b><span class="seal"><img class="gi" src="icons/gi-delapouite-noodles.svg" alt=""></span></a>
-    <div class="links"><a href="#novel">Why it's different</a><a href="#does">What it does</a><a href="#menu">Send noods</a><a href="#setup">Setup</a><a href="#faq">Questions</a><a href="manual/">Manual</a></div>
+    <div class="links"><a href="#novel">Why it's different</a><a href="#does">What it does</a><a href="#menu">Licenses</a><a href="#setup">Setup</a><a href="#faq">Questions</a><a href="manual/">Manual</a></div>
   </nav>
 
   <header class="hero">
@@ -141,10 +148,11 @@
     <p class="lede">A sketchpad for your whole band. Everyone records, writes, mixes and practices on their own computer; the song lives in the folder you already share. And the whole band levels up while you do it.</p>
     <div class="cta">
       <a class="btn hot dl" href="https://takeout.cobander.com/download/win">Download for Windows</a>
-      <a class="btn cool" href="#menu">Send noods</a>
-      <a class="btn cool" href="#does">See what it does</a>
-      <span class="muted">Windows &amp; Mac · no server · no accounts · no subscription</span>
+      <a class="btn hot dl" href="https://takeout.cobander.com/download/mac-arm64">Download for Mac</a>
+      <a class="btn cool" href="#menu">Licenses</a>
     </div>
+    <p class="fine dl-notes">Free to download — the whole app, one song per band. Mac with an Intel chip? <a href="https://takeout.cobander.com/download/mac-x64">Intel Mac download</a>.<br>First launch: Windows may say "Windows protected your PC" → <b>More info → Run anyway</b>. Mac says it can't check the app → <b>Done</b>, then <b>System Settings → Privacy &amp; Security → Open Anyway</b>.</p>
+    <span class="muted">Windows &amp; Mac · no server · no accounts · no subscription</span>
     </div>
     <figure class="herofig"><img src="img/mix.jpg" alt="Cobander's Mix workspace: the song timeline with a console of faders below and Track FX on the right"></figure>
   </header>
@@ -201,19 +209,18 @@
     <div class="menu-row">
     <div class="carton">
       <div class="stamp">NO SERVER<br>NO ACCOUNTS<br>NO SUBSCRIPTION</div>
-      <h2>Send noods</h2>
-      <p class="sub">Groupie is free: the whole app — every feature, every update — with one song per band. Sending noods gets you a key that lifts the limit for everyone in the band. $25 once — one key for the whole band, not $90 a head.</p>
-      <a class="dish free dl" href="https://takeout.cobander.com/download/win"><span class="name">Groupie<small>free. The whole app, one song. Windows and Mac, updates included — click to download</small></span><span class="row"><span class="price">$0</span></span></a>
-      <button class="dish pick" data-amt="25"><span class="name">Roadie<small>all the songs you want. One key for the whole band, yours for good</small></span><span class="row"><span class="price">$25</span></span></button>
-      <button class="dish" data-amt="60"><span class="name">VIP<small>same key, plus your band on the VIP wall — here and in the app. Legends never die</small></span><span class="row"><span class="price">$60</span></span></button>
+      <h2>Licenses</h2>
+      <p class="sub"><b>Groupie</b> is free — the download up top is the whole app, every feature, every update, one song per band. To make more songs, get a <b>license</b>: a key that unlocks the whole band, once. Not $90 a head.</p>
+      <button class="dish pick" id="roadie" data-amt="25" data-tier="Roadie"><span class="name">Roadie<small>all the songs you want. One key for the whole band, yours for good</small></span><span class="row"><span class="price">$25</span></span></button>
+      <button class="dish" id="vip" data-amt="60" data-tier="VIP"><span class="name">VIP<small>same key, plus your band on the VIP wall — here and in the app. Legends never die</small></span><span class="row"><span class="price">$60</span></span></button>
       <div class="go">
-        <label class="band-name" id="band-wrap" hidden>Band name <input id="band" maxlength="80" placeholder="what the key should say" autocomplete="organization"></label>
-        <label class="band-name" id="members-wrap" hidden>Bandmates <span class="fine">(optional — they go on the key too)</span> <input id="members" maxlength="240" placeholder="Riley, Sam, Alex, Jo"></label>
-        <a class="btn hot" id="buy" href="https://ko-fi.com/jdeuel44" target="_blank" rel="noopener">Send noods — $25</a>
-        <span class="fine">The key arrives by email. Paste it once; the band folder keeps it.<span id="kofi-note"> On Ko-fi, send <b>$25</b> ($60 for VIP) and put your band's name in the message, bandmates in brackets: <i>The Colanders (Riley, Sam, Alex, Jo)</i>. That's what goes on the key.</span></span>
+        <label class="band-name" id="band-wrap">Band name <input id="band" maxlength="80" placeholder="The Colanders" autocomplete="organization"></label>
+        <label class="band-name" id="count-wrap">How many in the band? <select id="count"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label>
+        <div class="band-name" id="members-wrap">Bandmates' names <span class="fine">(they go on the key; leave any blank)</span><div id="member-boxes" class="member-boxes"></div></div>
+        <input type="hidden" id="members">
+        <a class="btn hot" id="buy" href="https://ko-fi.com/jdeuel44" target="_blank" rel="noopener">Purchase Roadie — $25</a>
+        <span class="fine">The key arrives by email. Paste it once; the band folder keeps it.<span id="kofi-note" class="kofi-steps"><b>Checkout is on Ko-fi for now.</b> Purchase copies your band line, then opens Ko-fi: type <b id="kofi-amt">25</b> as the amount and paste into the message box — <i id="kofi-line">The Colanders (Riley, Sam, Alex, Jo)</i>. That's what goes on the key.</span></span>
       </div>
-      <p class="fine alt-dl">First launch: if Windows shows "Windows protected your PC", click <b>More info → Run anyway</b> (the installer is signed; the warning fades as downloads add up). Mac: click <b>Done</b> on the first warning, then <b>System Settings → Privacy &amp; Security → Open Anyway</b>.</p>
-      <p class="fine alt-dl">Other downloads: <a href="https://takeout.cobander.com/download/win">Windows</a> · <a href="https://takeout.cobander.com/download/mac-arm64">Mac (Apple silicon)</a> · <a href="https://takeout.cobander.com/download/mac-x64">Mac (Intel)</a></p>
     </div>
     <img class="jump" src="img/levelup.jpg" alt="The colander leaping with a bass guitar, confetti everywhere" loading="lazy">
     </div>
@@ -237,13 +244,13 @@
   <section class="faq" id="faq">
     <h2>Questions</h2>
     <details><summary>Do we all need to pay?</summary><p>No. One key covers the whole band — whoever pastes it into Cobander unlocks everyone, because it lives in the folder you share.</p></details>
-    <details><summary>What's in the free version?</summary><p>Everything. Write, Record, Mix, Practice, the Band page, sync, updates. The only limit is one song per band folder; Send noods lifts it. Folders that already hold more songs keep them all.</p></details>
+    <details><summary>What's in the free version?</summary><p>Everything. Write, Record, Mix, Practice, the Band page, sync, updates. The only limit is one song per band folder; a license lifts it. Folders that already hold more songs keep them all.</p></details>
     <details><summary>What if we don't share a cloud folder?</summary><p>Make one — a free Google Drive or OneDrive account is enough. Cobander needs a folder every bandmate's computer syncs; that's the whole system. There's no Cobander server, which is why there's no subscription.</p></details>
     <details><summary>Is it a real DAW?</summary><p>It records real takes, mixes with real EQ and compression, bounces stems, and hands the whole song off to a studio DAW with markers when it's ready for one. It is built for getting ideas down fast with a band, not for engineering a record.</p></details>
     <details><summary>Does my stuff leave my computer?</summary><p>Only to your band's shared folder. No telemetry, no accounts, no uploads. Speech-to-text, chord detection and pitch check all run locally.</p></details>
     <details><summary>Windows says it "protected my PC"</summary><p>The Windows installer is code-signed. A newly signed app can still get the SmartScreen warning for a while until it builds up downloads — click <b>More info</b> (it shows a verified publisher), then <b>Run anyway</b>. On a Mac, the first open says Apple can't check it: click <b>Done</b>, then <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>. (On macOS 14 and older, right-click Cobander → <b>Open</b> works too.) After that it opens normally.</p></details>
     <details><summary>Mac or Windows?</summary><p>Both. One person on a Mac and three on Windows works fine — it's all files in a folder.</p></details>
-    <details><summary>Already have it and want to say thanks?</summary><p>Extra sauce: <a href="https://ko-fi.com/jdeuel44">Ko-fi</a> or <a href="https://venmo.com/u/jdeuel44">Venmo</a>, any size.</p></details>
+    <details><summary>Already have it and want to say thanks?</summary><p>Send noods — a tip, any size: <a href="https://ko-fi.com/jdeuel44">Ko-fi</a> or <a href="https://venmo.com/u/jdeuel44">Venmo</a>, any size.</p></details>
   </section>
 
   <footer>
@@ -254,9 +261,9 @@
 <script>
   fetch('roadies.json', { cache: 'no-cache' }).then((r) => r.json()).then((list) => { if (!Array.isArray(list) || !list.length) return; const ul = document.getElementById('roadies-list'); for (const b of list) { const li = document.createElement('li'); if (b.url) { const a = document.createElement('a'); a.href = b.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = b.band; li.append(a); } else li.textContent = b.band; ul.append(li); } document.getElementById('roadies').hidden = false; }).catch(() => {});
   // Download buttons point at this visitor's platform (Mac can't tell Apple silicon from Intel from a browser; arm64 is the default, Intel is in the list)
-  { const ua = navigator.userAgent, mac = /Macintosh|Mac OS X/.test(ua), win = /Windows/.test(ua), mobile = /Android|iPhone|iPad/.test(ua);
-    const DL = 'https://takeout.cobander.com/download/'; const href = mac ? DL + 'mac-arm64' : DL + 'win'; const label = mobile ? 'Download on a computer' : mac ? 'Download for Mac' : 'Download for Windows';
-    for (const a of document.querySelectorAll('a.dl')) { a.href = href; if (a.classList.contains('btn')) a.textContent = label; if (mobile) { a.addEventListener('click', (e) => { e.preventDefault(); alert('Cobander runs on Windows and Mac. Open cobander.com on that computer.'); }); } } }
+  // Both download buttons stay put (Windows and Mac); on a phone they explain instead of downloading.
+  { const mobile = /Android|iPhone|iPad/.test(navigator.userAgent);
+    if (mobile) for (const a of document.querySelectorAll('a.dl')) a.addEventListener('click', (e) => { e.preventDefault(); alert('Cobander runs on Windows and Mac. Open cobander.com on that computer.'); }); }
   // Storefront: LS (Lemon Squeezy checkout, live mode) when set, else Ko-fi. With LS the band name rides along as
   // checkout[custom][band] (→ the key's band); the buyer types the amount (LS ignores a price prefill on share links).
   // Lemon Squeezy checkout links (Share panel, one variant enabled each). LS_LIVE flips to true once the store is out of
@@ -266,13 +273,22 @@
   const LS_ROADIE = LS_LIVE ? 'https://cobander.lemonsqueezy.com/checkout/buy/62b6f7b9-c75a-4f50-b43f-2caefca4f65f?enabled=2278488' : null;
   const KOFI = 'https://ko-fi.com/jdeuel44';
   const buy = document.getElementById('buy'), band = document.getElementById('band'); let amt = 25;
-  const members = document.getElementById('members');
-  if (LS) { document.getElementById('band-wrap').hidden = false; document.getElementById('members-wrap').hidden = false; document.getElementById('kofi-note').hidden = true; }
+  const members = document.getElementById('members'), count = document.getElementById('count'), boxes = document.getElementById('member-boxes');
+  if (LS) document.getElementById('kofi-note').hidden = true;
+  // one name box per bandmate (keeps what's typed when the count changes)
+  const drawBoxes = () => { const keep = [...boxes.querySelectorAll('input')].map((i) => i.value); boxes.innerHTML = ''; for (let i = 0; i < Number(count.value); i++) { const inp = document.createElement('input'); inp.maxLength = 30; inp.placeholder = `bandmate ${i + 1}`; inp.value = keep[i] || ''; inp.addEventListener('input', () => { collect(); sync(); }); boxes.append(inp); } collect(); };
+  const collect = () => { members.value = [...boxes.querySelectorAll('input')].map((i) => i.value.trim()).filter(Boolean).join(', '); };
+  const bandLine = () => { const b = band.value.trim() || 'Your band'; return members.value ? `${b} (${members.value})` : b; };
+  count.addEventListener('change', () => { drawBoxes(); sync(); });
   const buyHref = () => { if (!LS) return KOFI; const q = new URLSearchParams(); const b = band.value.trim(), mm = members.value.trim(); if (b) q.set('checkout[custom][band]', b); if (mm) q.set('checkout[custom][members]', mm); const u = amt >= 60 ? (LS_ROADIE || LS) : LS; return q.toString() ? `${u}${u.includes('?') ? '&' : '?'}${q}` : u; };
-  const sync = () => { buy.textContent = `Send noods — $${amt}`; buy.href = buyHref(); };
-  for (const d of document.querySelectorAll('button.dish')) d.addEventListener('click', () => { for (const x of document.querySelectorAll('button.dish')) x.classList.toggle('pick', x === d); amt = Number(d.dataset.amt); sync(); });
+  let tier = 'Roadie';
+  const sync = () => { buy.textContent = `Purchase ${tier} — $${amt}`; buy.href = buyHref(); const ka = document.getElementById('kofi-amt'); if (ka) ka.textContent = String(amt); const kl = document.getElementById('kofi-line'); if (kl) kl.textContent = band.value.trim() ? bandLine() : 'The Colanders (Riley, Sam, Alex, Jo)'; };
+  for (const d of document.querySelectorAll('button.dish')) d.addEventListener('click', () => { for (const x of document.querySelectorAll('button.dish')) x.classList.toggle('pick', x === d); amt = Number(d.dataset.amt); tier = d.dataset.tier; sync(); });
+  // links from the app: cobander.com/#roadie or #vip picks that license
+  { const want = (location.hash || '').slice(1); const d = want === 'vip' || want === 'roadie' ? document.getElementById(want) : null; if (d) { d.click(); document.getElementById('menu').scrollIntoView(); } }
   band.addEventListener('input', sync); members.addEventListener('input', sync);
-  buy.addEventListener('click', (e) => { if (LS && !band.value.trim()) { e.preventDefault(); band.focus(); band.placeholder = 'type your band name first'; } });
+  buy.addEventListener('click', (e) => { if (!band.value.trim()) { e.preventDefault(); band.focus(); band.placeholder = 'type your band name first'; return; } if (!LS) { try { navigator.clipboard.writeText(bandLine()); } catch (_) {} } });
+  drawBoxes();
   sync();
   const m = /^([^.]+)\.github\.io$/.exec(location.hostname); const repo = m ? `${m[1]}/cobander` : 'jeffman44/cobander';
   if (repo) { for (const r of document.querySelectorAll('.repo')) r.textContent = repo; for (const a of document.querySelectorAll('.repo-link')) a.href = a.href.replace('OWNER/cobander', repo); }

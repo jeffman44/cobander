@@ -38,8 +38,8 @@ test('free folder: one song, then Takeout; a key lifts it', async () => {
   fs.mkdirSync(path.join(root, 'installers')); fs.mkdirSync(path.join(root, 'Plugins'));   // not songs: must not eat the free slot
   assert.equal((await st.takeoutStatus()).unlocked, false); assert.equal((await st.takeoutStatus()).songs, 0);
   await st.createSong('First'); assert.equal((await st.takeoutStatus()).songs, 1);
-  await assert.rejects(st.createSong('Second'), /Send noods lifts the limit/);
-  await assert.rejects(st.takeoutEnter('cob1.x.y'), /isn't a Send noods key/);
+  await assert.rejects(st.createSong('Second'), /license lifts the limit/);
+  await assert.rejects(st.takeoutEnter('cob1.x.y'), /isn't a Cobander license key/);
   const stt = await st.takeoutEnter(TK); assert.equal(stt.unlocked, true); assert.equal(stt.band, 'Test Band'); assert.equal(stt.songs, 1);
   assert.equal((await st.createSong('Second')).folder, 'Second');
   assert.ok(!(await st.listSongs()).some((x) => x.folder.startsWith('_')), 'the key file is not a song');

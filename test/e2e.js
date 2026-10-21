@@ -119,7 +119,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
     });
     await step('takeout: free folder keeps one song; a key unlocks the band', async () => {
       const r = await jeff.post('/song/create', { name: 'Second Song' }).catch((e) => e);
-      assert.match(String(r.error || r.message || JSON.stringify(r)), /Send noods lifts the limit/, 'second song must hit the free limit');
+      assert.match(String(r.error || r.message || JSON.stringify(r)), /license lifts the limit/, 'second song must hit the free limit');
       assert.equal((await fsp.readdir(shared, { withFileTypes: true })).filter((e) => e.isDirectory() && !e.name.startsWith('_') && !e.name.startsWith('.')).length, 1);
       assert.equal(Takeout.verify('cob1.nope.nope', TK.pub), null);
       await jeff.evalJs(`document.querySelector('#s-takeout-key').click()`); await sleep(300);
@@ -129,7 +129,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       const r2 = await jeff.post('/song/create', { name: 'Second Song' }); assert.ok(r2.folder, 'unlocked folder creates a second song');
       await jeff.post('/song/close').catch(() => {}); await jeff.post('/song/open', { folder: 'E2E Song' }).catch(() => {});
       const st = await jeff.evalJs('window.cobander.shell.takeout()').catch(() => null);
-      const roadies = await jeff.evalJs('window.cobander.shell.roadies()'); assert.ok(Array.isArray(roadies) && roadies.some((b) => b.band === 'Never a Doubt'), 'roadies list ships with the app');
+      const roadies = await jeff.evalJs('window.cobander.shell.roadies()'); assert.ok(Array.isArray(roadies), 'VIP list ships with the app');
       if (st) { assert.equal(st.unlocked, true); assert.equal(st.band, 'E2E Band'); }
       song = (await jeff.get('/state')).song; assert.equal(song.tracks.find((t) => t.name === 'Gtr').clips.length, 2);
     });

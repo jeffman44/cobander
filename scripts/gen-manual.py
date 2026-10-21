@@ -13,7 +13,7 @@ PAGES = [
     ('practice.html', 'Practice', 'Workspaces'),
     ('band.html', 'Band', 'Workspaces'),
     ('together.html', 'Together', 'The band'),
-    ('keys.html', 'Free &amp; Send noods', 'The band'),
+    ('keys.html', 'Free &amp; licenses', 'The band'),
     ('shortcuts.html', 'Keyboard shortcuts', 'Reference'),
     ('faq.html', 'Troubleshooting', 'Reference'),
 ]
@@ -107,7 +107,7 @@ write_page('index.html', 'Start here', 'How to use Cobander: setup, the five wor
 <h2>Everything else</h2>
 <ul class="toc">
   <li><a href="together.html"><b>Together</b><span>The shared folder, locks, presence, @mentions, the Band feed, the phone page.</span></a></li>
-  <li><a href="keys.html"><b>Free &amp; Send noods</b><span>What's free, what a key does, how to enter one, what to do if you lose it.</span></a></li>
+  <li><a href="keys.html"><b>Free &amp; licenses</b><span>What's free, what a key does, how to enter one, what to do if you lose it.</span></a></li>
   <li><a href="shortcuts.html"><b>Keyboard shortcuts</b><span>Every key, in one place.</span></a></li>
   <li><a href="faq.html"><b>Troubleshooting</b><span>SmartScreen, no mic, a locked song, a folder that won't sync, a key that isn't accepted.</span></a></li>
 </ul>
@@ -150,7 +150,7 @@ write_page('write.html', 'Write', 'The Write workspace: parts, tracks, takes, ly
   <li>Click <b>+</b> next to <b>Songs</b> on the left. Give it a working title; you can rename it later.</li>
   <li>Pick a style (punk, folk, hip-hop, metal… 35 of them). It sets up the tempo, time signature, section order, starter tracks and a matching drum groove. Everything can be changed later.</li>
   <li>Not sure of the key? Guess. Cobander can hear it from a take later.</li>
-  <li>Groupie, the free version, keeps one song per band folder. The second song asks for a Send noods key. See <a href="keys.html">Free &amp; Send noods</a>.</li>
+  <li>Groupie, the free version, keeps one song per band folder. The second song asks for a license key. See <a href="keys.html">Free &amp; licenses</a>.</li>
 </ul>
 
 <h2>The top row</h2>
@@ -518,7 +518,7 @@ write_page('band.html', 'Band', 'The Band workspace: levels and XP, achievements
 
 <h2>The band's level and the boss battle</h2>
 <ul>
-  <li>The top of the page shows the band's level and XP (Dry Noodles → Water's Boiling → Al Dente → Saucy → Chef's Kiss → Michelin Star). Click the band's name to change it; with a Send noods key, the key's band name is used.</li>
+  <li>The top of the page shows the band's level and XP (Dry Noodles → Water's Boiling → Al Dente → Saucy → Chef's Kiss → Michelin Star). Click the band's name to change it; with a license, the key's band name is used.</li>
   <li><b>Boss battle</b>: the next thing the band is working towards. A practice, a show, a recording day. Click it to name it and give it a date. It counts down, and shows how many target songs are show-ready.</li>
   <li>Right-click a song in the setlist → <b>boss target</b> to make it one of the songs for that show. The line under the setlist is what comes after; click to edit.</li>
 </ul>
@@ -550,7 +550,7 @@ write_page('band.html', 'Band', 'The Band workspace: levels and XP, achievements
   <li><b>Rehearsing now</b>: who's in Practice at this moment, and on what.</li>
   <li><b>Practice this week</b>: minutes per person.</li>
   <li><b>Band feed</b>: everything the band did, across every song, live. Who's in which song right now, takes, edits, new parts, the XP each thing earned, goals and tasks people tick. Click an entry to open that song.</li>
-  <li>At the bottom: the free / Send noods status, the <b>Send noods</b> link, and <b>extra sauce</b> (a tip, any size). See <a href="keys.html">Free &amp; Send noods</a>.</li>
+  <li>At the bottom: the free / license status, the <b>Buy Roadie</b> / <b>VIP</b> links, and <b>Send noods</b> (a tip, any size). See <a href="keys.html">Free &amp; licenses</a>.</li>
 </ul>
 
 <h2>Song stages</h2>
@@ -568,7 +568,7 @@ write_page('together.html', 'Together', 'How a band works in one shared folder: 
 <h2>The shared folder</h2>
 <ul>
   <li>Every bandmate points Cobander at the same folder inside Google Drive, OneDrive, iCloud Drive or Dropbox. The cloud app on each computer does the syncing.</li>
-  <li>Each song is a folder of its own: the song file, an <code>audio</code> folder with one file per take, <code>bounces</code>, <code>versions</code> and <code>history</code>. The band's Parts bin, templates and the Send noods key sit beside the songs.</li>
+  <li>Each song is a folder of its own: the song file, an <code>audio</code> folder with one file per take, <code>bounces</code>, <code>versions</code> and <code>history</code>. The band's Parts bin, templates and the license key sit beside the songs.</li>
   <li>Mac and Windows mix fine. One person on a Mac and three on Windows is just files in a folder.</li>
   <li>Back up the folder the way you'd back up anything else. The cloud service already keeps copies; that's your call.</li>
   <li>⚙ names which cloud it found. If it says the folder doesn't look synced, Cobander still works, but the band only sees each other's noodles if every bandmate uses the same synced folder.</li>
@@ -634,9 +634,9 @@ write_page('together.html', 'Together', 'How a band works in one shared folder: 
 ''')
 
 # ---------------------------------------------------------------- keys
-write_page('keys.html', 'Free & Send noods', 'What free Cobander (Groupie) includes, what a Send noods key does, how to enter it, what to do if you lose it, and the VIP wall.', '''
-<h1>Free &amp; Send noods</h1>
-<p class="lede">Groupie, the free version, is the whole app. Sending noods buys a key that lifts the one-song limit for everyone in the band: $25 for the band, once.</p>
+write_page('keys.html', 'Free & licenses', 'What free Cobander (Groupie) includes, what a license key does, how to enter it, what to do if you lose it, and the VIP wall.', '''
+<h1>Free &amp; licenses</h1>
+<p class="lede">Groupie, the free version, is the whole app. A license is a key that lifts the one-song limit for everyone in the band: $25 for the band, once.</p>
 
 <h2>What's free</h2>
 <ul>
@@ -647,7 +647,7 @@ write_page('keys.html', 'Free & Send noods', 'What free Cobander (Groupie) inclu
 
 <h2>What a key does</h2>
 <ul>
-  <li>A <b>Send noods</b> key lifts the limit for the whole band (up to 8 people). One key, not one per person or per computer.</li>
+  <li>A <b>license</b> key lifts the limit for the whole band (up to 8 people). One key, not one per person or per computer.</li>
   <li>It lives in the shared folder. Whoever pastes it unlocks everyone.</li>
   <li>It checks itself on your computer, never phones home, and never expires. It keeps working if Cobander stops being developed.</li>
   <li>It carries your band's name (and bandmates' names, if you gave them). With a key in the folder, Cobander calls the band by that name.</li>
@@ -659,7 +659,7 @@ write_page('keys.html', 'Free & Send noods', 'What free Cobander (Groupie) inclu
   <li><b>Free</b>: <b>Groupie</b>. Everything, one song per band folder.</li>
   <li><b>$25</b>: <b>Roadie</b>. One key for the whole band.</li>
   <li><b>$60</b>: <b>VIP</b>. The same key, plus your band's name on the VIP wall, on cobander.com and inside the app under ⚙. Legends never die.</li>
-  <li>Get it from the <b>Send noods</b> button under ⚙, on the Band page, or on <a href="../#menu">cobander.com</a>. Give your band's name (and your bandmates' names if you like). The key arrives by email, usually within a minute.</li>
+  <li>Get it from the <b>Buy Roadie</b> / <b>VIP</b> buttons under ⚙, on the Band page, or on <a href="../#menu">cobander.com</a>. Give your band's name (and your bandmates' names if you like). The key arrives by email, usually within a minute.</li>
 </ul>
 
 <h2>Enter the key</h2>
@@ -686,14 +686,14 @@ write_page('keys.html', 'Free & Send noods', 'What free Cobander (Groupie) inclu
   <li>The small print is at <a href="../terms.html">cobander.com/terms</a>.</li>
 </ul>
 
-<h2>Extra sauce</h2>
+<h2>Send noods (tips)</h2>
 <ul>
-  <li>Already have it and want to say thanks? <b>Extra sauce</b> is a tip, any size, on Venmo (@jdeuel44) or Ko-fi. The links are under ⚙ and on the Band page.</li>
+  <li>Already have it and want to say thanks? <b>Send noods</b> is a tip, any size, on Venmo (@jdeuel44) or Ko-fi. The links are under ⚙ and on the Band page.</li>
 </ul>
 
 <h2>The VIP wall</h2>
 <ul>
-  <li>Bands who sent noods at the VIP level are listed under ⚙ → VIPs and on cobander.com.</li>
+  <li>Bands with a VIP license are listed under ⚙ → VIPs and on cobander.com.</li>
   <li>Your name goes up once you've confirmed how you'd like it to read. Names that are offensive or aren't yours can be declined.</li>
 </ul>
 
@@ -800,7 +800,7 @@ write_page('shortcuts.html', 'Keyboard shortcuts', 'Every Cobander keyboard shor
 ''')
 
 # ---------------------------------------------------------------- faq
-write_page('faq.html', 'Troubleshooting', 'Fixes for the usual Cobander problems: SmartScreen and Gatekeeper, no microphone, a locked song, a folder that is not syncing, iCloud still downloading, a Send noods key that is not accepted, updates stuck.', '''
+write_page('faq.html', 'Troubleshooting', 'Fixes for the usual Cobander problems: SmartScreen and Gatekeeper, no microphone, a locked song, a folder that is not syncing, iCloud still downloading, a license key that is not accepted, updates stuck.', '''
 <h1>Troubleshooting</h1>
 <p class="lede">The usual snags, and the fix for each. If yours isn't here, ⚙ → <b>Report a bug</b> opens the bug tracker, or write to <a href="mailto:noods@cobander.com">noods@cobander.com</a>.</p>
 
@@ -880,7 +880,7 @@ write_page('faq.html', 'Troubleshooting', 'Fixes for the usual Cobander problems
   <li>If the window goes blank, Cobander restarts itself instead of staying stuck with the song locked.</li>
 </ul>
 
-<h2>My Send noods key isn't accepted</h2>
+<h2>My license key isn't accepted</h2>
 <ul>
   <li>Paste the <b>whole</b> key from the email. It looks like <code>cob1.xxxx.xxxx</code>: three pieces separated by dots. Spaces and line breaks are fine; a missing piece isn't.</li>
   <li>The key is for the band folder you're in. Moved the band to a new folder? Paste it again there.</li>
@@ -889,7 +889,7 @@ write_page('faq.html', 'Troubleshooting', 'Fixes for the usual Cobander problems
 
 <h2>"That's the free song" when I make a second song</h2>
 <ul>
-  <li>Groupie (free) keeps one song per band folder. Paste a Send noods key right there, or click <b>Not now</b>. See <a href="keys.html">Free &amp; Send noods</a>.</li>
+  <li>Groupie (free) keeps one song per band folder. Paste a license key right there, or click <b>Not now</b>. See <a href="keys.html">Free &amp; licenses</a>.</li>
   <li>Folders that already held several songs before the limit arrived keep all of them.</li>
 </ul>
 

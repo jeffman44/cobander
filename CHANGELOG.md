@@ -1,5 +1,9 @@
 # Cobander changelog
 
+## 0.15.11
+- Buy Roadie ($25) and VIP ($60) buttons under ⚙, on the Band page and in the free-song dialog — they open the license page on cobander.com, where you type the band name and bandmates before checkout.
+- "Send noods" is the tip jar now (any amount, Venmo or Ko-fi). Licenses are licenses.
+
 ## 0.15.10
 - New names: Groupie is the free version, Roadie is $25 for the band, VIP is $60 and puts your band on the VIP wall. Legends never die. Keys bought before keep working (a $60 key now says VIP).
 - Opening a song: the loading bar stays up until the song is really ready — no more frozen screen a few seconds after it goes away. Reopening a song is faster too (the key check is remembered).
