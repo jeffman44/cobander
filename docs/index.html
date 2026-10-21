@@ -244,11 +244,16 @@
     for (const a of document.querySelectorAll('a.dl')) { a.href = href; if (a.classList.contains('btn')) a.textContent = label; if (mobile) { a.addEventListener('click', (e) => { e.preventDefault(); alert('Cobander runs on Windows and Mac. Open cobander.com on that computer.'); }); } } }
   // Storefront: LS (Lemon Squeezy checkout, live mode) when set, else Ko-fi. With LS the band name rides along as
   // checkout[custom][band] (→ the key's band); the buyer types the amount (LS ignores a price prefill on share links).
-  const LS = null, LS_ROADIE = null; const KOFI = 'https://ko-fi.com/jdeuel44';   // LS_ROADIE: the $60 variant's checkout link
+  // Lemon Squeezy checkout links (Share panel, one variant enabled each). LS_LIVE flips to true once the store is out of
+  // test mode — until then the Buy button goes to Ko-fi. Groupie = variant 2275059, Roadie = variant 2278488.
+  const LS_LIVE = false;
+  const LS = LS_LIVE ? 'https://cobander.lemonsqueezy.com/checkout/buy/1e28640f-46d0-450e-8059-75d9574901d6?enabled=2275059' : null;
+  const LS_ROADIE = LS_LIVE ? 'https://cobander.lemonsqueezy.com/checkout/buy/62b6f7b9-c75a-4f50-b43f-2caefca4f65f?enabled=2278488' : null;
+  const KOFI = 'https://ko-fi.com/jdeuel44';
   const buy = document.getElementById('buy'), band = document.getElementById('band'); let amt = 25;
   const members = document.getElementById('members');
   if (LS) { document.getElementById('band-wrap').hidden = false; document.getElementById('members-wrap').hidden = false; document.getElementById('kofi-note').hidden = true; }
-  const buyHref = () => { if (!LS) return KOFI; const q = new URLSearchParams(); const b = band.value.trim(), mm = members.value.trim(); if (b) q.set('checkout[custom][band]', b); if (mm) q.set('checkout[custom][members]', mm); const u = amt >= 60 ? (LS_ROADIE || LS) : LS; return q.toString() ? `${u}?${q}` : u; };
+  const buyHref = () => { if (!LS) return KOFI; const q = new URLSearchParams(); const b = band.value.trim(), mm = members.value.trim(); if (b) q.set('checkout[custom][band]', b); if (mm) q.set('checkout[custom][members]', mm); const u = amt >= 60 ? (LS_ROADIE || LS) : LS; return q.toString() ? `${u}${u.includes('?') ? '&' : '?'}${q}` : u; };
   const sync = () => { buy.textContent = `Send noods — $${amt}`; buy.href = buyHref(); };
   for (const d of document.querySelectorAll('button.dish')) d.addEventListener('click', () => { for (const x of document.querySelectorAll('button.dish')) x.classList.toggle('pick', x === d); amt = Number(d.dataset.amt); sync(); });
   band.addEventListener('input', sync); members.addEventListener('input', sync);
