@@ -10,9 +10,9 @@ songs without touching the GUI.
 ```
 <Shared>/
   AI.md                       this file (Cobander re-copies it when its version is newer)
-  _takeout.json               the band's Takeout key {key, band, tier}. Free Cobander keeps ONE song per folder; with a valid
+  _takeout.json               the band's Send noods key {key, band, tier}. Free Cobander keeps ONE song per folder; with a valid
                               key (Ed25519-signed by Jeff, verified offline) the band adds as many as it likes. POST /song/create
-                              on a free folder that already has its song fails with "Takeout lifts the limit".
+                              on a free folder that already has its song fails with "Send noods lifts the limit".
   <Song Name>/
     song.json                 the whole project: tempo, tracks, mix, FX, clip placement, notes
     audio/<track> - <take> - <who> - <clipId>.wav   one immutable 24-bit WAV per take. The 12-hex clipId at the END

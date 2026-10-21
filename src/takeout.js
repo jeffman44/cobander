@@ -13,7 +13,7 @@ const path = require('path');
 const PUBLIC_KEY = process.env.COBANDER_TAKEOUT_PUB || '6VNy5P50t96e5vKcEvpOGArFlX8z5l6t7Gak4JCBg1M';   // Ed25519, base64url raw 32 bytes (env override is for the test harness)
 const FILE = '_takeout.json';
 const FREE_SONGS = 1;
-const TIERS = { takeout: 'Takeout', roadie: 'Roadie' };
+const TIERS = { takeout: 'Send noods', roadie: 'Roadie' };   // tier ids stay 'takeout' (keys already issued carry them); the label is what people see
 
 function b64u(buf) { return Buffer.from(buf).toString('base64url'); }
 function spki(raw) { return crypto.createPublicKey({ key: Buffer.concat([Buffer.from('302a300506032b6570032100', 'hex'), raw]), format: 'der', type: 'spki' }); }
@@ -54,7 +54,7 @@ function readSync(root) {
 }
 async function write(root, key) {
   const claims = verify(key);
-  if (!claims) throw new Error('That isn\'t a Takeout key. Keys look like cob1.xxxx.xxxx — paste the whole thing from the email.');
+  if (!claims) throw new Error('That isn\'t a Send noods key. Keys look like cob1.xxxx.xxxx — paste the whole thing from the email.');
   const tmp = filePath(root) + '.tmp';
   await fs.promises.writeFile(tmp, JSON.stringify({ key: String(key).replace(/\s+/g, ''), band: claims.band, tier: claims.tier, added: new Date().toISOString() }, null, 2));
   await fs.promises.rename(tmp, filePath(root));
@@ -70,7 +70,7 @@ function status(root, songCount) {
 function assertCanAdd(root, songCount) {
   const st = status(root, songCount);
   if (st.unlocked || songCount < FREE_SONGS) return st;
-  const err = new Error(`Free Cobander keeps one song per band folder. Takeout lifts the limit — one key for the whole band.`);
+  const err = new Error(`Free Cobander keeps one song per band folder. Send noods lifts the limit — one key for the whole band.`);
   err.code = 'TAKEOUT'; err.status = st;
   throw err;
 }

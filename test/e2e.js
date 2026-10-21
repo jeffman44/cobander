@@ -104,7 +104,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
     });
     await step('takeout: free folder keeps one song; a key unlocks the band', async () => {
       const r = await jeff.post('/song/create', { name: 'Second Song' }).catch((e) => e);
-      assert.match(String(r.error || r.message || JSON.stringify(r)), /Takeout lifts the limit/, 'second song must hit the free limit');
+      assert.match(String(r.error || r.message || JSON.stringify(r)), /Send noods lifts the limit/, 'second song must hit the free limit');
       assert.equal((await fsp.readdir(shared, { withFileTypes: true })).filter((e) => e.isDirectory() && !e.name.startsWith('_') && !e.name.startsWith('.')).length, 1);
       assert.equal(Takeout.verify('cob1.nope.nope', TK.pub), null);
       await jeff.evalJs(`document.querySelector('#s-takeout-key').click()`); await sleep(300);

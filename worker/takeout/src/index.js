@@ -64,7 +64,7 @@ export function emailFor(rec) {
   const roadie = rec.tier === 'roadie';
   const text = `Thanks for the noods${rec.name ? `, ${rec.name.split(' ')[0]}` : ''}.
 
-Here's ${rec.band}'s Takeout key — one key for the whole band:
+Here's ${rec.band}'s key — one key for the whole band:
 
 ${rec.key}
 
@@ -72,7 +72,7 @@ In Cobander: ⚙ Settings → "Enter a key" (or just make a second song and past
 band folder, so whoever pastes it unlocks everyone.
 ${roadie ? '\nRoadie: your band goes in the credits. Reply with how you want the name to read if it\'s different from "' + rec.band + '".\n' : ''}
 Lost this email? Reply and it gets re-sent. — Jeff`;
-  return { subject: `${rec.band} — your Cobander Takeout key`, text };
+  return { subject: `${rec.band} — your Cobander key (noods received)`, text };
 }
 async function sendEmail(env, to, { subject, text }) {
   if (!env.RESEND_API_KEY) return { skipped: 'no RESEND_API_KEY' };
@@ -103,7 +103,7 @@ export default {
       const form = await req.formData(); let d; try { d = JSON.parse(form.get('data') || '{}'); } catch (_) { return json({ error: 'bad data' }, 400); }
       if (!env.KOFI_TOKEN || !timingEq(String(d.verification_token || ''), env.KOFI_TOKEN)) return json({ error: 'bad token' }, 401);
       const sale = saleFromKofi(d); if (!sale) return json({ error: 'no buyer email' }, 400);
-      if (sale.cents < Number(env.MIN_CENTS || 1200)) return json({ ok: true, ignored: 'below the Takeout minimum — a tip, thanks' });
+      if (sale.cents < Number(env.MIN_CENTS || 1200)) return json({ ok: true, ignored: 'below the Send noods minimum — extra sauce, thanks' });
       const rec = await issue(sale, env); const mail = await sendEmail(env, rec.email, emailFor(rec));
       return json({ ok: true, band: rec.band, tier: rec.tier, mail });
     }

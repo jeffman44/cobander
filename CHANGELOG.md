@@ -1,10 +1,10 @@
 # Cobander changelog
 
 ## 0.15.4
-- Takeout is a key now. Free Cobander is the whole app with one song per band folder; a Takeout key (pay what the band can spare, once) lifts the limit for everyone in the band — paste it under ⚙ → Enter a key, or when the second song asks. The key lives in the shared folder, verifies offline, never expires, never phones home. Folders that already have more songs keep them all.
+- Send noods is the paid thing now, and it's a key. Free Cobander is the whole app with one song per band folder; a Send noods key (pay what the band can spare, once) lifts the limit for everyone in the band — paste it under ⚙ → Enter a key, or when the second song asks. The key lives in the shared folder, verifies offline, never expires, never phones home. Folders that already have more songs keep them all.
 - Choose your character is a real character builder now: Liberated Pixel Cup art (hundreds of human-drawn parts) — body, skin, hair and colour, beard, face, top, jacket, legs, shoes, hat — plus your instrument. Your character animates on the Band page and leaps through the level-up show; the pose changes with every new name.
 - The kitchen band moved in: the takeout box waits by the drums when no song is open, the band plays across the top of the Band page, and the colander leaps through every level-up.
-- The tip jar is now "send noods" (same Venmo / Ko-fi).
+- The tip jar is "extra sauce" (same Venmo / Ko-fi).
 - Right-click a guitar / keys / bass track → 🎸 Chords & tabs: the chart moved for a capo or another key (nothing re-tuned), chords from its takes, or the play-along highway; 🔁 Transpose the whole song sits next to it. "Lyrics from this track" now only shows on vocal tracks.
 - 3D practice view: every word flies at you on its own, lands in its place on the line when it's time to sing it, and the line assembles as it arrives. The view menu switches back to classic karaoke (words + chords) any time.
 

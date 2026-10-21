@@ -206,18 +206,18 @@
   }
   // ---------- Takeout: the free-song gate ----------
   // createSong / restore throw when a free folder already holds its one song; this turns that into the dialog.
-  function isTakeoutErr(err) { return /Takeout lifts the limit/.test(err && err.message ? err.message : String(err)); }
+  function isTakeoutErr(err) { return /Send noods lifts the limit/.test(err && err.message ? err.message : String(err)); }
   async function takeoutDialog({ hit = false } = {}) {
     const d = $('#takeout'), inp = $('#takeout-key'), errEl = $('#takeout-err');
     inp.value = ''; errEl.hidden = true; d.returnValue = '';
-    $('#takeout-title').textContent = hit ? 'That\'s the free song' : 'Takeout';
+    $('#takeout-title').textContent = hit ? 'That\'s the free song' : 'Send noods';
     return new Promise((resolve) => {
       d.addEventListener('close', async function h() {
         d.removeEventListener('close', h);
         if (d.returnValue !== 'ok') return resolve(false);
         const key = inp.value.trim();
-        if (!key) { toast('Paste the key from your Takeout email first.', { kind: 'bad' }); return resolve(false); }
-        try { const st = await bp.shell.takeoutEnter(key); await renderTakeout(st); toast(`Takeout! ${st.band} is unlocked — every song you want.`, { ms: 6000 }); resolve(true); }
+        if (!key) { toast('Paste the key from your Send noods email first.', { kind: 'bad' }); return resolve(false); }
+        try { const st = await bp.shell.takeoutEnter(key); await renderTakeout(st); toast(`Noods received! ${st.band} is unlocked — every song you want.`, { ms: 6000 }); resolve(true); }
         catch (err) { fail(err); resolve(false); }
       });
       d.showModal(); setTimeout(() => inp.focus(), 0);

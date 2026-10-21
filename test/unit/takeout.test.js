@@ -29,7 +29,7 @@ test('takeout: free folder allows one song, a key in the folder lifts it', async
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cob-takeout-'));
   assert.equal(T.status(root, 0).unlocked, false); assert.equal(T.status(root, 0).limit, 1);
   assert.doesNotThrow(() => T.assertCanAdd(root, 0));
-  assert.throws(() => T.assertCanAdd(root, 1), (e) => e.code === 'TAKEOUT' && /Takeout lifts the limit/.test(e.message));
-  await assert.rejects(T.write(root, 'cob1.nope.nope'), /isn't a Takeout key/);
+  assert.throws(() => T.assertCanAdd(root, 1), (e) => e.code === 'TAKEOUT' && /Send noods lifts the limit/.test(e.message));
+  await assert.rejects(T.write(root, 'cob1.nope.nope'), /isn't a Send noods key/);
   assert.equal(fs.existsSync(path.join(root, T.FILE)), false);
 });
