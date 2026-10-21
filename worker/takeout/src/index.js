@@ -80,6 +80,11 @@ async function sendEmail(env, to, { subject, text }) {
   if (!r.ok) throw new Error(`email failed: ${r.status} ${await r.text()}`);
   return r.json();
 }
+// A Roadie sale: Jeff adds the band to docs/roadies.json by hand (so nothing lands on the site unreviewed); this is the nudge.
+async function notifyRoadie(env, rec) {
+  if (rec.tier !== 'roadie' || !env.NOTIFY) return;
+  try { await sendEmail(env, env.NOTIFY, { subject: `New Roadie: ${rec.band}`, text: `${rec.band} (${rec.email}) sent $${(rec.cents / 100).toFixed(2)} via ${rec.source}.\n\nAdd them to docs/roadies.json: { "band": "${rec.band}", "since": "${rec.at.slice(0, 7)}" }` }); } catch (_) {}
+}
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } });
 
 export default {
@@ -95,7 +100,7 @@ export default {
       if (name !== 'order_created') return json({ ok: true, ignored: name });
       const sale = saleFromLemon(evt); if (!sale || !sale.email) return json({ error: 'no buyer email' }, 400);
       if (sale.test && env.ALLOW_TEST !== '1') return json({ ok: true, ignored: 'test mode' });
-      const rec = await issue(sale, env); const mail = await sendEmail(env, rec.email, emailFor(rec));
+      const rec = await issue(sale, env); const mail = await sendEmail(env, rec.email, emailFor(rec)); await notifyRoadie(env, rec);
       return json({ ok: true, band: rec.band, tier: rec.tier, mail });
     }
     // Ko-fi → POST /webhook/kofi  (form field data=<json>, verification_token inside)
@@ -104,7 +109,7 @@ export default {
       if (!env.KOFI_TOKEN || !timingEq(String(d.verification_token || ''), env.KOFI_TOKEN)) return json({ error: 'bad token' }, 401);
       const sale = saleFromKofi(d); if (!sale) return json({ error: 'no buyer email' }, 400);
       if (sale.cents < Number(env.MIN_CENTS || 1200)) return json({ ok: true, ignored: 'below the Send noods minimum — extra sauce, thanks' });
-      const rec = await issue(sale, env); const mail = await sendEmail(env, rec.email, emailFor(rec));
+      const rec = await issue(sale, env); const mail = await sendEmail(env, rec.email, emailFor(rec)); await notifyRoadie(env, rec);
       return json({ ok: true, band: rec.band, tier: rec.tier, mail });
     }
     // Jeff's side: GET /lookup?email=  and POST /resend?email=   (Authorization: Bearer ADMIN_TOKEN)

@@ -471,6 +471,14 @@ ipcMain.handle('export:write', (_e, folder, name, files) => tracked(() => guardS
 ipcMain.handle('bounce:list', (_e, folder) => guardStore().listBounces(folder));
 ipcMain.handle('shell:showInFolder', (_e, p) => { shell.showItemInFolder(p); });
 ipcMain.handle('shell:links', () => LINKS);
+// Roadies: bands who paid the $60 tier. The list ships with the app (docs/roadies.json) and refreshes from the site when online.
+let roadiesCache = null;
+ipcMain.handle('roadies:list', async () => {
+  let list = []; try { list = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'docs', 'roadies.json'), 'utf8')); } catch (_) {}
+  if (roadiesCache && Date.now() - roadiesCache.at < 6 * 3600e3) return roadiesCache.list;
+  try { const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 4000); const r = await require('electron').net.fetch('https://cobander.com/roadies.json', { signal: ac.signal, cache: 'no-store' }); clearTimeout(t); if (r.ok) { const live = await r.json(); if (Array.isArray(live) && live.length) list = live; } } catch (_) {}
+  roadiesCache = { at: Date.now(), list }; return list;
+});
 ipcMain.handle('shell:openLink', (_e, which) => { const u = which === 'issues' && LINKS.repo ? `${LINKS.repo}/issues` : which === 'releases' && LINKS.repo ? `${LINKS.repo}/releases` : LINKS[which]; if (!u) throw new Error(`no link for ${which}`); return shell.openExternal(u); });
 ipcMain.handle('shell:openSongFolder', (_e, folder) => shell.openPath(guardStore().songDir(folder)));
 ipcMain.handle('mic:ensure', async () => {

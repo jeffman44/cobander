@@ -114,6 +114,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       const r2 = await jeff.post('/song/create', { name: 'Second Song' }); assert.ok(r2.folder, 'unlocked folder creates a second song');
       await jeff.post('/song/close').catch(() => {}); await jeff.post('/song/open', { folder: 'E2E Song' }).catch(() => {});
       const st = await jeff.evalJs('window.bandpad.shell.takeout()').catch(() => null);
+      const roadies = await jeff.evalJs('window.bandpad.shell.roadies()'); assert.ok(Array.isArray(roadies) && roadies.some((b) => b.band === 'Never a Doubt'), 'roadies list ships with the app');
       if (st) { assert.equal(st.unlocked, true); assert.equal(st.band, 'E2E Band'); }
       song = (await jeff.get('/state')).song; assert.equal(song.tracks.find((t) => t.name === 'Gtr').clips.length, 2);
     });

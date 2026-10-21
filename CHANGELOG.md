@@ -1,5 +1,8 @@
 # Cobander changelog
 
+## 0.15.6
+- Roadies: bands who sent noods with extra sauce are listed under ⚙ (and on cobander.com). Thanks.
+
 ## 0.15.5
 - 3D practice view: each word now lands on the line exactly when it's sung, holds there a beat, then drops away — instead of sliding straight through.
 - Practice has a volume slider (just your speakers — the mix doesn't change; remembered between sessions).

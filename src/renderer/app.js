@@ -116,6 +116,7 @@
     await fillInputs();
     try { await engine.init(); await engine.initMidi(); const ms = $('#s-midi'); ms.innerHTML = ''; for (const [v, t] of [['', 'none'], ['any', 'any connected MIDI input'], ...engine.midi.inputs.map((i) => [i.id, i.name])]) { const o = el('option', null, t); o.value = v; if (v === (state.settings.midiInputId || '')) o.selected = true; ms.appendChild(o); } if (!engine.midi.access) ms.appendChild(el('option', null, '(Web MIDI not available)')); } catch (_) {}
     renderTakeout();
+    bp.shell.roadies().then((list) => { const row = $('#s-roadies'); if (!row) return; row.hidden = !list.length; $('#s-roadies-list').textContent = list.map((b) => b.band).join(' · '); }).catch(() => {});
     const api = await bp.api.info();
     $('#s-api').textContent = (api.running ? `http://127.0.0.1:${api.port}/\ntoken: ${api.token}` : (api.error || `API not running (port ${api.port} busy?)`)) + `\nsettings: ${api.settingsFile}\nfile inbox: ${api.inbox}`;
     d.returnValue = '';

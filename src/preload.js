@@ -99,6 +99,7 @@ contextBridge.exposeInMainWorld('bandpad', {
     openLink: (which) => ipcRenderer.invoke('shell:openLink', which),   // 'repo' | 'venmo' | 'kofi' | 'issues' | 'releases'
     links: () => ipcRenderer.invoke('shell:links'),
     takeout: () => ipcRenderer.invoke('takeout:status'),
+    roadies: () => ipcRenderer.invoke('roadies:list'),
     takeoutEnter: (key) => ipcRenderer.invoke('takeout:enter', key),
   },
   mic: { ensure: () => ipcRenderer.invoke('mic:ensure') },
