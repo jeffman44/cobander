@@ -24,6 +24,12 @@ jobs:
       - run: apt-get update -qq && apt-get install -y -qq zip >/dev/null
       - run: npm ci
       - run: npm test
+      - name: Apple Developer ID (only when the secrets exist)
+        env: { P12: '${{ secrets.APPLE_P12_BASE64 }}', P12PW: '${{ secrets.APPLE_P12_PASSWORD }}', ASC: '${{ secrets.APPLE_API_KEY_JSON }}' }
+        run: |
+          mkdir -p /tmp/apple
+          if [ -n "$P12" ]; then printf '%s' "$P12" | base64 -d > /tmp/apple/id.p12; printf '%s' "$P12PW" > /tmp/apple/pw; echo "APPLE_P12=/tmp/apple/id.p12" >> "$GITHUB_ENV"; echo "APPLE_P12_PASSWORD_FILE=/tmp/apple/pw" >> "$GITHUB_ENV"; fi
+          if [ -n "$ASC" ]; then printf '%s' "$ASC" > /tmp/apple/asc.json; echo "APPLE_API_KEY_JSON=/tmp/apple/asc.json" >> "$GITHUB_ENV"; fi
       - run: RCODESIGN=/usr/local/bin/rcodesign bash scripts/build.sh all
         env: { HOME: /tmp/home, WINEPREFIX: /tmp/home/.wine, ELECTRON_BUILDER_CACHE: /tmp/home/.cache/electron-builder }   # wine refuses the runner's HOME (not owned by the container user)
       - uses: actions/upload-artifact@v4

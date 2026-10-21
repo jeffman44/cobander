@@ -63,7 +63,7 @@
       "identity": null,
       "minimumSystemVersion": "13.0",
       "extendInfo": {
-        "NSMicrophoneUsageDescription": "BandPad records audio from your interface or microphone."
+        "NSMicrophoneUsageDescription": "Cobander records audio from your interface or microphone."
       }
     },
     "publish": []
