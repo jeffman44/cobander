@@ -53,7 +53,7 @@
   // Characters: pick yours on the Band page. The sprite stays; the badge, ring and glow grow with the tier.
   const CHARACTERS = [
     ['shredder', 'Shredder', 'gi-guitar', 'six strings, too loud'], ['lowend', 'Low End', 'gi-bass', 'holds it all together'], ['thumper', 'Thumper', 'gi-drum', 'hits things on purpose'],
-    ['howler', 'Howler', 'gi-howl', 'sings, screams, both'], ['frontman', 'Frontman', 'gi-mic', 'owns the mic'], ['wizard', 'Keys Wizard', 'gi-keys', 'eighty-eight spells'],
+    ['howler', 'Howler', 'gi-howl', 'sings, screams, both'], ['frontman', 'Singer', 'gi-mic', 'carries the tune'], ['wizard', 'Keys Wizard', 'gi-keys', 'eighty-eight spells'],
     ['horn', 'Horn', 'gi-sax', 'brings the brass'], ['noodle', 'Noodle', 'gi-noodles', 'the house mascot'], ['dumpling', 'Dumpling', 'gi-dumpling', 'small, dense, delicious'],
     ['picker', 'Picker', 'gi-banjo', 'faster than you'], ['booth', 'The Booth', 'gi-boombox', 'presses the buttons'], ['volt', 'Volt', 'gi-bolt', 'pure energy'],
   ];
