@@ -241,12 +241,12 @@
   { const ua = navigator.userAgent, mac = /Macintosh|Mac OS X/.test(ua), win = /Windows/.test(ua), mobile = /Android|iPhone|iPad/.test(ua);
     const DL = 'https://takeout.cobander.com/download/'; const href = mac ? DL + 'mac-arm64' : DL + 'win'; const label = mobile ? 'Download on a computer' : mac ? 'Download for Mac' : 'Download for Windows';
     for (const a of document.querySelectorAll('a.dl')) { a.href = href; if (a.classList.contains('btn')) a.textContent = label; if (mobile) { a.addEventListener('click', (e) => { e.preventDefault(); alert('Cobander runs on Windows and Mac. Open cobander.com on that computer.'); }); } } }
-  // Storefront: LS (Lemon Squeezy checkout, live mode) when set, else Ko-fi. With LS the band name and amount ride along
-  // (checkout[custom][band] → the key's band; checkout[custom_price] in cents → the PWYW field starts at the tier).
+  // Storefront: LS (Lemon Squeezy checkout, live mode) when set, else Ko-fi. With LS the band name rides along as
+  // checkout[custom][band] (→ the key's band); the buyer types the amount (LS ignores a price prefill on share links).
   const LS = null; const KOFI = 'https://ko-fi.com/jdeuel44';
   const buy = document.getElementById('buy'), band = document.getElementById('band'); let amt = 25;
   if (LS) document.getElementById('band-wrap').hidden = false;
-  const buyHref = () => { if (!LS) return KOFI; const q = new URLSearchParams({ 'checkout[custom_price]': String(amt * 100) }); const b = band.value.trim(); if (b) q.set('checkout[custom][band]', b); return `${LS}?${q}`; };
+  const buyHref = () => { if (!LS) return KOFI; const b = band.value.trim(); return b ? `${LS}?${new URLSearchParams({ 'checkout[custom][band]': b })}` : LS; };
   const sync = () => { buy.textContent = `Send noods — $${amt}`; buy.href = buyHref(); };
   for (const d of document.querySelectorAll('button.dish')) d.addEventListener('click', () => { for (const x of document.querySelectorAll('button.dish')) x.classList.toggle('pick', x === d); amt = Number(d.dataset.amt); sync(); });
   band.addEventListener('input', sync);
