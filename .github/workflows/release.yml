@@ -66,6 +66,13 @@ jobs:
           client-id: 7621f106-af90-4233-9fd0-dd1eb6299463
           tenant-id: 7fc4097c-17b2-4913-b8d2-72308ce39403
           allow-no-subscriptions: true
+      - name: who am I (token claims, no secrets)
+        shell: pwsh
+        run: |
+          $t = az account get-access-token --resource https://codesigning.azure.net --query accessToken -o tsv
+          $p = $t.Split('.')[1].Replace('-','+').Replace('_','/'); while ($p.Length % 4) { $p += '=' }
+          $c = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($p)) | ConvertFrom-Json
+          "aud=$($c.aud) tid=$($c.tid) appid=$($c.appid) oid=$($c.oid) idtyp=$($c.idtyp)"
       - name: sign Windows installer
         uses: azure/artifact-signing-action@v2
         with:
