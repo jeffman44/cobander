@@ -4857,7 +4857,8 @@
   const playheadEl = el('div'); playheadEl.id = 'playhead'; arrange.appendChild(playheadEl);
   // #playhead / #room-shade are absolute inside the scrolling #arrange: top/bottom resolve to the VISIBLE box, so with more
   // tracks than fit, the line stopped partway down. Stretch them to the content height whenever it changes.
-  const fitOverlays = () => { const h = Math.max(arrange.clientHeight, tracksEl.offsetTop + tracksEl.offsetHeight); playheadEl.style.height = `${h}px`; const sh = $('#room-shade'); if (sh) sh.style.height = `${h}px`; };
+  let fitRaf = 0;
+  const fitOverlays = () => { if (fitRaf) return; fitRaf = requestAnimationFrame(() => { fitRaf = 0; const h = Math.max(arrange.clientHeight, tracksEl.offsetTop + tracksEl.offsetHeight); if (playheadEl.style.height !== `${h}px`) { playheadEl.style.height = `${h}px`; const sh = $('#room-shade'); if (sh) sh.style.height = `${h}px`; } }); };   /* deferred: a layout write inside the observer callback trips "ResizeObserver loop" */
   new ResizeObserver(fitOverlays).observe(tracksEl); new ResizeObserver(fitOverlays).observe(arrange);
   const loopEl = el('div'); loopEl.id = 'loop-region'; $('#ruler-row').appendChild(loopEl);
 
