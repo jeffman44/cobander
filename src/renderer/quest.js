@@ -140,9 +140,13 @@
         if (!cur || at > String(cur.at || '') || (at === String(cur.at || '') && String(e.by || '') > String(cur.by || ''))) out.set(k, { v: e.v, at, by: e.by || f.user || '?' });
       }
     }
+    out.files = files || []; // board() reads each bandmate's own copy of the roster (see the member layers there)
     return out;
   }
   const val = (m, k, d) => (m.has(k) ? m.get(k).v : d);
+  // One field per bandmate (0.15.8): band:member:<lowercase name> = { role?, icon?, aliases?, character?, look? }
+  const memberKey = (name) => `band:member:${String(name || '').trim().toLowerCase()}`;
+  const cleanMember = (x) => ({ name: String(x.name).slice(0, 30), role: String(x.role || '').slice(0, 30), icon: String(x.icon || '🎵').slice(0, 4), aliases: Array.isArray(x.aliases) ? x.aliases.map(String) : [], character: CHARACTERS.some(([id]) => id === x.character) ? x.character : null, look: lookOf(x.look) });
   const norm = (s) => String(s || '').toLowerCase().replace(/\((official\s+)?cover\)/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
   const isCover = (s) => /\((official\s+)?cover\)/i.test(String(s || ''));
   const clampPct = (x) => Math.max(0, Math.min(100, Math.round(Number(x) || 0)));
@@ -153,7 +157,24 @@
   // ---- the board: songs from Cobander (each with .quest = songStats output, from listSongs) + the shared fields ----
   function board(fields, bpSongs = [], { me = null } = {}) {
     const m = fields instanceof Map ? fields : merge(fields);
-    const configured = (Array.isArray(val(m, 'band:members')) ? val(m, 'band:members') : DEFAULT_MEMBERS).filter((x) => x && x.name).map((x) => ({ name: String(x.name).slice(0, 30), role: String(x.role || '').slice(0, 30), icon: String(x.icon || '🎵').slice(0, 4), aliases: Array.isArray(x.aliases) ? x.aliases.map(String) : [], character: CHARACTERS.some(([id]) => id === x.character) ? x.character : null, look: lookOf(x.look) }));
+    const roster = (Array.isArray(val(m, 'band:members')) ? val(m, 'band:members') : DEFAULT_MEMBERS).filter((x) => x && x.name).map(cleanMember);
+    // band:members is ONE field for the whole roster, so before 0.15.8 two bandmates saving at once overwrote each other
+    // (last save wins — the other's new character vanished). Two layers fix that without a migration:
+    //  1. your character/look as YOU last wrote it in your own file beats anyone else's copy of the roster
+    //     (only you can pick your character, so your own file is the authority — this also brings back lost picks);
+    //  2. the per-member field band:member:<name> (what 0.15.8+ writes) beats both, for whatever keys it holds.
+    const own = new Map();
+    for (const f of m.files || []) {
+      const e = f && f.fields && f.fields['band:members']; if (!e || !Array.isArray(e.v)) continue;
+      const self = memberFor(e.v.filter((x) => x && x.name).map(cleanMember), f.user); if (!self) continue;
+      const k = self.name.toLowerCase(), prev = own.get(k);
+      if (!prev || String(e.at || '') > prev.at) own.set(k, { at: String(e.at || ''), character: self.character, look: self.look });
+    }
+    const configured = roster.map((c) => {
+      const o = own.get(c.name.toLowerCase()); let x = o ? { ...c, character: o.character, look: o.look } : c;
+      const pm = val(m, memberKey(c.name)); if (pm && typeof pm === 'object') x = cleanMember({ ...x, ...pm, name: c.name });
+      return x;
+    });
     const members = configured.slice();
     const songsIn = (bpSongs || []).filter((s) => s && s.folder && !(s.quest && s.quest.stats && s.quest.stats.sandbox) && !/^noodle pad\b/i.test(s.folder));
     // anyone who did work in a song but isn't configured joins as a member (a new bandmate, or a test user)
@@ -281,5 +302,5 @@
     }
     return out.filter((x) => x.song !== undefined).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, limit);
   }
-  return { WORTH, MILESTONES, GOALS, GOAL_XP, PCT_XP, WRITTEN_XP, TASK_XP, DEFAULT_MEMBERS, BAND_LEVELS, MEMBER_LEVELS, TIERS, TIER_BADGE, CHARACTERS, LOOK_KEYS, lookOf, TIER_ANIM, levelXp, ACHIEVEMENTS, songStats, memberXp, merge, board, bandLevel, levelOf, memberFor, xpForLabel, events, norm, clampPct };
+  return { WORTH, MILESTONES, GOALS, GOAL_XP, PCT_XP, WRITTEN_XP, TASK_XP, DEFAULT_MEMBERS, BAND_LEVELS, MEMBER_LEVELS, TIERS, TIER_BADGE, CHARACTERS, LOOK_KEYS, lookOf, memberKey, TIER_ANIM, levelXp, ACHIEVEMENTS, songStats, memberXp, merge, board, bandLevel, levelOf, memberFor, xpForLabel, events, norm, clampPct };
 });

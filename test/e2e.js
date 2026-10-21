@@ -108,7 +108,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/song/save'); await jeff.post('/song/close');
       const before = !!JSON.parse(await fsp.readFile(path.join(shared, 'E2E Song', 'song.json'), 'utf8')).tracks.find((t) => t.name === 'Gtr').mute;
       await kat.post('/song/open', { folder: 'E2E Song' }); await sleep(800);
-      const r = await kat.evalJs(`(() => { const t = window.bandpadDebug.engine.tracks.find((x) => x.name === 'Gtr'); const mine = window.bandpadDebug.mineT(t.id); const b = document.querySelector('.track[data-id="' + t.id + '"] button.mute') || [...document.querySelectorAll('button.mute')][0]; b.click(); return { mine, muted: !!window.bandpadDebug.engine.track(t.id).mute }; })()`);
+      const r = await kat.evalJs(`(() => { const t = window.cobanderDebug.engine.tracks.find((x) => x.name === 'Gtr'); const mine = window.cobanderDebug.mineT(t.id); const b = document.querySelector('.track[data-id="' + t.id + '"] button.mute') || [...document.querySelectorAll('button.mute')][0]; b.click(); return { mine, muted: !!window.cobanderDebug.engine.track(t.id).mute }; })()`);
       assert.equal(r.mine, false, 'Gtr is not Kat\'s'); assert.equal(r.muted, !before, 'toggled locally for Kat');
       const sv = await kat.post('/song/save', { force: true }).catch((e) => ({ result: 'error', error: String(e) }));
       await sleep(500);
@@ -128,8 +128,8 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await fsp.writeFile(path.join(shared, Takeout.FILE), JSON.stringify({ key: Takeout.sign({ band: 'E2E Band', tier: 'roadie' }, TK.priv) }));
       const r2 = await jeff.post('/song/create', { name: 'Second Song' }); assert.ok(r2.folder, 'unlocked folder creates a second song');
       await jeff.post('/song/close').catch(() => {}); await jeff.post('/song/open', { folder: 'E2E Song' }).catch(() => {});
-      const st = await jeff.evalJs('window.bandpad.shell.takeout()').catch(() => null);
-      const roadies = await jeff.evalJs('window.bandpad.shell.roadies()'); assert.ok(Array.isArray(roadies) && roadies.some((b) => b.band === 'Never a Doubt'), 'roadies list ships with the app');
+      const st = await jeff.evalJs('window.cobander.shell.takeout()').catch(() => null);
+      const roadies = await jeff.evalJs('window.cobander.shell.roadies()'); assert.ok(Array.isArray(roadies) && roadies.some((b) => b.band === 'Never a Doubt'), 'roadies list ships with the app');
       if (st) { assert.equal(st.unlocked, true); assert.equal(st.band, 'E2E Band'); }
       song = (await jeff.get('/state')).song; assert.equal(song.tracks.find((t) => t.name === 'Gtr').clips.length, 2);
     });
@@ -151,7 +151,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/lyrics', { pin: { id: c.lyrics[0].id, time: 4 } });
       await jeff.post('/transport', { action: 'seek', time: 4.5 });
       await jeff.evalJs(`document.querySelector('#side-tabs [data-tab=lyrics]').click()`);
-      await jeff.evalJs(`window.bandpadDebug.engine.seek(4.6)`);
+      await jeff.evalJs(`window.cobanderDebug.engine.seek(4.6)`);
       const now = await until(() => jeff.evalJs(`document.querySelector('#now-lyric').textContent`), 5000, 'now-line lyric'); assert.match(now, /first line/);
       assert.match(await jeff.evalJs(`document.querySelector('#now-section').textContent`), /Verse/);
       assert.match(await jeff.evalJs(`document.querySelector('#now-chord').textContent`), /G/);
@@ -187,10 +187,10 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/song/patch', { bpm: 150 });
       await jeff.evalJs(`document.querySelector('#side-tabs [data-tab=versions]').click()`);
       await jeff.evalJs(`document.querySelector('#btn-ab').click()`); await sleep(800);
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.engine.bpm`), 120, 'B plays the tagged version');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.bpm`), 120, 'B plays the tagged version');
       assert.equal((await jeff.get('/state')).song.bpm, 150, 'the song itself is still the current one during A/B');
       await jeff.evalJs(`document.querySelector('#btn-ab').click()`); await sleep(500);
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.engine.bpm`), 150);
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.bpm`), 150);
       await jeff.post('/version', { restore: v.id }); assert.equal((await jeff.get('/state')).song.bpm, 120);
       const c = await jeff.get('/collab'); assert.equal(c.lyrics.length, 3, 'restoring a version keeps the lyrics'); assert.equal(c.versions.length, 1);
       assert.ok(fs.existsSync(path.join(shared, 'E2E Song', 'versions', `${v.id}.json`)));
@@ -208,7 +208,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
     const gtrClips = async () => (await jeff.get('/state')).song.tracks.find((t) => t.name === 'Gtr').clips;
     await step('record a take with the (fake) mic: it lands on Vox and on Drive', async () => {
       const st = await jeff.get('/state'); const vox = st.song.tracks.find((t) => t.name === 'Vox');
-      await jeff.post('/transport', { action: 'click', enabled: false }); await jeff.evalJs(`window.bandpadDebug.engine.click.countIn = false`);
+      await jeff.post('/transport', { action: 'click', enabled: false }); await jeff.evalJs(`window.cobanderDebug.engine.click.countIn = false`);
       await jeff.post('/transport', { action: 'loop', enabled: false });
       await jeff.post('/transport', { action: 'seek', time: 0 });
       await jeff.post('/transport', { action: 'record', trackId: vox.id }); await sleep(2500); await jeff.post('/transport', { action: 'stop' });
@@ -343,7 +343,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
         t.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: x, clientY: y }));
         window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: x + 2, clientY: y })); window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: x + ${dx}, clientY: y }));
         window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x + ${dx}, clientY: y })); return true; })()`);
-      const px = await jeff.evalJs(`window.bandpadDebug.state ? window.bandpadDebug.state.pxPerSec : null`) || await jeff.evalJs(`parseFloat(document.querySelector('#section-lane .section-block').style.width) / 1`);
+      const px = await jeff.evalJs(`window.cobanderDebug.state ? window.cobanderDebug.state.pxPerSec : null`) || await jeff.evalJs(`parseFloat(document.querySelector('#section-lane .section-block').style.width) / 1`);
       const bar = 2; const pps = await jeff.evalJs(`(() => { const b = document.querySelector('#section-lane .section-block[data-id="${v.id}"]'); return parseFloat(b.style.width) / ${v.end - v.start}; })()`);
       await drag('b', Math.round(pps * bar * 2));   // two bars right
       let v2 = (await jeff.get('/collab')).sections.find((x) => x.id === v.id);
@@ -396,45 +396,45 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.evalJs(`document.querySelector('#ml-again').click()`); const a2 = await jeff.evalJs(`document.querySelector('#ml-info').textContent`);
       assert.notEqual(a1, a2, 'each roll is new'); await jeff.evalJs(`document.querySelector('#ml-star').click()`);
       assert.equal(await jeff.evalJs(`document.querySelectorAll('#ml-kept button').length`), 1);
-      const loopBefore = await jeff.evalJs(`JSON.stringify(window.bandpadDebug.engine.loop)`);
+      const loopBefore = await jeff.evalJs(`JSON.stringify(window.cobanderDebug.engine.loop)`);
       await jeff.evalJs(`document.querySelector('#ml-play').click()`); await sleep(500);
-      const lp = await jeff.evalJs(`window.bandpadDebug.engine.loop`); const chs = (await jeff.get('/collab')).sections.find((x) => /^Chorus/.test(x.name));
+      const lp = await jeff.evalJs(`window.cobanderDebug.engine.loop`); const chs = (await jeff.get('/collab')).sections.find((x) => /^Chorus/.test(x.name));
       assert.ok(lp.enabled && Math.abs(lp.start - chs.start) < 1e-6 && Math.abs(lp.end - chs.end) < 1e-6, `Play loops the part being written: ${JSON.stringify(lp)}`);
       await jeff.evalJs(`document.querySelector('#ml-play').click()`); await sleep(300);
       await sleep(300); await jeff.shot('melody');
       await jeff.evalJs(`document.querySelector('#melody form').requestSubmit(document.querySelector('#melody menu button.primary'))`); await sleep(500);
       const clips = (await jeff.get('/state')).song.tracks.find((t) => t.instrument === 'synth:voice').clips.filter((c) => c.melody);
       assert.ok(clips.some((c) => /young/.test(c.melody.text)), 'kept after Done');
-      assert.equal(await jeff.evalJs(`JSON.stringify(window.bandpadDebug.engine.loop)`), loopBefore, 'the old loop is back after the dialog');
+      assert.equal(await jeff.evalJs(`JSON.stringify(window.cobanderDebug.engine.loop)`), loopBefore, 'the old loop is back after the dialog');
     });
     await step('ruler: click moves the playhead, dragging loops on the snap grid (bars when locked to Bar)', async () => {
-      const bl = await jeff.evalJs(`(() => { const e = window.bandpadDebug.engine; document.querySelector('#arrange').scrollLeft = 0; return e.beatLen() * e.timeSig[0]; })()`);
-      const r = await jeff.evalJs(`(() => { const el = document.querySelector('#ruler'); const b = el.getBoundingClientRect(); return { left: b.left, top: b.top + 8, pps: window.bandpadDebug.state.pxPerSec }; })()`);
+      const bl = await jeff.evalJs(`(() => { const e = window.cobanderDebug.engine; document.querySelector('#arrange').scrollLeft = 0; return e.beatLen() * e.timeSig[0]; })()`);
+      const r = await jeff.evalJs(`(() => { const el = document.querySelector('#ruler'); const b = el.getBoundingClientRect(); return { left: b.left, top: b.top + 8, pps: window.cobanderDebug.state.pxPerSec }; })()`);
       const X = (sec) => r.left + sec * r.pps;
       const md = (type, x, tgt) => `${tgt}.dispatchEvent(new MouseEvent('${type}', { bubbles: true, clientX: ${x}, clientY: ${r.top}, button: 0 }))`;
       // click (no drag) → seek
       await jeff.evalJs(`(() => { ${md('mousedown', X(bl * 2.5), "document.querySelector('#ruler')")}; ${md('mouseup', X(bl * 2.5), 'window')}; })()`);
-      const ph = await jeff.evalJs(`window.bandpadDebug.engine.playhead`); assert.ok(Math.abs(ph - bl * 2.5) < bl * 0.3, `seek ${ph}`);
+      const ph = await jeff.evalJs(`window.cobanderDebug.engine.playhead`); assert.ok(Math.abs(ph - bl * 2.5) < bl * 0.3, `seek ${ph}`);
       // drag from inside bar 2 to inside bar 4 → loop bars 2–4 exactly
       await jeff.evalJs(`(() => { ${md('mousedown', X(bl * 1.3), "document.querySelector('#ruler')")}; ${md('mousemove', X(bl * 2.2), 'window')}; ${md('mousemove', X(bl * 3.6), 'window')}; ${md('mouseup', X(bl * 3.6), 'window')}; })()`);
-      const lp = await jeff.evalJs(`window.bandpadDebug.engine.loop`);
-      const gs = await jeff.evalJs(`(() => { const e = window.bandpadDebug.engine; const t = document.querySelector('#snap-ind').textContent; const m = /1\\/(\\d+)/.exec(t); return m ? e.beatLen() * 4 / Number(m[1]) : e.beatLen() * e.timeSig[0]; })()`);
+      const lp = await jeff.evalJs(`window.cobanderDebug.engine.loop`);
+      const gs = await jeff.evalJs(`(() => { const e = window.cobanderDebug.engine; const t = document.querySelector('#snap-ind').textContent; const m = /1\\/(\\d+)/.exec(t); return m ? e.beatLen() * 4 / Number(m[1]) : e.beatLen() * e.timeSig[0]; })()`);
       assert.ok(lp.enabled && Math.abs(lp.start - Math.floor(bl * 1.3 / gs) * gs) < 1e-6 && Math.abs(lp.end - (Math.floor(bl * 3.6 / gs) + 1) * gs) < 1e-6, `loop on the zoom's grid (${gs}s): ${JSON.stringify(lp)}`);
       await jeff.evalJs(`document.querySelector('#btn-undo').click()`); await sleep(200);
       // snap locked to Bar → whole bars 2–4 exactly
-      await jeff.evalJs(`(() => { window.bandpadDebug.state.snapMode = 'bar'; ${md('mousedown', X(bl * 1.3), "document.querySelector('#ruler')")}; ${md('mousemove', X(bl * 2.2), 'window')}; ${md('mousemove', X(bl * 3.6), 'window')}; ${md('mouseup', X(bl * 3.6), 'window')}; window.bandpadDebug.state.snapMode = 'auto'; })()`);
-      const lp2 = await jeff.evalJs(`window.bandpadDebug.engine.loop`);
+      await jeff.evalJs(`(() => { window.cobanderDebug.state.snapMode = 'bar'; ${md('mousedown', X(bl * 1.3), "document.querySelector('#ruler')")}; ${md('mousemove', X(bl * 2.2), 'window')}; ${md('mousemove', X(bl * 3.6), 'window')}; ${md('mouseup', X(bl * 3.6), 'window')}; window.cobanderDebug.state.snapMode = 'auto'; })()`);
+      const lp2 = await jeff.evalJs(`window.cobanderDebug.engine.loop`);
       assert.ok(Math.abs(lp2.start - bl) < 1e-6 && Math.abs(lp2.end - bl * 4) < 1e-6, `bar snap loop ${JSON.stringify(lp2)}`);
       await jeff.evalJs(`document.querySelector('#btn-undo').click()`); await sleep(200);
       // a click on a take of the already-selected track moves the playhead there; the first click (selecting) doesn't
       const a = (await gtrClips()).find((c) => c.name === 'riff A'); const other = (await jeff.get('/state')).song.tracks.find((t) => t.name !== 'Gtr').id;
-      await jeff.evalJs(`window.bandpadDebug.state.selectedTrack = ${JSON.stringify(other)}; window.bandpadDebug.engine.seek(0)`);
-      const clickClip = `(() => { const d = document.querySelector('.clip[data-id="${a.id}"]'); const b = d.getBoundingClientRect(); const x = b.left + Math.min(b.width - 6, 2 * window.bandpadDebug.state.pxPerSec), y = b.top + b.height / 2;
+      await jeff.evalJs(`window.cobanderDebug.state.selectedTrack = ${JSON.stringify(other)}; window.cobanderDebug.engine.seek(0)`);
+      const clickClip = `(() => { const d = document.querySelector('.clip[data-id="${a.id}"]'); const b = d.getBoundingClientRect(); const x = b.left + Math.min(b.width - 6, 2 * window.cobanderDebug.state.pxPerSec), y = b.top + b.height / 2;
         d.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x, clientY: y, button: 0 })); window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y, button: 0 })); return true; })()`;
       await jeff.evalJs(clickClip); await sleep(150);
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.engine.playhead`), 0, 'first click only selects');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.playhead`), 0, 'first click only selects');
       await jeff.evalJs(clickClip); await sleep(150);
-      const ph2 = await jeff.evalJs(`window.bandpadDebug.engine.playhead`); assert.ok(Math.abs(ph2 - (a.start + 2)) < 0.3, `second click seeks: ${ph2}`);
+      const ph2 = await jeff.evalJs(`window.cobanderDebug.engine.playhead`); assert.ok(Math.abs(ph2 - (a.start + 2)) < 0.3, `second click seeks: ${ph2}`);
       assert.equal((await gtrClips()).find((c) => c.id === a.id).start, a.start, 'the take did not move');
     });
     await step('melody note editor: opens the part\'s melody, drag moves a note (in key), double-click adds / deletes, Undo edit, Cancel puts it back, Done keeps an edit', async () => {
@@ -446,8 +446,8 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       };
       const before = (await melClip()).notes;
       await openOn();
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.state.mel.gen.notes.length`), before.length, 'the existing melody is open in the editor');
-      const p = await jeff.evalJs(`window.bandpadDebug.rollAt(0)`); assert.ok(p, 'note 0 on the roll');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.state.mel.gen.notes.length`), before.length, 'the existing melody is open in the editor');
+      const p = await jeff.evalJs(`window.cobanderDebug.rollAt(0)`); assert.ok(p, 'note 0 on the roll');
       const ev = (type, x, y, extra = '') => `document.querySelector('#ml-roll').dispatchEvent(new PointerEvent('${type}', { bubbles: true, clientX: ${x}, clientY: ${y}, button: 0, buttons: 1, pointerId: 7${extra} }))`;
       const tx = p.x + p.grid * p.pxPerSec * 2, ty = p.y - p.rowH * 2;
       await jeff.evalJs(`(() => { ${ev('pointerdown', p.x, p.y)}; ${ev('pointermove', (p.x + tx) / 2, (p.y + ty) / 2)}; ${ev('pointermove', tx, ty)}; ${ev('pointerup', tx, ty)}; })()`); await sleep(300);
@@ -462,7 +462,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.equal((await melClip()).notes.length, before.length + 1, 'added');
       await jeff.evalJs(`document.querySelector('#ml-undo').click()`); await sleep(200);
       assert.equal((await melClip()).notes.length, before.length, 'Undo edit');
-      const q = await jeff.evalJs(`window.bandpadDebug.rollAt(1)`); await jeff.evalJs(dbl(q.x, q.y)); await sleep(200);
+      const q = await jeff.evalJs(`window.cobanderDebug.rollAt(1)`); await jeff.evalJs(dbl(q.x, q.y)); await sleep(200);
       assert.equal((await melClip()).notes.length, before.length - 1, 'deleted');
       await jeff.shot('melody-editor');
       await jeff.evalJs(`document.querySelector('#melody form').requestSubmit(document.querySelector('#melody menu button.cancel'))`); await sleep(500);
@@ -470,7 +470,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.deepEqual(back.map(key).sort(), before.map(key).sort(), 'Cancel puts the melody back as it was');
       // Done keeps an edit
       await openOn();
-      const p2 = await jeff.evalJs(`window.bandpadDebug.rollAt(0)`);
+      const p2 = await jeff.evalJs(`window.cobanderDebug.rollAt(0)`);
       await jeff.evalJs(`(() => { ${ev('pointerdown', p2.x, p2.y)}; ${ev('pointerup', p2.x, p2.y)}; const c = document.querySelector('#ml-roll'); c.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', shiftKey: true, bubbles: true })); })()`); await sleep(200);
       await jeff.evalJs(`document.querySelector('#melody form').requestSubmit(document.querySelector('#melody menu button.primary'))`); await sleep(500);
       const kept = (await melClip()).notes.slice().sort((a, b) => a.t - b.t); assert.equal(kept[0].n, b0.n + 12, 'Shift+↑ = up an octave, kept after Done');
@@ -614,12 +614,12 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
     });
     await step('QA regressions: song object survives a save, playback runs to the end of the sections, blank bpm ignored, wizard keeps the open song on a taken name, melody Keep/Cancel', async () => {
       const sec = (await jeff.get('/collab')).sections[0];
-      await jeff.evalJs(`window.__s0 = window.bandpadDebug.state.song.sections.find((x) => x.id === ${JSON.stringify(sec.id)}); true`);
+      await jeff.evalJs(`window.__s0 = window.cobanderDebug.state.song.sections.find((x) => x.id === ${JSON.stringify(sec.id)}); true`);
       await jeff.post('/sections', { update: [{ id: sec.id, name: 'Intro' }] }); assert.equal((await jeff.post('/song/save')).result, 'ok');
-      assert.equal(await jeff.evalJs(`window.__s0 === window.bandpadDebug.state.song.sections.find((x) => x.id === ${JSON.stringify(sec.id)})`), true, 'lanes keep editing the live song after a save');
+      assert.equal(await jeff.evalJs(`window.__s0 === window.cobanderDebug.state.song.sections.find((x) => x.id === ${JSON.stringify(sec.id)})`), true, 'lanes keep editing the live song after a save');
       await jeff.post('/sections', { add: [{ name: 'Outro', startBar: 30, endBar: 33 }] });
-      const bl = await jeff.evalJs(`window.bandpadDebug.engine.beatLen() * window.bandpadDebug.engine.timeSig[0]`);
-      assert.ok(await jeff.evalJs(`window.bandpadDebug.engine.contentLength()`) >= 33 * bl - 1e-6, 'playback runs to the end of the last section');
+      const bl = await jeff.evalJs(`window.cobanderDebug.engine.beatLen() * window.cobanderDebug.engine.timeSig[0]`);
+      assert.ok(await jeff.evalJs(`window.cobanderDebug.engine.contentLength()`) >= 33 * bl - 1e-6, 'playback runs to the end of the last section');
       const bpm0 = (await jeff.get('/state')).song.bpm;
       await jeff.evalJs(`(() => { const b = document.querySelector('#bpm'); b.value = ''; b.dispatchEvent(new Event('change')); })()`); await sleep(300);
       assert.equal((await jeff.get('/state')).song.bpm, bpm0, 'blank bpm box changes nothing');
@@ -632,13 +632,13 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.equal((await jeff.get('/state')).folder, folder0, 'current song still open');
       await jeff.evalJs(`document.querySelector('#newsong form').requestSubmit(document.querySelector('#newsong menu button.cancel'))`); await sleep(300);
       // melody: Keep → clicking the kept one keeps the dialog open; Cancel leaves no melody, no Melody track and nothing to undo
-      const undo0 = await jeff.evalJs(`window.bandpadDebug.state.undo.length`); const tracks0 = (await jeff.get('/state')).song.tracks.length;
+      const undo0 = await jeff.evalJs(`window.cobanderDebug.state.undo.length`); const tracks0 = (await jeff.get('/state')).song.tracks.length;
       await jeff.evalJs(`document.querySelector('#side-tabs [data-tab=lyrics]').click(); document.querySelector('#btn-melody').click()`); await until(() => jeff.evalJs(`document.querySelector('#melody').open`), 5000, 'melody');
       await jeff.evalJs(`(() => { const t = document.querySelector('#ml-text'); t.value = 'la la la la'; t.dispatchEvent(new Event('input')); document.querySelector('#ml-again').click(); document.querySelector('#ml-star').click(); document.querySelector('#ml-again').click(); document.querySelector('#ml-kept button').click(); })()`); await sleep(300);
       assert.equal(await jeff.evalJs(`document.querySelector('#melody').open`), true, 'bringing back a kept melody does not close the dialog');
       await jeff.evalJs(`document.querySelector('#melody form').requestSubmit(document.querySelector('#melody menu button.cancel'))`); await sleep(500);
       const st = await jeff.get('/state'); assert.equal(st.song.tracks.length, tracks0, 'no leftover Melody track');
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.state.undo.length`), undo0, 'nothing from the cancelled visit left to undo');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.state.undo.length`), undo0, 'nothing from the cancelled visit left to undo');
       assert.equal((await jeff.post('/song/save')).result, 'ok');
     });
     await step('0.8: drum part (generated + edited in the drum editor), chord notes survive reload, parts tags/sort, band feed, pane splitters, noodle pad', async () => {
@@ -649,15 +649,15 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       const dc = dt.clips.find((c) => c.id === d.clipId); assert.ok(Math.abs(dc.start - sec.start) < 1e-6 && dc.notes.some((n) => n.n === 38));
       await jeff.evalJs(`document.querySelector('#btn-drums').click()`); await until(() => jeff.evalJs(`document.querySelector('#drumed').open`), 5000, 'drum editor');
       await jeff.evalJs(`(() => { const s = document.querySelector('#dr-section'); s.value = ${JSON.stringify(sec.id)}; s.dispatchEvent(new Event('change')); })()`); await sleep(200);
-      const n0 = await jeff.evalJs(`window.bandpadDebug.state.dr.hits.length`); assert.ok(n0 > 8, "existing part loaded");
+      const n0 = await jeff.evalJs(`window.cobanderDebug.state.dr.hits.length`); assert.ok(n0 > 8, "existing part loaded");
       await jeff.evalJs(`document.querySelectorAll('#dr-rows .dr-row')[2].querySelector('button').click()`); await sleep(200);   // Hi-hat → fill menu
       await jeff.evalJs(`[...document.querySelectorAll('.ctxmenu .ctx-item')].find((x) => x.textContent.includes('1/16 notes')).click()`); await sleep(300);
-      const sixteenths = Math.round((sec.end - sec.start) / (await jeff.evalJs(`window.bandpadDebug.engine.beatLen()`) / 4));
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.state.dr.hits.filter((h) => h.voice === 'hat').length`), sixteenths, 'hat row filled with 16ths across the part');
+      const sixteenths = Math.round((sec.end - sec.start) / (await jeff.evalJs(`window.cobanderDebug.engine.beatLen()`) / 4));
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.state.dr.hits.filter((h) => h.voice === 'hat').length`), sixteenths, 'hat row filled with 16ths across the part');
       // click a square (pointer) on the kick row adds a hit
-      const before = await jeff.evalJs(`window.bandpadDebug.state.dr.hits.length`);
+      const before = await jeff.evalJs(`window.cobanderDebug.state.dr.hits.length`);
       await jeff.evalJs(`(() => { const cv = document.querySelector('#dr-canvas'); const r = cv.getBoundingClientRect(); const cw = r.width / ${sixteenths}; const x = r.left + 3 * cw + cw / 2, y = r.top + 18 + 5 * 28 + 10; for (const t of ['pointerdown', 'pointerup']) cv.dispatchEvent(new PointerEvent(t, { bubbles: true, clientX: x, clientY: y, button: 0, pointerId: 3 })); })()`); await sleep(200);
-      assert.notEqual(await jeff.evalJs(`window.bandpadDebug.state.dr.hits.length`), before, 'clicking a square toggles a hit');
+      assert.notEqual(await jeff.evalJs(`window.cobanderDebug.state.dr.hits.length`), before, 'clicking a square toggles a hit');
       await jeff.shot('drums');
       await jeff.evalJs(`document.querySelector('#drumed form').requestSubmit(document.querySelector('#drumed menu button.primary'))`); await sleep(400);
       st = await jeff.get('/state'); assert.equal(st.song.tracks.find((t) => t.id === d.trackId).clips.find((c) => c.id === d.clipId).notes.filter((n) => n.n === 42).length, sixteenths, 'kept after Done');
@@ -668,7 +668,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       // open the note editor and use the right-click chord menu
       await jeff.evalJs(`(() => { const c = document.querySelector('.clip[data-id="${chugId}"]'); c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: c.getBoundingClientRect().left + 5, clientY: c.getBoundingClientRect().top + 5 })); [...document.querySelectorAll('.ctxmenu .ctx-item')].find((x) => /Edit notes/.test(x.textContent)).click(); })()`);
       await until(() => jeff.evalJs(`document.querySelector('#noteed').open`), 5000, 'note editor');
-      await jeff.evalJs(`(() => { const cv = document.querySelector('#ne-roll'); const G = window.bandpadDebug.rollAt(0); cv.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: G.x, clientY: G.y })); [...document.querySelectorAll('.ctxmenu .ctx-item')].find((x) => /^Power chord/.test(x.querySelector('.ctx-label').textContent.replace('✓ ', ''))).click(); })()`); await sleep(300);
+      await jeff.evalJs(`(() => { const cv = document.querySelector('#ne-roll'); const G = window.cobanderDebug.rollAt(0); cv.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: G.x, clientY: G.y })); [...document.querySelectorAll('.ctxmenu .ctx-item')].find((x) => /^Power chord/.test(x.querySelector('.ctx-label').textContent.replace('✓ ', ''))).click(); })()`); await sleep(300);
       await jeff.evalJs(`document.querySelector('#noteed form').requestSubmit(document.querySelector('#noteed menu button.primary'))`); await sleep(300);
       assert.equal((await jeff.post('/song/save')).result, 'ok'); await jeff.post('/song/reload');
       st = await jeff.get('/state'); const chug = st.song.tracks.find((t) => t.name === 'Chug').clips[0];
@@ -682,7 +682,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.ok(await jeff.evalJs(`[...document.querySelectorAll('#part-list .pgroup')].some((x) => x.textContent === 'Pop-punk')`), 'grouped by style');
       assert.ok(await jeff.evalJs(`[...document.querySelectorAll('#part-list .ptag')].some((x) => x.textContent === 'heavy')`), 'tags shown');
       // band feed + splitters
-      await jeff.evalJs(`window.bandpadDebug && true`); await sleep(200);
+      await jeff.evalJs(`window.cobanderDebug && true`); await sleep(200);
       assert.ok(await jeff.evalJs(`document.querySelectorAll('#band-feed li').length > 0`), 'band feed has entries');
       assert.equal(await jeff.evalJs(`document.querySelectorAll('.vsplit').length`), 3, 'three draggable dividers');
       await jeff.evalJs(`(() => { const sp = document.querySelector('.vsplit[data-target="#notes-panel"]'); const r = sp.getBoundingClientRect(); sp.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: r.left, clientY: r.top + 20 })); window.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left - 120, clientY: r.top + 20 })); window.dispatchEvent(new MouseEvent('mouseup', {})); })()`);
@@ -691,10 +691,10 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.evalJs(`(() => { const row = [...document.querySelectorAll('#tracks > .track')].find((r) => r.querySelector('.track-head') && r.querySelector('.track-head').textContent.includes('Riffs')); const lane = row.querySelector('.lane'); const r = lane.getBoundingClientRect(); lane.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: r.left + 30, clientY: r.top + 20 })); })()`);
       await until(() => jeff.evalJs(`document.querySelector('#noteed').open`), 5000, 'note editor from lane');
       await jeff.evalJs(`(() => { document.querySelector('#rf-count').value = 3; document.querySelector('#rf-rate').value = '2'; document.querySelector('#rf-roll').click(); })()`); await sleep(300);
-      const rn = await jeff.evalJs(`window.bandpadDebug.state.ned.gen.notes.length`); assert.ok(rn > 3, 'riff written');
-      assert.ok(await jeff.evalJs(`window.bandpadDebug.state.ned.gen.notes.every((n) => n.iv && n.iv[1] === 7)`), 'distorted guitar defaults to power chords');
-      await jeff.evalJs(`(() => { const cv = document.querySelector('#ne-roll'); const G = window.bandpadDebug.rollAt(0); const box = document.querySelector('#ne-scroll'); const y = G.y + G.rowH * 3; const x0 = G.left + G.gut + 4 + G.pxPerSec * 0.5, x1 = x0 + G.pxPerSec * 0.3; cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: x0, clientY: y, button: 0, pointerId: 4 })); cv.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: x1, clientY: y, pointerId: 4 })); cv.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: x1, clientY: y, pointerId: 4 })); })()`); await sleep(300);
-      const drawn = await jeff.evalJs(`(() => { const g32 = window.bandpadDebug.engine.beatLen() / 8; const ns = window.bandpadDebug.state.ned.gen.notes; return { n: ns.length, ok: ns.every((x) => Math.abs(x.t / g32 - Math.round(x.t / g32)) < 1e-6) }; })()`);
+      const rn = await jeff.evalJs(`window.cobanderDebug.state.ned.gen.notes.length`); assert.ok(rn > 3, 'riff written');
+      assert.ok(await jeff.evalJs(`window.cobanderDebug.state.ned.gen.notes.every((n) => n.iv && n.iv[1] === 7)`), 'distorted guitar defaults to power chords');
+      await jeff.evalJs(`(() => { const cv = document.querySelector('#ne-roll'); const G = window.cobanderDebug.rollAt(0); const box = document.querySelector('#ne-scroll'); const y = G.y + G.rowH * 3; const x0 = G.left + G.gut + 4 + G.pxPerSec * 0.5, x1 = x0 + G.pxPerSec * 0.3; cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: x0, clientY: y, button: 0, pointerId: 4 })); cv.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: x1, clientY: y, pointerId: 4 })); cv.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: x1, clientY: y, pointerId: 4 })); })()`); await sleep(300);
+      const drawn = await jeff.evalJs(`(() => { const g32 = window.cobanderDebug.engine.beatLen() / 8; const ns = window.cobanderDebug.state.ned.gen.notes; return { n: ns.length, ok: ns.every((x) => Math.abs(x.t / g32 - Math.round(x.t / g32)) < 1e-6) }; })()`);
       assert.equal(drawn.n, rn + 1, 'click-drag drew a note'); assert.ok(drawn.ok, 'snapped to 1/32');
       await jeff.shot('noteed');
       await jeff.evalJs(`document.querySelector('#noteed form').requestSubmit(document.querySelector('#noteed menu button.primary'))`); await sleep(300);
@@ -727,8 +727,8 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       let st = await jeff.get('/state'); const ta = st.song.tracks.find((t) => t.name === 'Gtr A'), tb = st.song.tracks.find((t) => t.name === 'Gtr B');
       await jeff.post('/clip/import', { path: path.join(WORK, 'riff.wav'), trackId: ta.id, start: 0, name: 'lick' }); await sleep(300);
       // zoom in: 160 px/s at 120 bpm → a beat is 80 px → snap 1/16
-      await jeff.evalJs(`(() => { window.bandpadDebug.state.pxPerSec = 160; document.querySelector('#arrange').dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: 0.0001, bubbles: true, cancelable: true })); return true; })()`); await sleep(300);
-      const px = await jeff.evalJs(`window.bandpadDebug.state.pxPerSec`);
+      await jeff.evalJs(`(() => { window.cobanderDebug.state.pxPerSec = 160; document.querySelector('#arrange').dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: 0.0001, bubbles: true, cancelable: true })); return true; })()`); await sleep(300);
+      const px = await jeff.evalJs(`window.cobanderDebug.state.pxPerSec`);
       const chip = await jeff.evalJs(`document.querySelector('#snap-ind').textContent`); assert.match(chip, /1\/(8|16)/, chip);
       const sixteenth = 0.125, g = /1\/16/.test(chip) ? sixteenth : 0.25;
       const v = (await jeff.get('/collab')).sections.find((x) => x.name === 'Verse');
@@ -755,13 +755,13 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       const dupId = (await jeff.get('/state')).song.tracks.find((t) => t.name === 'Dup').clips[0].id;
       await jeff.evalJs(`(() => { const c = document.querySelector('.clip[data-id="${dupId}"]'); c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: c.getBoundingClientRect().left + 5, clientY: c.getBoundingClientRect().top + 5 })); [...document.querySelectorAll('.ctxmenu .ctx-item')].find((x) => /Edit notes/.test(x.textContent)).click(); })()`);
       await until(() => jeff.evalJs(`document.querySelector('#noteed').open`), 5000, 'note editor');
-      const n0 = await jeff.evalJs(`window.bandpadDebug.state.ned.gen.notes.length`);
-      await jeff.evalJs(`(() => { const cv = document.querySelector('#ne-roll'); const G = window.bandpadDebug.rollAt(0); cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: G.x, clientY: G.y, pointerId: 1 })); cv.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, clientX: G.x, clientY: G.y, pointerId: 1 }));
+      const n0 = await jeff.evalJs(`window.cobanderDebug.state.ned.gen.notes.length`);
+      await jeff.evalJs(`(() => { const cv = document.querySelector('#ne-roll'); const G = window.cobanderDebug.rollAt(0); cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: G.x, clientY: G.y, pointerId: 1 })); cv.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, clientX: G.x, clientY: G.y, pointerId: 1 }));
         cv.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true, bubbles: true, cancelable: true })); return true; })()`); await sleep(200);
-      const ns = await jeff.evalJs(`window.bandpadDebug.state.ned.gen.notes.map((z) => [Math.round(z.t * 1000) / 1000, z.n])`);
+      const ns = await jeff.evalJs(`window.cobanderDebug.state.ned.gen.notes.map((z) => [Math.round(z.t * 1000) / 1000, z.n])`);
       assert.equal(ns.length, n0 + 1, 'Ctrl+D added a note'); assert.ok(ns.some((z) => Math.abs(z[0] - 0.25) < 1e-3 && z[1] === 48), `copy right after: ${JSON.stringify(ns)}`);
-      await jeff.evalJs(`(() => { const cv = document.querySelector('#ne-roll'); const G = window.bandpadDebug.rollAt(0); cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, shiftKey: true, clientX: G.x, clientY: G.y, pointerId: 1 })); cv.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, shiftKey: true, clientX: G.x + 60, clientY: G.y, pointerId: 1 })); cv.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: G.x + 60, clientY: G.y, pointerId: 1 })); return true; })()`); await sleep(200);
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.state.ned.gen.notes.length`), n0 + 2, 'Shift-drag left the original and made a copy');
+      await jeff.evalJs(`(() => { const cv = document.querySelector('#ne-roll'); const G = window.cobanderDebug.rollAt(0); cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, shiftKey: true, clientX: G.x, clientY: G.y, pointerId: 1 })); cv.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, shiftKey: true, clientX: G.x + 60, clientY: G.y, pointerId: 1 })); cv.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: G.x + 60, clientY: G.y, pointerId: 1 })); return true; })()`); await sleep(200);
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.state.ned.gen.notes.length`), n0 + 2, 'Shift-drag left the original and made a copy');
       assert.equal(await jeff.evalJs(`document.querySelector('#ne-grid').value`), 'auto');
       await jeff.evalJs(`document.querySelector('#noteed form').requestSubmit(document.querySelector('#noteed menu button.primary'))`); await sleep(300);
       assert.equal((await jeff.get('/state')).song.tracks.find((t) => t.name === 'Dup').clips[0].notes.length, n0 + 2, 'kept after Done');
@@ -772,7 +772,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await kat.post('/song/open', { folder }); await sleep(800);
       assert.equal((await kat.get('/state')).readOnly, true, 'Kat is read-only (Jeff has it)');
       await kat.evalJs(`(() => { document.querySelector('#need-input').value = 'needs a gang vocal @Jeff'; document.querySelector('#need-form').requestSubmit(); return true; })()`);
-      await kat.evalJs(`window.bandpadDebug.state.song.markers = window.bandpadDebug.state.song.markers || []; true`);
+      await kat.evalJs(`window.cobanderDebug.state.song.markers = window.cobanderDebug.state.song.markers || []; true`);
       const got = await until(async () => (await jeff.get('/collab')).needs.find((n) => /gang vocal/.test(n.text) && !n.deleted), 30000, 'Jeff merges Kat\'s need from the mailbox');
       assert.equal(got.by, 'Kat');
       assert.equal((await jeff.post('/song/save')).result, 'ok');
@@ -785,38 +785,38 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/song/patch', { addTrack: { kind: 'guitar', name: 'Jeff gtr' } }); await jeff.post('/song/patch', { addTrack: { kind: 'bass', name: 'Kat bass' } });
       assert.equal((await jeff.post('/song/save')).result, 'ok');
       let st = await jeff.get('/state'); const ja = st.song.tracks.find((t) => t.name === 'Jeff gtr'), kb = st.song.tracks.find((t) => t.name === 'Kat bass');
-      assert.ok(await jeff.evalJs(`window.bandpadDebug.mineT('${kb.id}')`), 'Jeff (auto-unlock) has both tracks');
-      await jeff.evalJs(`(async () => { await window.bandpadDebug.lockAll(); return true; })()`);
-      await jeff.evalJs(`(async () => { const s = window.bandpadDebug; return true; })()`);
+      assert.ok(await jeff.evalJs(`window.cobanderDebug.mineT('${kb.id}')`), 'Jeff (auto-unlock) has both tracks');
+      await jeff.evalJs(`(async () => { await window.cobanderDebug.lockAll(); return true; })()`);
+      await jeff.evalJs(`(async () => { const s = window.cobanderDebug; return true; })()`);
       await jeff.evalJs(`document.querySelector('.track[data-id="${ja.id}"] .tlock').click(); true`); await sleep(1500);
-      assert.ok(await jeff.evalJs(`window.bandpadDebug.mineT('${ja.id}')`) && !(await jeff.evalJs(`window.bandpadDebug.mineT('${kb.id}')`)), 'Jeff has only his guitar now');
+      assert.ok(await jeff.evalJs(`window.cobanderDebug.mineT('${ja.id}')`) && !(await jeff.evalJs(`window.cobanderDebug.mineT('${kb.id}')`)), 'Jeff has only his guitar now');
       // Kat opens it (read-only for the song) and unlocks the bass by clicking its 🔒
       await kat.post('/song/open', { folder: 'Lock Song' }); await sleep(1500);
       assert.equal((await kat.get('/state')).readOnly, true);
       await until(() => kat.evalJs(`!!document.querySelector('.track[data-id="${kb.id}"] .tlock')`), 10000, 'Kat sees the tracks');
       await kat.evalJs(`document.querySelector('.track[data-id="${kb.id}"] .tlock').click(); true`);
-      await until(() => kat.evalJs(`window.bandpadDebug.mineT('${kb.id}')`), 10000, 'Kat has the bass');
+      await until(() => kat.evalJs(`window.cobanderDebug.mineT('${kb.id}')`), 10000, 'Kat has the bass');
       // each edits their own at the same time
-      assert.equal(await kat.evalJs(`window.bandpadDebug.editTrack('${kb.id}', { gainDb: -11 })`), true, 'Kat can edit the bass');
-      assert.equal(await kat.evalJs(`window.bandpadDebug.editTrack('${ja.id}', { gainDb: -20 })`), false, 'Kat can\'t touch Jeff\'s guitar');
+      assert.equal(await kat.evalJs(`window.cobanderDebug.editTrack('${kb.id}', { gainDb: -11 })`), true, 'Kat can edit the bass');
+      assert.equal(await kat.evalJs(`window.cobanderDebug.editTrack('${ja.id}', { gainDb: -20 })`), false, 'Kat can\'t touch Jeff\'s guitar');
       await sleep(1500);
-      assert.notEqual(await kat.evalJs(`window.bandpadDebug.engine.track('${ja.id}').gainDb`), -20, 'refused edit was put back ' + await kat.evalJs(`JSON.stringify(window.__errs || [])`));
+      assert.notEqual(await kat.evalJs(`window.cobanderDebug.engine.track('${ja.id}').gainDb`), -20, 'refused edit was put back ' + await kat.evalJs(`JSON.stringify(window.__errs || [])`));
       assert.equal((await kat.get('/state')).dirty, false, 'Kat\'s track edits aren\'t "unsaved changes" (they go to Jeff)');
-      await until(() => jeff.evalJs(`window.bandpadDebug.heldBy('${kb.id}') === 'Kat'`), 15000, 'Jeff sees Kat holds the bass');
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.editTrack('${kb.id}', { gainDb: 3 })`), false, 'Jeff can\'t touch Kat\'s bass');
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.editTrack('${ja.id}', { gainDb: -7 })`), true, 'Jeff edits his guitar');
+      await until(() => jeff.evalJs(`window.cobanderDebug.heldBy('${kb.id}') === 'Kat'`), 15000, 'Jeff sees Kat holds the bass');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.editTrack('${kb.id}', { gainDb: 3 })`), false, 'Jeff can\'t touch Kat\'s bass');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.editTrack('${ja.id}', { gainDb: -7 })`), true, 'Jeff edits his guitar');
       await until(async () => (await jeff.get('/state')).song.tracks.find((t) => t.id === kb.id).gainDb === -11, 20000, 'Jeff\'s song picks up Kat\'s bass change');
       assert.equal((await jeff.post('/song/save')).result, 'ok');
       st = await jeff.get('/state'); assert.equal(st.song.tracks.find((t) => t.id === ja.id).gainDb, -7); assert.equal(st.song.tracks.find((t) => t.id === kb.id).gainDb, -11);
       assert.match(JSON.stringify(st.song.activity || []), /Kat: updated Kat bass/);
       await until(async () => (await fsp.readdir(path.join(shared, 'Lock Song', '_tracks')).catch(() => [])).length === 0, 15000, 'folded post removed after the save');
       // Kat's own view keeps her bass while Jeff's saves arrive
-      await sleep(3000); assert.equal(await kat.evalJs(`window.bandpadDebug.engine.track('${kb.id}').gainDb`), -11);
+      await sleep(3000); assert.equal(await kat.evalJs(`window.cobanderDebug.engine.track('${kb.id}').gainDb`), -11);
       // a lock nobody touches for 10 min fades: age Kat's lock file → Jeff can unlock the bass
       const lf = path.join(shared, 'Lock Song', '_tracklocks', `${kb.id}.json`); const l = JSON.parse(await fsp.readFile(lf, 'utf8')); l.at = Date.now() - 11 * 60 * 1000; await fsp.writeFile(lf, JSON.stringify(l));
-      await until(() => jeff.evalJs(`window.bandpadDebug.heldBy('${kb.id}') === null`), 15000, 'faded lock is free');
+      await until(() => jeff.evalJs(`window.cobanderDebug.heldBy('${kb.id}') === null`), 15000, 'faded lock is free');
       await jeff.evalJs(`document.querySelector('.track[data-id="${kb.id}"] .tlock').click(); true`);
-      await until(() => jeff.evalJs(`window.bandpadDebug.mineT('${kb.id}')`), 10000, 'Jeff took the faded bass lock');
+      await until(() => jeff.evalJs(`window.cobanderDebug.mineT('${kb.id}')`), 10000, 'Jeff took the faded bass lock');
       await kat.post('/song/close').catch(() => {});
     });
     await step('0.9: parts with their takes — delete a part and close the gap, duplicate, move earlier, slice, takes move with a dragged part', async () => {
@@ -827,7 +827,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/clip/import', { path: path.join(WORK, 'riff.wav'), trackId: g.id, start: 0, name: 'one' });
       await jeff.post('/clip/import', { path: path.join(WORK, 'riff.wav'), trackId: g.id, start: 8, name: 'two' });
       await jeff.post('/chords', { fromBar: 5, bars: 'Em' });
-      await jeff.evalJs(`(async () => { await window.bandpadDebug.unlockAll({ quiet: true }); return true; })()`);
+      await jeff.evalJs(`(async () => { await window.cobanderDebug.unlockAll({ quiet: true }); return true; })()`);
       const secs = async () => (await jeff.get('/collab')).sections.slice().sort((a, b) => a.start - b.start).map((x) => `${x.name}:${x.start}-${x.end}`);
       const clips = async () => (await jeff.get('/state')).song.tracks.find((t) => t.id === g.id).clips.map((c) => [c.name, Math.round(c.start * 100) / 100, Math.round((c.duration - c.trimStart - c.trimEnd) * 100) / 100]).sort((a, b) => a[1] - b[1]);
       const menu = (name, label) => jeff.evalJs(`(() => { const b = [...document.querySelectorAll('#section-lane .section-block')].find((x) => x.textContent.startsWith(${JSON.stringify(name)})); b.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: b.getBoundingClientRect().left + 5, clientY: b.getBoundingClientRect().top + 5 })); const it = [...document.querySelectorAll('.ctxmenu .ctx-item')].find((x) => x.querySelector('.ctx-label').textContent.replace('✓ ', '').startsWith(${JSON.stringify(label)})); if (!it) return false; it.click(); return true; })()`);
@@ -860,7 +860,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await undo();
       // "takes move with Chorus": drag the Chorus block 2 bars right → its take goes along
       assert.ok(await menu('Chorus', 'Takes move with Chorus')); await sleep(400);
-      const pps = await jeff.evalJs(`window.bandpadDebug.state.pxPerSec`);
+      const pps = await jeff.evalJs(`window.cobanderDebug.state.pxPerSec`);
       await jeff.evalJs(`(() => { document.querySelector('#arrange').scrollLeft = 0; const b = [...document.querySelectorAll('#section-lane .section-block')].find((x) => x.textContent.startsWith('Chorus')); const r = b.getBoundingClientRect(); const x = r.left + 20, y = r.top + r.height / 2;
         b.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: x, clientY: y })); window.dispatchEvent(new MouseEvent('mousemove', { clientX: x + 4, clientY: y })); window.dispatchEvent(new MouseEvent('mousemove', { clientX: x + ${pps} * 4, clientY: y })); window.dispatchEvent(new MouseEvent('mouseup', { clientX: x + ${pps} * 4, clientY: y })); return true; })()`); await sleep(600);
       assert.deepEqual((await secs()).slice(-1), ['Chorus:12-16']); assert.ok((await clips()).some((c) => c[0] === 'two' && c[1] === 12), `take moved with the part: ${JSON.stringify(await clips())}`);
@@ -872,16 +872,16 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/song/patch', { addTrack: { kind: 'guitar', name: 'G' } });
       const g = (await jeff.get('/state')).song.tracks.find((t) => t.name === 'G');
       await jeff.post('/clip/import', { path: path.join(WORK, 'riff.wav'), trackId: g.id, start: 8, name: 'outro' });
-      await jeff.evalJs(`(async () => { await window.bandpadDebug.unlockAll({ quiet: true }); return true; })()`);
-      const ts = () => jeff.evalJs(`JSON.stringify(window.bandpadDebug.engine.timeSig)`);
+      await jeff.evalJs(`(async () => { await window.cobanderDebug.unlockAll({ quiet: true }); return true; })()`);
+      const ts = () => jeff.evalJs(`JSON.stringify(window.cobanderDebug.engine.timeSig)`);
       await jeff.post('/song/patch', { timeSig: '2+2+3/8' }); assert.equal(await ts(), '[7,8,[2,2,3]]');
-      assert.equal(await jeff.evalJs(`JSON.stringify(window.BPMeter.accents(window.bandpadDebug.engine.timeSig))`), '[2,0,1,0,1,0,0]');
+      assert.equal(await jeff.evalJs(`JSON.stringify(window.BPMeter.accents(window.cobanderDebug.engine.timeSig))`), '[2,0,1,0,1,0,0]');
       await jeff.post('/song/patch', { timeSig: [13, 7] }); assert.equal(await ts(), '[13,7]');
       assert.equal(await jeff.evalJs(`document.querySelector('#timesig').value`), '13/7', 'the select shows a custom meter');
       let bad = null; try { await jeff.post('/song/patch', { timeSig: [12, 99] }); } catch (e) { bad = e; } assert.ok(bad, '12/99 is refused');
       // 6/8: six eighths, accents on 1 (strong) and 4 (medium)
       await jeff.post('/song/patch', { timeSig: [6, 8] });
-      assert.equal(await jeff.evalJs(`(() => { const e = window.bandpadDebug.engine; const was = e.click.countIn; e.click.countIn = true; const p = e.countInPlan(0); e.click.countIn = was; return JSON.stringify(p.clicks.map((c) => c.accent)); })()`), '[2,0,0,1,0,0]');
+      assert.equal(await jeff.evalJs(`(() => { const e = window.cobanderDebug.engine; const was = e.click.countIn; e.click.countIn = true; const p = e.countInPlan(0); e.click.countIn = was; return JSON.stringify(p.clicks.map((c) => c.accent)); })()`), '[2,0,0,1,0,0]');
       await jeff.post('/song/patch', { timeSig: [4, 4] });
       // Bridge in 90 bpm 6/8: still 2 bars, 4 s a bar → 8 s long; the Outro and its take move 4 s later
       const secs = async () => (await jeff.get('/collab')).sections.filter((x) => !x.deleted).slice().sort((a, b) => a.start - b.start).map((x) => `${x.name}:${Math.round(x.start * 100) / 100}-${Math.round(x.end * 100) / 100}`);
@@ -890,8 +890,8 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.ok(await menu('Bridge', 'Tempo & time signature')); await answer('90 6/8');
       assert.deepEqual(await secs(), ['Intro:0-4', 'Bridge:4-12', 'Outro:12-16']);
       const clip = (await jeff.get('/state')).song.tracks.find((t) => t.id === g.id).clips[0]; assert.equal(Math.round(clip.start * 100) / 100, 12, 'the Outro take moved with it');
-      assert.equal(await jeff.evalJs(`(() => { const m = window.BPMeter, map = window.bandpadDebug.engine.meterMap(); return [m.posAt(map, 12.01).bar, m.posAt(map, 8.01).bar, m.posAt(map, 9.4).beat].join(','); })()`), '5,4,3', 'bars count through the part: Outro starts on bar 5, beat 3 of a 6/8 bar at 90 = 1.33 s in');
-      assert.equal(await jeff.evalJs(`(() => { const e = window.bandpadDebug.engine; const b = window.BPMeter.beatsIn(e.meterMap(), 4, 8); return JSON.stringify(b.slice(0, 6).map((x) => x.accent)); })()`), '[2,0,0,1,0,0]', 'the Bridge clicks in 6/8');
+      assert.equal(await jeff.evalJs(`(() => { const m = window.BPMeter, map = window.cobanderDebug.engine.meterMap(); return [m.posAt(map, 12.01).bar, m.posAt(map, 8.01).bar, m.posAt(map, 9.4).beat].join(','); })()`), '5,4,3', 'bars count through the part: Outro starts on bar 5, beat 3 of a 6/8 bar at 90 = 1.33 s in');
+      assert.equal(await jeff.evalJs(`(() => { const e = window.cobanderDebug.engine; const b = window.BPMeter.beatsIn(e.meterMap(), 4, 8); return JSON.stringify(b.slice(0, 6).map((x) => x.accent)); })()`), '[2,0,0,1,0,0]', 'the Bridge clicks in 6/8');
       assert.equal((await jeff.post('/song/save')).result, 'ok');
       assert.ok((await jeff.get('/collab')).sections.some((x) => x.name === 'Bridge' && x.bpm === 90 && JSON.stringify(x.timeSig) === '[6,8]'), 'the part tempo/meter is saved');
       assert.ok(await menu('Bridge', 'Back to the song tempo')); await sleep(600);
@@ -902,8 +902,8 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/sections', { add: [{ name: 'Verse 1', startBar: 1, endBar: 2 }, { name: 'Chorus', startBar: 3, endBar: 4 }, { name: 'Verse 2', startBar: 5, endBar: 6 }] });
       await jeff.post('/song/patch', { addTrack: { kind: 'guitar', name: 'G' } });
       const g = (await jeff.get('/state')).song.tracks.find((t) => t.name === 'G');
-      await jeff.evalJs(`(async () => { await window.bandpadDebug.unlockAll({ quiet: true }); return true; })()`);
-      assert.equal(await jeff.evalJs(`JSON.stringify(window.bandpadDebug.state.song.linkGroups || {})`), '{"verse":true}', 'two Verses: linked without asking');
+      await jeff.evalJs(`(async () => { await window.cobanderDebug.unlockAll({ quiet: true }); return true; })()`);
+      assert.equal(await jeff.evalJs(`JSON.stringify(window.cobanderDebug.state.song.linkGroups || {})`), '{"verse":true}', 'two Verses: linked without asking');
       const clips = async () => (await jeff.get('/state')).song.tracks.find((t) => t.id === g.id).clips.map((c) => ({ id: c.id, start: Math.round(c.start * 100) / 100, link: !!c.link, gain: c.gainDb || 0, mute: !!c.mute })).sort((a, b) => a.start - b.start);
       // record (import) a take in Verse 2: it goes to the room (Verse 1) and Verse 2 plays it
       await jeff.post('/clip/import', { path: path.join(WORK, 'memo.wav'), trackId: g.id, start: 8, name: 'v2 take' }); await sleep(400);
@@ -917,24 +917,24 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/song/patch', { clips: [{ id: mirror.id, start: 8.5 }] }); await sleep(300);
       cs = await clips(); assert.ok(cs.some((c) => !c.link && c.start === 0.5) && cs.some((c) => c.link && c.start === 8.5), `moved in both: ${JSON.stringify(cs)}`);
       // a note added in Verse 2 lives in Verse 1 and shows in both
-      await jeff.evalJs(`(async () => { await window.bandpadDebug.addNote(${JSON.stringify(g.id)}, 9, 'redo this'); return true; })()`); await sleep(300);
+      await jeff.evalJs(`(async () => { await window.cobanderDebug.addNote(${JSON.stringify(g.id)}, 9, 'redo this'); return true; })()`); await sleep(300);
       const notes = (await jeff.get('/collab')).notes || (await jeff.get('/collab')).markers;
       assert.equal(notes.find((n) => n.text === 'redo this').time, 1, 'stored at the room time');
       assert.equal(await jeff.evalJs(`document.querySelectorAll('.note-pin[data-id]').length >= 2 && !!document.querySelector('.note-pin[data-ghost]')`), true, 'pinned in both verses');
       // the song's parts bin lists Verse and Chorus; drop a Verse at the end → Verse 3, linked
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.songPartList().map((p) => p.ty).join(',')`), 'verse,chorus');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.songPartList().map((p) => p.ty).join(',')`), 'verse,chorus');
       assert.ok(await jeff.evalJs(`document.querySelectorAll('#song-parts li.songpart').length`) >= 2);
       const v1 = (await jeff.get('/collab')).sections.find((x) => x.name === 'Verse 1');
-      await jeff.evalJs(`window.bandpadDebug.insertSongPart(${JSON.stringify(v1.id)}, 12)`); await sleep(400);
+      await jeff.evalJs(`window.cobanderDebug.insertSongPart(${JSON.stringify(v1.id)}, 12)`); await sleep(400);
       const secs = (await jeff.get('/collab')).sections.filter((x) => !x.deleted).sort((a, b) => a.start - b.start).map((x) => `${x.name}:${x.start}-${x.end}`);
       assert.deepEqual(secs, ['Verse 1:0-4', 'Chorus:4-8', 'Verse 2:8-12', 'Verse 3:12-16']);
       cs = await clips(); assert.ok(cs.some((c) => c.link && c.start === 12.5), `Verse 3 plays the room: ${JSON.stringify(cs)}`);
       // a Post-chorus is its own part: dropping one gives "Post-chorus 2", linked to the Post-chorus, not a Chorus
       await jeff.post('/sections', { add: [{ name: 'Post-chorus', startBar: 9, endBar: 10 }] });
       const pc = (await jeff.get('/collab')).sections.find((x) => x.name === 'Post-chorus');
-      await jeff.evalJs(`window.bandpadDebug.insertSongPart(${JSON.stringify(pc.id)}, 1e6)`); await sleep(400);
+      await jeff.evalJs(`window.cobanderDebug.insertSongPart(${JSON.stringify(pc.id)}, 1e6)`); await sleep(400);
       assert.ok((await jeff.get('/collab')).sections.some((x) => x.name === 'Post-chorus 2' && !x.deleted), JSON.stringify((await jeff.get('/collab')).sections.map((x) => x.name)));
-      assert.equal(await jeff.evalJs(`JSON.stringify(Object.keys(window.bandpadDebug.state.song.linkGroups || {}).sort())`), '["post-chorus","verse"]');
+      assert.equal(await jeff.evalJs(`JSON.stringify(Object.keys(window.cobanderDebug.state.song.linkGroups || {}).sort())`), '["post-chorus","verse"]');
       await jeff.evalJs(`document.querySelector('#btn-undo').click()`); await sleep(500); await jeff.evalJs(`document.querySelector('#btn-undo').click()`); await sleep(500);
       // delete the copy's take = delete it everywhere
       await jeff.post('/song/patch', { clips: [{ id: cs.find((c) => c.link && c.start === 12.5).id, delete: true }] }); await sleep(300);
@@ -948,13 +948,13 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.evalJs(`document.querySelector('#btn-undo').click()`); await sleep(600);
       assert.equal((await jeff.post('/song/save')).result, 'ok');
       // delete the song → _deleted on the Drive; restore it
-      assert.equal(await jeff.evalJs(`(async () => await window.bandpadDebug.closeSong({ interactive: false }))()`), true);
-      const r = await jeff.evalJs(`(async () => JSON.stringify(await window.bandpad.song.trash('Link Song')))()`);
+      assert.equal(await jeff.evalJs(`(async () => await window.cobanderDebug.closeSong({ interactive: false }))()`), true);
+      const r = await jeff.evalJs(`(async () => JSON.stringify(await window.cobander.song.trash('Link Song')))()`);
       assert.ok(/Link Song - deleted/.test(r), r);
       assert.ok(fs.existsSync(path.join(shared, '_deleted')) && fs.readdirSync(path.join(shared, '_deleted')).some((n) => n.startsWith('Link Song - deleted')));
       assert.ok(!fs.existsSync(path.join(shared, 'Link Song')));
-      const list = JSON.parse(await jeff.evalJs(`(async () => JSON.stringify(await window.bandpad.song.trashed()))()`));
-      const back = JSON.parse(await jeff.evalJs(`(async () => JSON.stringify(await window.bandpad.song.restore(${JSON.stringify(list[0].id)})))()`));
+      const list = JSON.parse(await jeff.evalJs(`(async () => JSON.stringify(await window.cobander.song.trashed()))()`));
+      const back = JSON.parse(await jeff.evalJs(`(async () => JSON.stringify(await window.cobander.song.restore(${JSON.stringify(list[0].id)})))()`));
       assert.equal(back.folder, 'Link Song'); assert.ok(fs.existsSync(path.join(shared, 'Link Song', 'song.json')));
     });
     await step('0.11.1: band feed minimizes from its header and remembers it', async () => {
@@ -988,7 +988,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       let q2 = (await jeff.get('/quest')).songs.find((s) => s.folder === 'Link Song'); assert.equal(q2.xp, xp0 + 15); assert.equal(q2.tasks[0].who, 'Kat');
       await jeff.post('/quest', { task: { song: 'Link Song', id: q2.tasks[0].id, done: true } });
       q2 = (await jeff.get('/quest')).songs.find((s) => s.folder === 'Link Song'); assert.equal(q2.xp, xp0 + 25);
-      await jeff.evalJs(`(async () => { await window.bandpadDebug.addNote(null, 1, 'more cowbell'); return true; })()`); await sleep(200);
+      await jeff.evalJs(`(async () => { await window.cobanderDebug.addNote(null, 1, 'more cowbell'); return true; })()`); await sleep(200);
       assert.equal(await jeff.evalJs(`!!document.querySelector('.xp-pop')`), true, '+XP pop on a note');
       await jeff.post('/quest', { boss: { title: 'Halloween practice', date: '2026-10-31', songs: ['Link Song'] }, next: 'house show in January' });
       assert.match(await jeff.evalJs(`document.querySelector('#qb-boss').textContent`), /Halloween practice/);
@@ -1005,19 +1005,19 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
     await step('0.12: monitoring runs through the armed track\'s FX chain; output device + latency measurement are wired', async () => {
       await jeff.post('/song/create', { name: 'Mon Song', bpm: 120 }); await jeff.post('/song/patch', { addTrack: { kind: 'guitar', name: 'G' } });
       const g = (await jeff.get('/state')).song.tracks.find((t) => t.name === 'G');
-      await jeff.evalJs(`(async () => { const e = window.bandpadDebug.engine; await e.init(); window.bandpadDebug.state.armedTrack = ${JSON.stringify(g.id)}; window.bandpadDebug.renderAll(); return true; })()`); await sleep(200);
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.engine.monitorVia`), g.id, 'the live input is routed into the armed track\'s chain');
-      await jeff.evalJs(`(() => { const e = window.bandpadDebug.engine; e.setMonitorFx(false); return true; })()`);
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.engine.monitorVia`), null, 'dry when FX monitoring is off');
-      await jeff.evalJs(`window.bandpadDebug.engine.setMonitorFx(true)`);
+      await jeff.evalJs(`(async () => { const e = window.cobanderDebug.engine; await e.init(); window.cobanderDebug.state.armedTrack = ${JSON.stringify(g.id)}; window.cobanderDebug.renderAll(); return true; })()`); await sleep(200);
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.monitorVia`), g.id, 'the live input is routed into the armed track\'s chain');
+      await jeff.evalJs(`(() => { const e = window.cobanderDebug.engine; e.setMonitorFx(false); return true; })()`);
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.monitorVia`), null, 'dry when FX monitoring is off');
+      await jeff.evalJs(`window.cobanderDebug.engine.setMonitorFx(true)`);
       // the fake mic can't hear the output: Measure says so instead of setting a wrong number
-      const r = await jeff.evalJs(`(async () => { const e = window.bandpadDebug.engine; if (!e.stream) await e.openInput(null); try { const r = await e.measureLatency({ clicks: 4, gap: 0.1 }); return 'measured ' + JSON.stringify(r); } catch (err) { return 'error ' + err.message; } })()`);
+      const r = await jeff.evalJs(`(async () => { const e = window.cobanderDebug.engine; if (!e.stream) await e.openInput(null); try { const r = await e.measureLatency({ clicks: 4, gap: 0.1 }); return 'measured ' + JSON.stringify(r); } catch (err) { return 'error ' + err.message; } })()`);
       assert.ok(/^error Didn|^measured/.test(r), r);
       const au = await jeff.get('/audio'); assert.equal(au.sampleRate, 48000); assert.ok(Array.isArray(au.outputs));
       const au2 = await jeff.post('/audio', { recordOffsetMs: 281 }); assert.equal(au2.recordOffsetMs, 281); assert.equal(au2.offsetManual, true);
       const au3 = await jeff.post('/audio', { recordOffsetMs: null }); assert.equal(au3.offsetManual, false);
       let me = null, mr = null; try { mr = await jeff.post('/latency/measure', {}); } catch (e) { me = e; } assert.ok(me ? /hear the clicks|nothing|Input/.test(me.message) : Number.isFinite(mr.ms), String(me && me.message));
-      assert.equal(await jeff.evalJs(`(async () => typeof window.bandpadDebug.engine.ctx.setSinkId === 'function' && (await window.bandpadDebug.engine.listOutputs()).length >= 0)()`), true);
+      assert.equal(await jeff.evalJs(`(async () => typeof window.cobanderDebug.engine.ctx.setSinkId === 'function' && (await window.cobanderDebug.engine.listOutputs()).length >= 0)()`), true);
     });
     await step('0.13: speech-to-text writes timed lyrics from a vocal take (Whisper on this computer)', async () => {
       await jeff.post('/song/create', { name: 'Words Song', bpm: 120 });
@@ -1041,10 +1041,10 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.ok(await jeff.evalJs(`document.querySelectorAll('#k-cur .k-w.sung, #k-cur .k-w.now').length`) >= 1, 'words light up');
       assert.match(await jeff.evalJs(`document.querySelector('#k-next').textContent`), /\w/, 'next line shown');
       await jeff.evalJs(`document.querySelector('#k-vox').value = 'off'; document.querySelector('#k-vox').dispatchEvent(new Event('change')); true`);
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.engine.tempMute.has(${JSON.stringify(v.id)})`), true, 'vocals muted for practice');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.tempMute.has(${JSON.stringify(v.id)})`), true, 'vocals muted for practice');
       await jeff.shot('karaoke');
       await jeff.evalJs(`document.querySelector('#k-close').click()`);
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.engine.tempMute.size`), 0, 'closing brings the vocals back');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.tempMute.size`), 0, 'closing brings the vocals back');
     });
     await step('0.13: FLAC takes, Lighten Drive, comp, punch in/out, crash-safe recording, chart, share a part, what changed, shortcuts, part keys', async () => {
       await jeff.post('/song/create', { name: 'QoL Song', bpm: 120 });
@@ -1058,7 +1058,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       let files = await fsp.readdir(adir); assert.ok(files.length >= 2 && files.every((f) => f.endsWith('.flac')), files.join(', '));
       // FLAC plays: reload the song and the takes decode
       await jeff.post('/song/save'); await jeff.post('/song/reload'); await sleep(800);
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.state.missingClips.size`), 0, 'FLAC takes load');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.state.missingClips.size`), 0, 'FLAC takes load');
       // comp: "two" only for bars 2-3 (2 s – 6 s); "one" everywhere else
       let st = await jeff.get('/state'); let gc = st.song.tracks.find((t) => t.id === g.id).clips;
       const one = gc.find((c) => c.name === 'one'), two = gc.find((c) => c.name === 'two');
@@ -1087,7 +1087,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       const rid = 'abcabcabcabc'; await fsp.mkdir(recDir, { recursive: true });
       await fsp.writeFile(path.join(recDir, `${rid}.json`), JSON.stringify({ id: rid, folder: 'QoL Song', song: 'QoL Song', trackId: vx.id, trackName: 'Vox', startPos: 12, startFrame: 0, startCtxTime: 0, sampleRate: sr, offsetMs: 0, who: 'Jeff', at: new Date().toISOString() }));
       await fsp.writeFile(path.join(recDir, `${rid}.ch0.f32`), Buffer.from(pcm.buffer));
-      const listed = await jeff.evalJs(`window.bandpad.rec.list().then((l) => l.map((x) => [x.id, Math.round(x.seconds)]))`); assert.deepEqual(listed, [[rid, 2]]);
+      const listed = await jeff.evalJs(`window.cobander.rec.list().then((l) => l.map((x) => [x.id, Math.round(x.seconds)]))`); assert.deepEqual(listed, [[rid, 2]]);
       await jeff.post('/song/save'); await jeff.post('/song/close');
       const before = !!JSON.parse(await fsp.readFile(path.join(shared, 'E2E Song', 'song.json'), 'utf8')).tracks.find((t) => t.name === 'Gtr').mute; await jeff.post('/song/open', { folder: 'QoL Song' });
       await until(() => jeff.evalJs(`(() => { const b = [...document.querySelectorAll('#toasts button')].find((x) => /Recover the take/.test(x.textContent)); if (b) { b.click(); return true; } return false; })()`), 8000, 'recover offer');
@@ -1100,7 +1100,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       const done = await jeff.post('/audio/compact', { folder: 'QoL Song' }); assert.equal(done.removed, 1); assert.ok(!fs.existsSync(old));
       // chart + share a part
       await jeff.post('/lyrics', { text: 'walking down the line' });
-      await jeff.evalJs(`(() => { const l = window.bandpadDebug.state.song.lyrics.find((x) => x.text === 'walking down the line'); l.time = 0.5; return true; })()`);
+      await jeff.evalJs(`(() => { const l = window.cobanderDebug.state.song.lyrics.find((x) => x.text === 'walking down the line'); l.time = 0.5; return true; })()`);
       const ch = await jeff.get('/chart'); assert.match(ch.text, /\[VERSE 1\]/); assert.match(ch.text, /\[G\] walking down the line/); assert.match(ch.text, /\[CHORUS\][^\n]*\n\| Am \| F \| C \| G \|/);
       const sh = await jeff.post('/part/share', { section: 'Verse 1' }); const bdir = path.join(shared, 'QoL Song', 'bounces');
       const bfolder = (await fsp.readdir(bdir)).find((f) => f.startsWith('QoL Song - Verse 1')); assert.ok(bfolder, 'share folder'); const inside = await fsp.readdir(path.join(bdir, bfolder));
@@ -1127,7 +1127,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       const name = await jeff.evalJs(`document.querySelector('#tu-name').textContent`); assert.ok(typeof name === 'string');
       await jeff.evalJs(`document.querySelector('#tuner').close(); true`);
       // save the Gtr track as a setup, then Add track lists it and builds a copy from it
-      await jeff.evalJs(`window.bandpad.settings.set({ trackSetups: [{ name: 'My Strat', track: { name: 'Strat', type: 'guitar', instrument: 'audio', preset: null, gainDb: -9 } }] }).then((x) => { window.bandpadDebug.state.settings = x; return true; })`);
+      await jeff.evalJs(`window.cobander.settings.set({ trackSetups: [{ name: 'My Strat', track: { name: 'Strat', type: 'guitar', instrument: 'audio', preset: null, gainDb: -9 } }] }).then((x) => { window.cobanderDebug.state.settings = x; return true; })`);
       await jeff.post('/song/reload'); await sleep(300);
       await jeff.evalJs(`document.querySelector('#btn-add-track').click(); true`); await sleep(300);
       assert.equal(await jeff.evalJs(`document.querySelector('#addtrack-mine button b') && document.querySelector('#addtrack-mine button b').textContent`), 'My Strat');
@@ -1152,7 +1152,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.ok(await jeff.evalJs(`!!document.querySelector('.ctxmenu')`), 'mix menu shows over practice');
       await jeff.evalJs(`(() => { const it = [...document.querySelectorAll('.ctxmenu .ctx-item')].find((x) => /^(✓ )?Vox$/.test(x.textContent.trim())); it.click(); return true; })()`); await sleep(150);
       const voxId = (await jeff.get('/state')).song.tracks.find((t) => t.name === 'Vox').id;
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.engine.tempMute.has(${JSON.stringify(voxId)})`), true, 'Vox taken out');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.tempMute.has(${JSON.stringify(voxId)})`), true, 'Vox taken out');
       assert.match(await jeff.evalJs(`document.querySelector('#k-mix').textContent`), /without: Vox/);
       await jeff.evalJs(`(() => { const v = document.querySelector('#k-view'); v.value = 'chords'; v.dispatchEvent(new Event('change')); const t = document.querySelector('#k-tp'); t.value = '2'; t.dispatchEvent(new Event('change')); return true; })()`);
       await jeff.post('/transport', { action: 'seek', time: 0.5 }); await sleep(300);
@@ -1160,8 +1160,8 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.equal(await jeff.evalJs(`document.querySelector('#k-bars .k-bar.now').textContent`), 'A');
       await jeff.shot('practice-chords');
       await jeff.evalJs(`(() => { const v = document.querySelector('#k-view'); v.value = 'both'; v.dispatchEvent(new Event('change')); const t = document.querySelector('#k-tp'); t.value = '0'; t.dispatchEvent(new Event('change')); return true; })()`);
-      await jeff.evalJs(`(() => { window.bandpadDebug.engine; document.querySelector('#k-close').click(); return true; })()`);
-      assert.equal(await jeff.evalJs(`window.bandpadDebug.engine.tempMute.size`), 0, 'closing practice brings everyone back');
+      await jeff.evalJs(`(() => { window.cobanderDebug.engine; document.querySelector('#k-close').click(); return true; })()`);
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.tempMute.size`), 0, 'closing practice brings everyone back');
       await jeff.evalJs(`localStorage.removeItem('bp.kMutes'); localStorage.removeItem('bp.kView'); true`);
       await jeff.post('/song/save'); await jeff.post('/song/close');
     });
@@ -1182,7 +1182,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/workspace', { ws: 'record' });
       assert.equal(await jeff.evalJs(`getComputedStyle(document.querySelector('.grp.only-record')).display !== 'none'`), true, 'record tools up top');
       await jeff.evalJs(`document.querySelector('#side-tabs [data-tab=takes]').click(); true`);
-      await jeff.evalJs(`window.bandpadDebug.state.selectedTrack = ${JSON.stringify(tr('Drums').id)}; document.querySelector('#side-tabs [data-tab=takes]').click(); true`);
+      await jeff.evalJs(`window.cobanderDebug.state.selectedTrack = ${JSON.stringify(tr('Drums').id)}; document.querySelector('#side-tabs [data-tab=takes]').click(); true`);
       assert.match(await jeff.evalJs(`document.querySelector('#take-list').textContent`), /sloppy/);
       await jeff.shot('record-takes');
       // chords from the guitar take
@@ -1211,7 +1211,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.deepEqual(pc.notes.map((n) => n.flag), ['ok', 'ok', 'flat', 'ok'], JSON.stringify(pc.notes));
       assert.ok(await jeff.evalJs(`document.querySelectorAll('.pitch-mark.flat').length`) >= 1, 'flagged on the take');
       // phone page: on, the page and its live state answer on the network port with the key
-      await jeff.evalJs(`window.bandpad.phone.start().then(() => true)`);
+      await jeff.evalJs(`window.cobander.phone.start().then(() => true)`);
       const ph = await jeff.get('/phone'); assert.ok(ph.on);
       const key = ph.key;
       const get = (p) => new Promise((resolve, reject) => http.get({ host: '127.0.0.1', port: ph.port, path: p }, (res) => { let d = ''; res.on('data', (c) => { d += c; }); res.on('end', () => resolve({ code: res.statusCode, body: d })); }).on('error', reject));
@@ -1222,8 +1222,8 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/workspace', { ws: 'write' });
       await jeff.post('/song/save'); await jeff.post('/song/create', { name: 'Encore' }); await jeff.post('/song/open', { folder: 'Fourteen' });
       const sh = await jeff.post('/practice', { open: true, show: true }); assert.ok(sh.show && sh.setlist.order.length >= 2, JSON.stringify(sh));
-      const allMuted = await jeff.evalJs(`window.bandpadDebug.engine.tracks.every((t) => window.bandpadDebug.engine.tempMute.has(t.id))`); assert.equal(allMuted, true, 'click only');
-      await jeff.evalJs(`window.bandpad.settings.set({ showPedal: { next: { kind: 'key', code: 'KeyN' } } }).then((x) => { window.bandpadDebug.state.settings = x; return true; })`);
+      const allMuted = await jeff.evalJs(`window.cobanderDebug.engine.tracks.every((t) => window.cobanderDebug.engine.tempMute.has(t.id))`); assert.equal(allMuted, true, 'click only');
+      await jeff.evalJs(`window.cobander.settings.set({ showPedal: { next: { kind: 'key', code: 'KeyN' } } }).then((x) => { window.cobanderDebug.state.settings = x; return true; })`);
       const before = (await jeff.post('/practice', {})).setlist.i;
       await jeff.evalJs(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', code: 'KeyN', bubbles: true })); true`);
       await until(async () => { const p = await jeff.post('/practice', {}); return p.setlist.i === before + 1 && p.song === p.setlist.order[p.setlist.i]; }, 15000, 'pedal → next song');
@@ -1237,20 +1237,20 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.evalJs(`(() => { const s = document.querySelector('#k-along'); s.value = ''; s.dispatchEvent(new Event('change')); return true; })()`);
       await jeff.post('/practice', { open: false });
       const trDr = (await jeff.get('/state')).song.tracks.find((t) => t.name === 'Drums');
-      const tmr = await jeff.evalJs(`window.bandpadDebug.timingReport(${JSON.stringify(trDr.id)}).then((r) => r && r.overall.n)`); assert.ok(tmr >= 10, `timing report hits ${tmr}`);
+      const tmr = await jeff.evalJs(`window.cobanderDebug.timingReport(${JSON.stringify(trDr.id)}).then((r) => r && r.overall.n)`); assert.ok(tmr >= 10, `timing report hits ${tmr}`);
       assert.equal(await jeff.evalJs(`!!document.querySelector('#take-list .timing-box')`), true, 'timing panel in Takes');
       await jeff.shot('timing'); await jeff.post('/practice', { open: true }); await jeff.evalJs(`(() => { const s = document.querySelector('#k-along'); s.value = 'chords'; s.dispatchEvent(new Event('change')); return true; })()`); await sleep(500); await jeff.shot('highway'); await jeff.evalJs(`(() => { const s = document.querySelector('#k-along'); s.value = ''; s.dispatchEvent(new Event('change')); return true; })()`); await jeff.post('/practice', { open: false });
       // practice minutes land on the board
       await jeff.post('/practice', { open: true }); await jeff.post('/transport', { action: 'seek', time: 0 }); await jeff.evalJs(`document.querySelector('#k-countin').checked = false; document.querySelector('#k-play').click(); true`);
-      await sleep(7000); const kd = await jeff.evalJs(`JSON.stringify({ p: window.bandpadDebug.kara().practiced, playing: window.bandpadDebug.engine.playing, open: window.bandpadDebug.kara().open })`); await jeff.post('/practice', { flush: true }); await jeff.post('/transport', { action: 'stop' });
+      await sleep(7000); const kd = await jeff.evalJs(`JSON.stringify({ p: window.cobanderDebug.kara().practiced, playing: window.cobanderDebug.engine.playing, open: window.cobanderDebug.kara().open })`); await jeff.post('/practice', { flush: true }); await jeff.post('/transport', { action: 'stop' });
       const pr = await until(async () => { const q = await jeff.get('/quest'); return q.practice && q.practice.members.find((m) => m.name === 'Jeff'); }, 10000, `practice logged ${kd}`);
       assert.ok(pr.total > 0.05 && pr.top[0].song, JSON.stringify(pr));
       await jeff.post('/practice', { open: false });
       await jeff.post('/workspace', { ws: 'band' }); await sleep(400);
-      assert.equal(await jeff.evalJs(`!document.querySelector('#band-page').hidden`), true, await jeff.evalJs(`JSON.stringify([window.bandpadDebug.state.ws, document.body.className])`));
+      assert.equal(await jeff.evalJs(`!document.querySelector('#band-page').hidden`), true, await jeff.evalJs(`JSON.stringify([window.cobanderDebug.state.ws, document.body.className])`));
       await jeff.shot('band-page');
       await jeff.post('/workspace', { ws: 'write' });
-      await jeff.evalJs(`window.bandpad.phone.stop().then(() => true)`);
+      await jeff.evalJs(`window.cobander.phone.stop().then(() => true)`);
       const cur = (await jeff.get('/state')).folder; if (cur) { await jeff.post('/song/save'); await jeff.post('/song/close'); }
     });
     await step('0.15: band to-dos (loose ends), track height', async () => {
@@ -1264,7 +1264,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.ok(await jeff.evalJs(`document.querySelectorAll('#qb-members .char .gi').length >= 4 && !!document.querySelector('#qb-boss .gi-dragon')`), 'character sprites + boss dragon');
       assert.ok(await jeff.evalJs(`document.querySelectorAll('#qb-members .char canvas.lpc').length >= 4 && [...document.querySelectorAll('#qb-members .char canvas.lpc')].every((c) => c.getContext('2d').getImageData(0, 0, c.width, c.height).data.some((v) => v))`), 'LPC characters drawn');
       // the level-up show (no take rolling → full show with sound), then dismissed
-      await jeff.evalJs(`window.bandpadDebug_levelUp(21); true`); await sleep(900);
+      await jeff.evalJs(`window.cobanderDebug_levelUp(21); true`); await sleep(900);
       assert.ok(await jeff.evalJs(`!!document.querySelector('#levelup') && /LEVEL 21/.test(document.querySelector('#levelup .lu-n').textContent) && document.querySelectorAll('#levelup .p').length > 50`), 'level-up show');
       await jeff.shot('level-up'); await jeff.evalJs(`document.querySelector('#levelup').click(); true`); await sleep(600);
       assert.ok(await jeff.evalJs(`!document.querySelector('#levelup')`), 'show dismissed');
@@ -1289,7 +1289,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       // Mix = a console: timeline hidden, strips carry role / send / FX chips / quick fixes; Record heads show takes
       await jeff.post('/workspace', { ws: 'mix' }); await sleep(400);
       assert.ok(await jeff.evalJs(`document.querySelectorAll('#mixer .strip .quickfix').length >= 1 && document.querySelector('#master-area .lufs') !== null`), 'console strips');
-      { const before = await jeff.evalJs(`window.bandpadDebug.engine.tracks[0].fx.hpf.on`); await jeff.evalJs(`document.querySelector('#mixer .strip .chip-fx').click(); true`); await sleep(200); assert.notEqual(await jeff.evalJs(`window.bandpadDebug.engine.tracks[0].fx.hpf.on`), before, 'LC chip toggles the high-pass'); }
+      { const before = await jeff.evalJs(`window.cobanderDebug.engine.tracks[0].fx.hpf.on`); await jeff.evalJs(`document.querySelector('#mixer .strip .chip-fx').click(); true`); await sleep(200); assert.notEqual(await jeff.evalJs(`window.cobanderDebug.engine.tracks[0].fx.hpf.on`), before, 'LC chip toggles the high-pass'); }
       await jeff.shot('mix-console');
       assert.ok(await jeff.evalJs(`!!document.querySelector('.track-head .mixrow input[type=range]')`), 'mix head has a volume slider');
       assert.ok(await jeff.evalJs(`getComputedStyle(document.querySelector('#arrange')).display !== 'none'`), 'timeline visible in Mix');
@@ -1302,7 +1302,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       // a word being sung sits ON the line (translateY 0), not past it
       { const r = await jeff.evalJs(`(() => { const hl = document.querySelector('#k-crawl .k-hitline').getBoundingClientRect(); return [...document.querySelectorAll('#k-plane .k-cw.now')].map((n) => { const b = n.getBoundingClientRect(); return Math.abs((b.top + b.bottom) / 2 - (hl.top + hl.bottom) / 2); }); })()`); assert.ok(r.length && r.every((d) => d < 8), `sung words sit on the line (off by ${JSON.stringify(r)} px)`); }
       await jeff.evalJs(`{ const kv = document.querySelector('#k-vol'); kv.value = 40; kv.dispatchEvent(new Event('input')); } true`);
-      assert.ok(await jeff.evalJs(`Math.abs(window.bandpadDebug.engine.listen - 0.4) < 1e-6 && localStorage.getItem('bp.practiceVol') === '40'`), 'practice volume');
+      assert.ok(await jeff.evalJs(`Math.abs(window.cobanderDebug.engine.listen - 0.4) < 1e-6 && localStorage.getItem('bp.practiceVol') === '40'`), 'practice volume');
       assert.ok(await jeff.evalJs(`(() => { const k = document.querySelector('#karaoke').getBoundingClientRect(); const sb = document.querySelector('#sidebar').getBoundingClientRect(); return k.left >= sb.right - 1 && k.top > 40; })()`), 'practice covers only the song area');
       assert.ok(await jeff.evalJs(`!document.querySelector('#k-crawl').hidden`), 'crawl view shown');
       await jeff.shot('practice-crawl');
@@ -1318,11 +1318,11 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.shot('help-mode');
       await jeff.evalJs(`document.querySelector('#btn-help').click(); true`);
       // tuner: Done closes the mic it opened
-      await jeff.evalJs(`(() => { const E = window.bandpadDebug.engine; if (E.monitorInput) E.setMonitor(false); E.closeInput(); return true; })()`); await sleep(200);   // start with the mic closed, as a bandmate opening the tuner cold would
+      await jeff.evalJs(`(() => { const E = window.cobanderDebug.engine; if (E.monitorInput) E.setMonitor(false); E.closeInput(); return true; })()`); await sleep(200);   // start with the mic closed, as a bandmate opening the tuner cold would
       await jeff.evalJs(`document.querySelector('#btn-tuner').click(); true`); await sleep(1200);
       assert.equal(await jeff.evalJs(`document.querySelector('#tuner').open`), true, 'tuner open');
       await jeff.evalJs(`document.querySelector('#tuner').close(); true`); await sleep(300);
-      assert.equal(await jeff.evalJs(`!!(window.bandpadDebug.engine.inputAlive && window.bandpadDebug.engine.inputAlive())`), false, 'mic released after Done');
+      assert.equal(await jeff.evalJs(`!!(window.cobanderDebug.engine.inputAlive && window.cobanderDebug.engine.inputAlive())`), false, 'mic released after Done');
       await jeff.post('/song/save'); await jeff.post('/song/close');
       // chart every song: Fourteen has a guitar take (0.14 step) — chords it already drafted mean "nothing new"; a fresh song with the same take gets charted
       await fsp.writeFile(path.join(WORK, 'chords.wav'), chordWav(['G', 'D', 'Em', 'C']));

@@ -103,7 +103,7 @@ class Updater {
     if (!s.available || !s.ready) throw new Error(s.reason || 'No update is ready.');
     this.installing = true; let out = null;
     try {
-      const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'bandpad-update-'));
+      const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'cobander-update-'));
       const local = path.join(tmp, path.basename(s.path));
       this.set({ state: 'downloading', progress: 0 });
       let done = 0; const total = s.size || 1;

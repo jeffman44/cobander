@@ -7,7 +7,7 @@
   const $ = (s) => document.querySelector(s);
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const { Engine, dbToGain, num, clamp, validTimeSig, audioId } = window.BPEngine;
-  const bp = window.bandpad;
+  const bp = window.cobander;
   const CB = window.BPCollab;
 
   const engine = new Engine();
@@ -541,8 +541,7 @@
     f.append(wrap, menu); d.append(f); document.body.append(d); refreshPreview();
     const r = await new Promise((res) => { d.addEventListener('close', () => res(d.returnValue), { once: true }); d.showModal(); });
     d.remove(); if (r !== 'ok') return;
-    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, look: x.look || null })).map((x) => (x.name === mb.name ? { ...x, character: sel, look } : x));
-    await questWrite({ 'band:members': list }); toast(`You are ${Q.CHARACTERS.find(([id]) => id === sel)[1]}. 🤘`, { kind: 'ok', ms: 5000 });
+    await memberWrite(mb, { character: sel, look }); toast(`You are ${Q.CHARACTERS.find(([id]) => id === sel)[1]}. 🤘`, { kind: 'ok', ms: 5000 });
   }
   // LEVEL UP: the full obnoxious show — unless a take is rolling
   let luAudio = null;
@@ -573,17 +572,27 @@
     o.addEventListener('click', close); setTimeout(close, 6500);
     logActivity(`hit level ${m.level.n}${newName ? ` — ${m.level.title}` : ''}`);
   }
-  window.bandpadDebug_levelUp = (n) => { const m = myQuest() || { name: me(), role: '', level: Q.levelOf(Q.levelXp(n || 10), Q.MEMBER_LEVELS) }; levelUpShow({ ...m, level: Q.levelOf(Q.levelXp(n || m.level.n), Q.MEMBER_LEVELS) }, { force: true }); };
+  window.cobanderDebug_levelUp = (n) => { const m = myQuest() || { name: me(), role: '', level: Q.levelOf(Q.levelXp(n || 10), Q.MEMBER_LEVELS) }; levelUpShow({ ...m, level: Q.levelOf(Q.levelXp(n || m.level.n), Q.MEMBER_LEVELS) }, { force: true }); };
+  // A bandmate's details live in their own field (band:member:<name>), so two people editing at once can't wipe each
+  // other. The roster (band:members) is only rewritten to add someone or rename them — re-read fresh right before.
+  const memberRow = (x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, look: x.look || null });
+  async function memberWrite(mb, changes, { rename = null } = {}) {
+    await loadQuest(); const b = quest.board; const cur = b.members.find((x) => x.name === mb.name) || mb;
+    const key = Q.memberKey(rename || cur.name); const prev = quest.fields.get(Q.memberKey(cur.name)); const base = prev && prev.v && typeof prev.v === 'object' ? prev.v : {};
+    const patch = { [key]: { ...base, ...changes } };
+    if (cur.auto || rename) patch['band:members'] = [...b.members.filter((x) => !x.auto || x.name === cur.name).map(memberRow).map((x) => (x.name === cur.name ? { ...x, ...changes, name: rename || x.name } : x))];
+    if (rename && Q.memberKey(rename) !== Q.memberKey(cur.name)) patch[Q.memberKey(cur.name)] = null;
+    await questWrite(patch);
+  }
   async function editMember(mb) {
     const v = await promptName('Name · role · icon (e.g. "Zach · Drums · 🥁")', `${mb.name} · ${mb.role} · ${mb.icon}`); if (!v) return;
     const [name, role, icon] = v.split('·').map((x) => x.trim());
-    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, look: x.look || null })).map((x) => (x.name === mb.name ? { ...x, name: name || x.name, role: role ?? x.role, icon: icon || x.icon } : x));
-    await questWrite({ 'band:members': list });
+    const ch = {}; if (role != null) ch.role = role; if (icon) ch.icon = icon;
+    await memberWrite(mb, name && name !== mb.name ? { ...memberRow(mb), ...ch } : ch, { rename: name && name !== mb.name ? name : null });
   }
   async function editAliases(mb) {
     const v = await promptName(`${mb.name} shows up in Cobander as… (comma-separated display names, e.g. FossTheBoss)`, (mb.aliases || []).join(', ')); if (v === null) return;
-    const list = quest.board.members.filter((x) => !x.auto || x.name === mb.name).map((x) => ({ name: x.name, role: x.role, icon: x.icon, aliases: x.aliases || [], character: x.character || null, look: x.look || null })).map((x) => (x.name === mb.name ? { ...x, aliases: v.split(',').map((a) => a.trim()).filter(Boolean).slice(0, 6) } : x));
-    await questWrite({ 'band:members': list });
+    await memberWrite(mb, { aliases: v.split(',').map((a) => a.trim()).filter(Boolean).slice(0, 6) });
   }
   $('#qb-boss').addEventListener('click', () => editBoss().catch(fail));
   $('#qb-next').addEventListener('click', async () => { const v = await promptName('The target after the boss battle (a show, a recording, a date)', quest.board.next || ''); if (v !== null) questWrite({ 'band:next': v.slice(0, 200) }).catch(fail); });
@@ -7101,7 +7110,7 @@
     }
   });
 
-  window.bandpadDebug = { engine, state, collectSong, kara: () => kara, timingReport: (id) => timingReport(engine.track(id), null), closeSong, addNote, insertSongPart, songPartList, renderAll: () => renderAll(), editTrack: (id, patch) => change(() => engine.updateTrack(id, patch), { label: `edit ${(engine.track(id) || {}).name}` }), mineT, heldBy, unlockAll, lockAll, rollAt: (i) => { const G = rollGeom(); const z = G && G.g.notes[i]; if (!z) return null; const r = RC.cv().getBoundingClientRect(); return { x: r.left + (G.xOf(z.t) + Math.max(G.xOf(z.t) + 3, G.xOf(z.t + z.d))) / 2, y: r.top + G.yOf(z.n) + G.rowH / 2, rowH: G.rowH, grid: G.grid, pxPerSec: (G.w - G.gut) / G.W, left: r.left, top: r.top, gut: G.gut, topPad: G.top }; } };
+  window.cobanderDebug = { engine, state, collectSong, kara: () => kara, timingReport: (id) => timingReport(engine.track(id), null), closeSong, addNote, insertSongPart, songPartList, renderAll: () => renderAll(), editTrack: (id, patch) => change(() => engine.updateTrack(id, patch), { label: `edit ${(engine.track(id) || {}).name}` }), mineT, heldBy, unlockAll, lockAll, rollAt: (i) => { const G = rollGeom(); const z = G && G.g.notes[i]; if (!z) return null; const r = RC.cv().getBoundingClientRect(); return { x: r.left + (G.xOf(z.t) + Math.max(G.xOf(z.t) + 3, G.xOf(z.t + z.d))) / 2, y: r.top + G.yOf(z.n) + G.rowH / 2, rowH: G.rowH, grid: G.grid, pxPerSec: (G.w - G.gut) / G.W, left: r.left, top: r.top, gut: G.gut, topPad: G.top }; } };
   // ---------- boot ----------
   (async () => {
     await loadSettings();

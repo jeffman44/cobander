@@ -1,5 +1,9 @@
 # Cobander changelog
 
+## 0.15.8
+- Two bandmates editing their characters at the same time no longer wipe each other's changes. Each bandmate's character, role and nicknames are saved on their own, and a character someone lost that way comes back.
+- Cobander's insides are renamed from BandPad (nothing to do on your side — settings, songs and keys carry over).
+
 ## 0.15.7
 - The Windows installer is code-signed (verified publisher), so Windows trusts it more and the "protected your PC" warning fades as downloads add up.
 - On a Mac, the microphone permission prompt says Cobander (it still said BandPad).

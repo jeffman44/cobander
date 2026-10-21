@@ -194,9 +194,9 @@
       <div class="go">
         <label class="band-name" id="band-wrap" hidden>Band name <input id="band" maxlength="80" placeholder="what the key should say" autocomplete="organization"></label>
         <a class="btn hot" id="buy" href="https://ko-fi.com/jdeuel44" target="_blank" rel="noopener">Send noods — $25</a>
-        <span class="fine">The key arrives by email. Paste it once; the band folder keeps it.</span>
+        <span class="fine">The key arrives by email. Paste it once; the band folder keeps it.<span id="kofi-note"> On Ko-fi, put your <b>band's name</b> in the message — it goes on the key ($12 or more gets one).</span></span>
       </div>
-      <p class="fine alt-dl">First launch: if Windows shows "Windows protected your PC", click <b>More info → Run anyway</b> (the installer is signed; the warning fades as downloads add up). Mac: right-click the app → Open.</p>
+      <p class="fine alt-dl">First launch: if Windows shows "Windows protected your PC", click <b>More info → Run anyway</b> (the installer is signed; the warning fades as downloads add up). Mac: click <b>Done</b> on the first warning, then <b>System Settings → Privacy &amp; Security → Open Anyway</b>.</p>
       <p class="fine alt-dl">Other downloads: <a href="https://takeout.cobander.com/download/win">Windows</a> · <a href="https://takeout.cobander.com/download/mac-arm64">Mac (Apple silicon)</a> · <a href="https://takeout.cobander.com/download/mac-x64">Mac (Intel)</a></p>
     </div>
     <img class="jump" src="img/levelup.jpg" alt="The colander leaping with a bass guitar, confetti everywhere" loading="lazy">
@@ -225,7 +225,7 @@
     <details><summary>What if we don't share a cloud folder?</summary><p>Make one — a free Google Drive or OneDrive account is enough. Cobander needs a folder every bandmate's computer syncs; that's the whole system. There's no Cobander server, which is why there's no subscription.</p></details>
     <details><summary>Is it a real DAW?</summary><p>It records real takes, mixes with real EQ and compression, bounces stems, and hands the whole song off to a studio DAW with markers when it's ready for one. It is built for getting ideas down fast with a band, not for engineering a record.</p></details>
     <details><summary>Does my stuff leave my computer?</summary><p>Only to your band's shared folder. No telemetry, no accounts, no uploads. Speech-to-text, chord detection and pitch check all run locally.</p></details>
-    <details><summary>Windows says it "protected my PC"</summary><p>The Windows installer is code-signed. A newly signed app can still get the SmartScreen warning for a while until it builds up downloads — click <b>More info</b> (it shows a verified publisher), then <b>Run anyway</b>. On a Mac, right-click Cobander → Open the first time.</p></details>
+    <details><summary>Windows says it "protected my PC"</summary><p>The Windows installer is code-signed. A newly signed app can still get the SmartScreen warning for a while until it builds up downloads — click <b>More info</b> (it shows a verified publisher), then <b>Run anyway</b>. On a Mac, the first open says Apple can't check it: click <b>Done</b>, then <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>. (On macOS 14 and older, right-click Cobander → <b>Open</b> works too.) After that it opens normally.</p></details>
     <details><summary>Mac or Windows?</summary><p>Both. One person on a Mac and three on Windows works fine — it's all files in a folder.</p></details>
     <details><summary>Already have it and want to say thanks?</summary><p>Extra sauce: <a href="https://ko-fi.com/jdeuel44">Ko-fi</a> or <a href="https://venmo.com/u/jdeuel44">Venmo</a>, any size.</p></details>
   </section>
@@ -245,7 +245,7 @@
   // checkout[custom][band] (→ the key's band); the buyer types the amount (LS ignores a price prefill on share links).
   const LS = null; const KOFI = 'https://ko-fi.com/jdeuel44';
   const buy = document.getElementById('buy'), band = document.getElementById('band'); let amt = 25;
-  if (LS) document.getElementById('band-wrap').hidden = false;
+  if (LS) { document.getElementById('band-wrap').hidden = false; document.getElementById('kofi-note').hidden = true; }
   const buyHref = () => { if (!LS) return KOFI; const b = band.value.trim(); return b ? `${LS}?${new URLSearchParams({ 'checkout[custom][band]': b })}` : LS; };
   const sync = () => { buy.textContent = `Send noods — $${amt}`; buy.href = buyHref(); };
   for (const d of document.querySelectorAll('button.dish')) d.addEventListener('click', () => { for (const x of document.querySelectorAll('button.dish')) x.classList.toggle('pick', x === d); amt = Number(d.dataset.amt); sync(); });

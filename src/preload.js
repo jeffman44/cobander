@@ -7,7 +7,7 @@ const on = (channel) => (cb) => {
   return () => ipcRenderer.removeListener(channel, handler);
 };
 
-contextBridge.exposeInMainWorld('bandpad', {
+contextBridge.exposeInMainWorld('cobander', {
   platform: process.platform,
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),

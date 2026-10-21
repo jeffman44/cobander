@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Package a built release for shipping to Jeff's PC through the device bridge (≤30 MB per file):
 #   /mnt/user-data/outputs/bp<ver>/  <installer>.partNN (25 MB), SHA256SUMS-<ver>.txt, latest.json,
-#                                    UPDATE-<ver>.cmd, bandpad-src-<ver>.tgz (source backup — the cloud
+#                                    UPDATE-<ver>.cmd, cobander-src-<ver>.tgz (source backup — the cloud
 #                                    workspace does not survive between sessions)
 # UPDATE-<ver>.cmd (double-clicked on jeffpc) joins the parts, copies the installers + latest.json into
 # the band Drive folder's installers/, deletes older installers there, silent-installs and relaunches.
@@ -22,7 +22,7 @@ for f in "${FILES[@]}"; do
   JOIN+="copy /b ${plus} \"${f}\" >nul && del ${parts} && echo joined ${f} >> update-${VER}.log"$'\r\n'
 done
 cp release/latest.json "$OUT/latest.json"
-tar czf "$OUT/bandpad-src-${VER}.tgz" --exclude=node_modules --exclude=release --exclude=.e2e -C .. "$(basename "$PWD")"
+tar czf "$OUT/cobander-src-${VER}.tgz" --exclude=node_modules --exclude=release --exclude=.e2e -C .. "$(basename "$PWD")"
 
 KEEP=""
 for f in "${FILES[@]}"; do KEEP+=" if /i not \"%%~nxf\"==\"${f}\""; done

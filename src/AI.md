@@ -1,4 +1,4 @@
-<!-- bandpad-ai-doc v16 -->
+<!-- cobander-ai-doc v17 -->
 # Cobander — guide for AI assistants (Claude / Cowork / scripts)
 
 Cobander is a small multitrack sketchpad. Everything it knows is plain JSON and WAV on disk,

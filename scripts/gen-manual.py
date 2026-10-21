@@ -2,7 +2,7 @@
 """Generate the Cobander manual pages (docs/manual/*.html) from one template."""
 import os, html
 
-OUT = '/home/claude/bandpad/docs/manual'
+OUT = __import__('os').path.join(__import__('os').path.dirname(__import__('os').path.abspath(__file__)), '..', 'docs', 'manual')
 
 PAGES = [
     # (file, nav label, group)
@@ -89,7 +89,7 @@ write_page('index.html', 'Start here', 'How to use Cobander: setup, the five wor
 <h2>The first time you open it</h2>
 <ul>
   <li><b>Windows</b> shows "Windows protected your PC". Click <b>More info</b>, then <b>Run anyway</b>. That's SmartScreen not recognising a new installer. It happens once.</li>
-  <li><b>Mac</b>: right-click the app and choose <b>Open</b> the first time. After that it opens normally.</li>
+  <li><b>Mac</b>: the first open says Apple can't check it. Click <b>Done</b>, open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>. (On macOS 14 and older, right-click the app → <b>Open</b> works too.) After that it opens normally.</li>
   <li>Cobander then asks for two things before the first song: your name and the band's shared folder. Both live under ⚙ (Settings).</li>
   <li>The first time you record, your computer asks for microphone permission. Say yes.</li>
 </ul>
@@ -805,7 +805,7 @@ write_page('faq.html', 'Troubleshooting', 'Fixes for the usual Cobander problems
 <h2>Windows says it "protected your PC"</h2>
 <ul>
   <li>That's SmartScreen not recognising a new installer. Click <b>More info</b>, then <b>Run anyway</b>. Once.</li>
-  <li>On a Mac, right-click Cobander → <b>Open</b> the first time.</li>
+  <li>On a Mac, the first open says Apple can't check it: click <b>Done</b>, then <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>. (On macOS 14 and older, right-click Cobander → <b>Open</b> works too.) After that it opens normally.</li>
   <li>Updates installed from inside Cobander don't ask again.</li>
 </ul>
 

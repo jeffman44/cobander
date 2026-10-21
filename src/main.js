@@ -21,7 +21,7 @@ const REPO = (PKG.repository && String(PKG.repository.url || PKG.repository).rep
 const LINKS = { repo: REPO ? `https://github.com/${REPO}` : null, venmo: 'https://venmo.com/u/jdeuel44', kofi: PKG.funding && PKG.funding.kofi ? PKG.funding.kofi : null, takeout: (PKG.funding && (PKG.funding.takeout || PKG.funding.kofi)) || null, openmoji: 'https://openmoji.org', gameicons: 'https://game-icons.net', lpc: 'https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/', manual: 'https://cobander.com/manual/', site: 'https://cobander.com' };   // takeout: the pay-what-you-want download (Ko-fi until the storefront exists)
 const SETTINGS_FILE = () => path.join(app.getPath('userData'), 'settings.json');
 const POLL_MS = 3000;            // belt-and-suspenders poll; fs.watch is unreliable on Drive mounts
-const AI_DOC_VERSION_RE = /^<!-- bandpad-ai-doc v(\d+) -->/m;
+const AI_DOC_VERSION_RE = /^<!-- (?:cobander|bandpad)-ai-doc v(\d+) -->/m;   // bandpad- = docs written before 0.15.8
 
 // One instance per machine: two instances would fight over the API port, settings and locks.
 if (!app.requestSingleInstanceLock()) {
@@ -711,7 +711,7 @@ function createWindow() {
   // The window's renderer can die (out of memory on a huge import, GPU crash, killed): bring the window back instead of
   // leaving a blank window whose heartbeat keeps the song locked forever. Give up after 3 crashes in 5 minutes.
   const crashes = [];
-  if (process.env.BANDPAD_E2E || process.env.BP_CONSOLE) win.webContents.on('console-message', (e, level, message, line, source) => { const lv = e.level ?? level; const msg = e.message ?? message; if (lv === 'error' || lv === 'warning' || lv >= 2) console.log(`renderer[${lv}] ${msg} (${String(e.sourceId ?? source).split('/').pop()}:${e.lineNumber ?? line})`); });
+  if (process.env.COBANDER_E2E || process.env.BP_CONSOLE) win.webContents.on('console-message', (e, level, message, line, source) => { const lv = e.level ?? level; const msg = e.message ?? message; if (lv === 'error' || lv === 'warning' || lv >= 2) console.log(`renderer[${lv}] ${msg} (${String(e.sourceId ?? source).split('/').pop()}:${e.lineNumber ?? line})`); });
   win.webContents.on('render-process-gone', (_e, d) => {
     console.error('renderer gone:', d && d.reason, d && d.exitCode);
     if (closing || quitting || !win || win.isDestroyed() || (d && d.reason === 'clean-exit')) return;

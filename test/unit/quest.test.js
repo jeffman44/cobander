@@ -72,3 +72,25 @@ test('practice minutes from each player\'s own file: totals, this week, top song
   assert.equal(p.total, 110); assert.equal(p.week, 90); assert.equal(p.top[0].song, 'Song A');
   const j = b.members.find((x) => x.name === 'Jeff'); assert.equal(j.practiceXp, 80);
 });
+
+test('two bandmates picking characters at once: neither wipes the other (own-file layer + per-member fields)', () => {
+  const Q = require('../../src/renderer/quest.js');
+  const roster = (jeffChar, loganChar) => [{ name: 'Jeff', role: 'Vocals', icon: '🎤', aliases: [], character: jeffChar }, { name: 'Logan', role: 'Guitar', icon: '🎸', aliases: [], character: loganChar }];
+  // the 0.15.7 race: Jeff saves his pick, Logan (with a board loaded before Jeff's save) saves his a minute later
+  const files = [f('Jeff', { 'band:members': [roster('howler', null), '2026-10-21T03:00:00Z'] }), f('Logan', { 'band:members': [roster(null, 'shredder'), '2026-10-21T03:01:00Z'] })];
+  let b = Q.board(Q.merge(files), []);
+  assert.equal(b.members.find((x) => x.name === 'Jeff').character, 'howler', "Jeff's pick survives Logan's later roster save");
+  assert.equal(b.members.find((x) => x.name === 'Logan').character, 'shredder');
+  assert.equal(b.members.find((x) => x.name === 'Logan').role, 'Guitar');
+  // 0.15.8 writes: per-member fields win over both rosters, and only touch their own keys
+  files[0].fields[Q.memberKey('Jeff')] = { v: { character: 'thumper' }, at: '2026-10-21T04:00:00Z', by: 'Jeff' };
+  files[1].fields[Q.memberKey('Jeff')] = undefined; delete files[1].fields[Q.memberKey('Jeff')];
+  files[1].fields[Q.memberKey('Logan')] = { v: { role: 'Lead guitar' }, at: '2026-10-21T04:00:01Z', by: 'Logan' };
+  b = Q.board(Q.merge(files), []);
+  const j = b.members.find((x) => x.name === 'Jeff'), l = b.members.find((x) => x.name === 'Logan');
+  assert.equal(j.character, 'thumper'); assert.equal(j.role, 'Vocals');
+  assert.equal(l.character, 'shredder'); assert.equal(l.role, 'Lead guitar');
+  // someone else's copy of the roster can't change my character
+  files[1].fields['band:members'] = { v: roster('noodle', 'shredder'), at: '2026-10-21T05:00:00Z', by: 'Logan' };
+  assert.equal(Q.board(Q.merge(files), []).members.find((x) => x.name === 'Jeff').character, 'thumper');
+});
