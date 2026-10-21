@@ -26,7 +26,53 @@ jobs:
       - run: npm test
       - run: RCODESIGN=/usr/local/bin/rcodesign bash scripts/build.sh all
         env: { HOME: /tmp/home, WINEPREFIX: /tmp/home/.wine, ELECTRON_BUILDER_CACHE: /tmp/home/.cache/electron-builder }   # wine refuses the runner's HOME (not owned by the container user)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers
+          retention-days: 3
+          path: |
+            release/Cobander-*-win-x64.exe
+            release/Cobander-*-mac-arm64.zip
+            release/Cobander-*-mac-x64.zip
+
+  # Windows signing (Azure Artifact Signing) has to run on a Windows runner. Until the AZURE_* secrets exist this job
+  # skips signing and publishes the unsigned build exactly as before. latest.json is rebuilt AFTER signing, because
+  # signing changes the exe's bytes and the updater checks sha256.
+  publish:
+    needs: build
+    runs-on: windows-2025
+    env:
+      SIGN: ${{ secrets.AZURE_CLIENT_SECRET != '' && 'yes' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/download-artifact@v4
+        with: { name: installers, path: release }
+      - name: version
+        id: v
+        shell: bash
+        run: echo "v=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: sign Windows installer
+        if: env.SIGN == 'yes'
+        uses: azure/artifact-signing-action@v2
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net/
+          signing-account-name: cobander
+          certificate-profile-name: cobander
+          files-folder: ${{ github.workspace }}\release
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+      - name: latest.json
+        shell: bash
+        run: node scripts/manifest.js "${{ steps.v.outputs.v }}"
       - name: release notes
+        shell: bash
         run: node -e "const m=require('./release/latest.json');require('fs').writeFileSync('release/notes.md',m.notes.map(n=>'- '+n).join('\n')+'\n')"
       - uses: softprops/action-gh-release@v2
         with:
