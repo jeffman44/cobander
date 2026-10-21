@@ -77,6 +77,9 @@
   .does li b .om { margin-right: 6px; }
   .does li span { color: var(--steel); font-size: 16px; }
 
+  .band-name { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; margin-bottom: 8px; }
+  .band-name[hidden] { display: none; }
+  .band-name input { font: inherit; padding: 8px 10px; border: 2px solid currentColor; border-radius: 8px; background: transparent; color: inherit; max-width: 320px; }
   /* the menu: pricing as a takeout menu */
   .menu { padding: 54px 0; }
   .carton { background: var(--paper); color: #241f16; border-radius: 14px; padding: 34px 34px 28px; max-width: 760px; position: relative; box-shadow: 0 30px 60px rgba(0,0,0,.45); }
@@ -189,6 +192,7 @@
       <button class="dish pick" data-amt="25"><span class="name">Groupie<small>all the songs you want. One key for the whole band — $12 minimum, pay what you like</small></span><span class="row"><span class="price">$25</span></span></button>
       <button class="dish" data-amt="60"><span class="name">Roadie<small>same key, plus your band on the Roadies wall — here and in the app</small></span><span class="row"><span class="price">$60</span></span></button>
       <div class="go">
+        <label class="band-name" id="band-wrap" hidden>Band name <input id="band" maxlength="80" placeholder="what the key should say" autocomplete="organization"></label>
         <a class="btn hot" id="buy" href="https://ko-fi.com/jdeuel44" target="_blank" rel="noopener">Send noods — $25</a>
         <span class="fine">The key arrives by email. Paste it once; the band folder keeps it.</span>
       </div>
@@ -237,8 +241,17 @@
   { const ua = navigator.userAgent, mac = /Macintosh|Mac OS X/.test(ua), win = /Windows/.test(ua), mobile = /Android|iPhone|iPad/.test(ua);
     const DL = 'https://takeout.cobander.com/download/'; const href = mac ? DL + 'mac-arm64' : DL + 'win'; const label = mobile ? 'Download on a computer' : mac ? 'Download for Mac' : 'Download for Windows';
     for (const a of document.querySelectorAll('a.dl')) { a.href = href; if (a.classList.contains('btn')) a.textContent = label; if (mobile) { a.addEventListener('click', (e) => { e.preventDefault(); alert('Cobander runs on Windows and Mac. Open cobander.com on that computer.'); }); } } }
-  const buy = document.getElementById('buy'); const BUY = 'https://ko-fi.com/jdeuel44';
-  for (const d of document.querySelectorAll('button.dish')) d.addEventListener('click', () => { for (const x of document.querySelectorAll('button.dish')) x.classList.toggle('pick', x === d); buy.textContent = `Send noods — $${d.dataset.amt}`; buy.href = BUY; });
+  // Storefront: LS (Lemon Squeezy checkout, live mode) when set, else Ko-fi. With LS the band name and amount ride along
+  // (checkout[custom][band] → the key's band; checkout[custom_price] in cents → the PWYW field starts at the tier).
+  const LS = null; const KOFI = 'https://ko-fi.com/jdeuel44';
+  const buy = document.getElementById('buy'), band = document.getElementById('band'); let amt = 25;
+  if (LS) document.getElementById('band-wrap').hidden = false;
+  const buyHref = () => { if (!LS) return KOFI; const q = new URLSearchParams({ 'checkout[custom_price]': String(amt * 100) }); const b = band.value.trim(); if (b) q.set('checkout[custom][band]', b); return `${LS}?${q}`; };
+  const sync = () => { buy.textContent = `Send noods — $${amt}`; buy.href = buyHref(); };
+  for (const d of document.querySelectorAll('button.dish')) d.addEventListener('click', () => { for (const x of document.querySelectorAll('button.dish')) x.classList.toggle('pick', x === d); amt = Number(d.dataset.amt); sync(); });
+  band.addEventListener('input', sync);
+  buy.addEventListener('click', (e) => { if (LS && !band.value.trim()) { e.preventDefault(); band.focus(); band.placeholder = 'type your band name first'; } });
+  sync();
   const m = /^([^.]+)\.github\.io$/.exec(location.hostname); const repo = m ? `${m[1]}/cobander` : 'jeffman44/cobander';
   if (repo) { for (const r of document.querySelectorAll('.repo')) r.textContent = repo; for (const a of document.querySelectorAll('.repo-link')) a.href = a.href.replace('OWNER/cobander', repo); }
 </script>
