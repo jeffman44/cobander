@@ -40,7 +40,7 @@ Cobander checks for updates and installs them itself.
 - **$25** — Send noods (suggested; $12 minimum)
 - **$60** — Roadie: same key, plus your band's name in the credits
 
-Get it from the [Send noods page](https://ko-fi.com/jdeuel44) *(storefront link coming; Ko-fi works today)*. The key arrives by
+Download: [Windows](https://takeout.cobander.com/download/win) · [Mac, Apple silicon](https://takeout.cobander.com/download/mac-arm64) · [Mac, Intel](https://takeout.cobander.com/download/mac-x64). Get a key from the [Send noods page](https://ko-fi.com/jdeuel44) *(storefront link coming; Ko-fi works today)*. The key arrives by
 email; paste it under ⚙ → **Enter a key** (or when the second song asks). It lives in the shared folder, verifies offline,
 never expires, never phones home. Folders that already hold more songs keep them all.
 

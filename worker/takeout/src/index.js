@@ -37,6 +37,16 @@ async function hmacHex(secret, body) {
   const k = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return [...new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode(body)))].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
+// Svix signature (Resend's webhooks): v1 = base64(HMAC-SHA256(secret, `${id}.${ts}.${body}`)), secret is after "whsec_"
+async function svixOk(secret, headers, body) {
+  try {
+    const id = headers.get('svix-id'), ts = headers.get('svix-timestamp'), sigs = headers.get('svix-signature') || '';
+    if (!id || !ts || Math.abs(Date.now() / 1000 - Number(ts)) > 300) return false;
+    const key = await crypto.subtle.importKey('raw', unb64u(secret.replace(/^whsec_/, '').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const mac = btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(`${id}.${ts}.${body}`)))));
+    return sigs.split(' ').some((s) => s.startsWith('v1,') && timingEq(s.slice(3), mac));
+  } catch (_) { return false; }
+}
 const timingEq = (a, b) => a.length === b.length && [...a].reduce((ok, c, i) => ok & (c === b[i]), 1) === 1;
 
 // ---- what a sale looks like, from either store ----
@@ -85,6 +95,19 @@ async function notifyRoadie(env, rec) {
   if (rec.tier !== 'roadie' || !env.NOTIFY) return;
   try { await sendEmail(env, env.NOTIFY, { subject: `New Roadie: ${rec.band}`, text: `${rec.band} (${rec.email}) sent $${(rec.cents / 100).toFixed(2)} via ${rec.source}.\n\nAdd them to docs/roadies.json: { "band": "${rec.band}", "since": "${rec.at.slice(0, 7)}" }` }); } catch (_) {}
 }
+async function latestRelease(env) {
+  const repo = env.REPO || 'jeffman44/cobander';
+  if (env.KEYS) { const c = await env.KEYS.get('release:latest'); if (c) return JSON.parse(c); }
+  // No API call (unauthenticated GitHub API gets rate-limited from shared IPs): the /releases/latest redirect names the tag,
+  // and the asset names follow from the version.
+  const r = await fetch(`https://github.com/${repo}/releases/latest`, { redirect: 'manual', headers: { 'user-agent': 'cobander-takeout' } });
+  const loc = r.headers.get('location') || ''; const m = /\/tag\/v?([0-9][^/?#]*)$/.exec(loc);
+  if (!m) return null;
+  const v = m[1], base = `https://github.com/${repo}/releases/download/v${v}/`;
+  const slim = { tag: `v${v}`, assets: [`Cobander-${v}-win-x64.exe`, `Cobander-${v}-mac-arm64.zip`, `Cobander-${v}-mac-x64.zip`, 'latest.json'].map((name) => ({ name, browser_download_url: base + name })) };
+  if (env.KEYS) await env.KEYS.put('release:latest', JSON.stringify(slim), { expirationTtl: 600 });
+  return slim;
+}
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } });
 
 export default {
@@ -92,6 +115,16 @@ export default {
     const url = new URL(req.url);
     if (req.method === 'GET' && url.pathname === '/') return new Response('cobander takeout issuer', { headers: { 'content-type': 'text/plain' } });
 
+    // Stable download links for the site: /download/win | /download/mac-arm64 | /download/mac-x64 | /download/latest.json
+    // → 302 to the matching asset of the latest GitHub release (looked up once every 10 minutes).
+    if (req.method === 'GET' && url.pathname.startsWith('/download/')) {
+      const want = url.pathname.slice('/download/'.length);
+      const rel = await latestRelease(env); if (!rel) return json({ error: 'no release yet' }, 503);
+      const pick = want === 'latest.json' ? (a) => a.name === 'latest.json' : want === 'win' ? (a) => /-win-x64\.exe$/.test(a.name) : want === 'mac-arm64' ? (a) => /-mac-arm64\.zip$/.test(a.name) : want === 'mac-x64' ? (a) => /-mac-x64\.zip$/.test(a.name) : null;
+      const asset = pick && (rel.assets || []).find(pick);
+      if (!asset) return json({ error: 'unknown download', have: (rel.assets || []).map((a) => a.name) }, 404);
+      return Response.redirect(asset.browser_download_url, 302);
+    }
     // Lemon Squeezy → POST /webhook/lemonsqueezy  (X-Signature = HMAC-SHA256 hex of the raw body)
     if (req.method === 'POST' && url.pathname === '/webhook/lemonsqueezy') {
       const raw = await req.text();
@@ -111,6 +144,17 @@ export default {
       if (sale.cents < Number(env.MIN_CENTS || 1200)) return json({ ok: true, ignored: 'below the Send noods minimum — extra sauce, thanks' });
       const rec = await issue(sale, env); const mail = await sendEmail(env, rec.email, emailFor(rec)); await notifyRoadie(env, rec);
       return json({ ok: true, band: rec.band, tier: rec.tier, mail });
+    }
+    // Resend → POST /webhook/resend (Svix-signed). Mail to noods@cobander.com lands in Resend's inbox; this pings Jeff so it isn't missed.
+    if (req.method === 'POST' && url.pathname === '/webhook/resend') {
+      const raw = await req.text();
+      if (!env.RESEND_WEBHOOK_SECRET || !(await svixOk(env.RESEND_WEBHOOK_SECRET, req.headers, raw))) return json({ error: 'bad signature' }, 401);
+      const evt = JSON.parse(raw);
+      if (evt.type === 'email.received' && env.NOTIFY) {
+        const d = evt.data || {}; const from = Array.isArray(d.from) ? d.from.join(', ') : String(d.from || '?');
+        await sendEmail(env, env.NOTIFY, { subject: `[noods] ${d.subject || '(no subject)'} — from ${from}`, text: `New mail to ${(d.to || []).join(', ')} from ${from}.\n\nRead it: https://resend.com/emails/${d.email_id || ''}\n\n(Reply from the Resend inbox or from your own mail, as you like.)` });
+      }
+      return json({ ok: true });
     }
     // Jeff's side: GET /lookup?email=  and POST /resend?email=   (Authorization: Bearer ADMIN_TOKEN)
     if (url.pathname === '/lookup' || url.pathname === '/resend') {
