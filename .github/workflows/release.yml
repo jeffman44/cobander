@@ -35,8 +35,8 @@ jobs:
             release/Cobander-*-mac-arm64.zip
             release/Cobander-*-mac-x64.zip
 
-  # Windows signing (Azure Artifact Signing) has to run on a Windows runner. Repo variable SIGN_WINDOWS=1 turns it on;
-  # without it this job skips signing and publishes the unsigned build exactly as before. latest.json is rebuilt AFTER signing, because
+  # Windows signing (Azure Artifact Signing) has to run on a Windows runner. Every release is signed; a bad signature
+  # stops the release. latest.json is rebuilt AFTER signing, because
   # signing changes the exe's bytes and the updater checks sha256.
   publish:
     needs: build
@@ -55,14 +55,12 @@ jobs:
         shell: bash
         run: echo "v=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
       - name: azure login (OIDC)
-        if: vars.SIGN_WINDOWS == '1'
         uses: azure/login@v2
         with:
           client-id: 7621f106-af90-4233-9fd0-dd1eb6299463
           tenant-id: 7fc4097c-17b2-4913-b8d2-72308ce39403
           allow-no-subscriptions: true
       - name: sign Windows installer
-        if: vars.SIGN_WINDOWS == '1'
         uses: azure/artifact-signing-action@v2
         with:
           endpoint: https://eus.codesigning.azure.net/
@@ -84,7 +82,6 @@ jobs:
           exclude-azure-developer-cli-credential: true
           exclude-interactive-browser-credential: true
       - name: check signature
-        if: vars.SIGN_WINDOWS == '1'
         shell: pwsh
         run: |
           $s = Get-AuthenticodeSignature (Get-ChildItem release\Cobander-*-win-x64.exe)
