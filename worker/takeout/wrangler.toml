@@ -1,9 +1,10 @@
 name = "cobander-takeout"
 main = "src/index.js"
 compatibility_date = "2025-10-01"
+routes = [{ pattern = "takeout.cobander.com", custom_domain = true }]
 
 [vars]
-FROM = "Cobander <onboarding@resend.dev>"
+FROM = "Cobander <noods@cobander.com>"
 PUB = "6VNy5P50t96e5vKcEvpOGArFlX8z5l6t7Gak4JCBg1M"
 ROADIE_CENTS = "6000"
 MIN_CENTS = "1200"
