@@ -13,7 +13,9 @@ test('worker: WebCrypto-signed keys verify in the app, and vice versa', async ()
   const k = await W.sign({ band: 'Never a Doubt', tier: 'roadie', email: 'x@y.z', order: '42' }, priv);
   const c = T.verify(k, pub); assert.equal(c.band, 'Never a Doubt'); assert.equal(c.tier, 'roadie'); assert.equal(c.order, '42');
   const k2 = T.sign({ band: 'Other' }, priv); assert.equal((await W.verify(k2, pub)).band, 'Other');
-  assert.equal(await W.verify(k.slice(0, -2) + 'AA', pub), null);
+  const [h, body, sig] = k.split('.'); const other = Buffer.from(JSON.stringify({ band: 'Other', tier: 'roadie' })).toString('base64url');
+  assert.equal(await W.verify(`${h}.${other}.${sig}`, pub), null, 'payload swap must fail');
+  assert.equal(await W.verify(`${h}.${body}.${sig.slice(0, 10)}${sig[10] === 'A' ? 'B' : 'A'}${sig.slice(11)}`, pub), null, 'signature flip must fail');
 });
 test('worker: sales map from both stores, tier by amount, KV + email records', async () => {
   const W = await import('../../worker/takeout/src/index.js');
