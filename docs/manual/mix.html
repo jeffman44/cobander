@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mix — Cobander manual</title>
+<meta name="description" content="The Mix workspace: channel strips, faders, pan, sends, Track FX, quick fixes, Auto mix, Auto master, A/B, bounce, stems and the DAW hand-off.">
+<link rel="icon" href="../icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<div class="page">
+  <aside class="side"><div class="sticky">
+    <a class="back" href="../">← cobander.com</a>
+    <div class="title">COBANDER<small>the manual</small></div>
+    <nav aria-label="Manual pages"><ul>
+      <li class="grp">Basics</li>
+      <li><a href="index.html">Start here</a></li>
+      <li class="grp">Workspaces</li>
+      <li><a href="write.html">Write</a></li>
+      <li><a href="record.html">Record</a></li>
+      <li><a class="here" href="mix.html">Mix</a></li>
+      <li><a href="practice.html">Practice</a></li>
+      <li><a href="band.html">Band</a></li>
+      <li class="grp">The band</li>
+      <li><a href="together.html">Together</a></li>
+      <li><a href="keys.html">Free &amp; Send noods</a></li>
+      <li class="grp">Reference</li>
+      <li><a href="shortcuts.html">Keyboard shortcuts</a></li>
+      <li><a href="faq.html">Troubleshooting</a></li>
+    </ul></nav>
+  </div></aside>
+  <article>
+<h1>Mix</h1>
+<p class="lede">How loud each track is, where it sits left or right, and how it sounds. The mix is what you hear; the takes don't change. <kbd>Ctrl</kbd>+<kbd>3</kbd>.</p>
+
+<h2>The layout</h2>
+<ul>
+  <li>The timeline stays. Each track head becomes a mini channel strip: volume, pan, <b>LC</b> / <b>EQ</b> / <b>CMP</b> on-off buttons, <b>M</b> (mute) and <b>S</b> (solo), and <b>fix</b>.</li>
+  <li>The console below has a bigger strip for every track: a fader, pan, reverb send, a meter, and one-click FX (<b>LC</b> low-cut, <b>EQ</b>, <b>CMP</b> compressor, <b>AMP</b>, <b>DLY</b> delay).</li>
+  <li>The master strip on the right is the last volume control for the whole song, with a loudness readout.</li>
+  <li><b>Track FX</b> on the right shows every knob for the selected track. Hover any knob for what it does.</li>
+</ul>
+
+<h2>Let Cobander do the first pass</h2>
+<ul>
+  <li><b>Auto mix</b> listens to each track and sets levels by role (drums, bass, guitars, keys, lead and backing vocals), a low-cut, tone, compression, guitars and harmonies panned apart, reverb on vocals. A rough mix to start from. Amp tones are never touched.</li>
+  <li><b>Auto master</b> makes the whole song as loud as a streaming release (−14 LUFS) without distorting; a limiter catches the peaks.</li>
+  <li><b>A/B</b> (or <kbd>B</kbd>) flips between before and after. <b>Undo</b> takes it all back.</li>
+</ul>
+
+<h2>Fix one track in plain words</h2>
+<p>Click <b>fix</b> on any strip. The moves are named for what they do, and each is undoable:</p>
+<ul>
+  <li>Vocals: <b>Sit the vocal in the mix</b>, <b>Tame the harshness</b>.</li>
+  <li>Bass: <b>Tight and even</b>. Guitar: <b>Less mud</b>, <b>Make room for the vocal</b>. Drums: <b>More punch</b>. Keys: <b>Make room for the vocal</b>.</li>
+  <li>Anything: <b>Brighter</b>, <b>Darker</b>, <b>Warmer</b>, <b>Thinner</b>, <b>Even it out (compress)</b>, <b>Add space (reverb)</b>, <b>Dry it up</b>.</li>
+  <li><b>Copy the sound from…</b> another track. <b>Start over</b> (flat). <b>Fader 0 dB · pan centre</b>. <b>Open Track FX</b> for all the knobs.</li>
+</ul>
+
+<h2>Do it by hand</h2>
+<ul>
+  <li><b>Fader</b>: volume in dB. 0 is as recorded; −6 is about half as loud.</li>
+  <li><b>Pan</b>: left / right position in the speakers.</li>
+  <li><b>Low-cut</b> (LC): takes out the rumble below an instrument's lowest note. Cleans up vocals and guitars.</li>
+  <li><b>EQ</b>: turn frequencies up or down. Low = bass and boom, mid = body and honk, high = sparkle and hiss.</li>
+  <li><b>Compressor</b> (CMP): evens out loud and quiet moments so a vocal sits steady. Threshold = where it starts working; ratio = how hard.</li>
+  <li><b>Reverb send</b>: how much of the track goes into the shared room sound. The master reverb's decay, pre-delay and damp shape the room for everyone.</li>
+  <li><b>Delay</b>: echo. Synced delay repeats in time with the song.</li>
+  <li><b>Amp</b>: the amp sim for guitar and bass tracks (clean, crunch, lead, high gain, fuzz, bass models and cabinets).</li>
+  <li><b>Low-pass</b>: cuts above a frequency. Takes the pick click off a bass DI, tames fizz.</li>
+  <li><b>Gate</b>: silences a track below a level, so hum and spill between notes go away.</li>
+</ul>
+
+<h2>Take-level handles</h2>
+<ul>
+  <li>Drag the top corners of a take for fade in / fade out. Drag the line up or down for the take's own level.</li>
+  <li>Right-click a take → <b>Normalize</b> sets its level from its loudest moment.</li>
+</ul>
+
+<h2>Fix a sloppy take</h2>
+<ul>
+  <li>Right-click the take → <b>⏱ Timing report</b> shows how early or late each bar is. If the whole take is just late (a latency offset), <b>Nudge</b> fixes it in one click.</li>
+  <li><b>Tighten to the grid…</b> pulls each hit part of the way onto the beat. Try 50–70% before 100%. Preview first. The attacks stay untouched and the original stays in the folder.</li>
+  <li><b>🎯 Pitch check</b> on a vocal take marks flat (blue), sharp (red) and wrong (amber) notes so you know what to re-sing. Nothing is auto-tuned.</li>
+</ul>
+
+<h2>Mute and solo</h2>
+<ul>
+  <li><b>M</b> silences a track. <b>S</b> plays only that track (and anything else soloed).</li>
+  <li>Mute or solo on a track someone else has unlocked is just for your ears; it doesn't change their mix.</li>
+</ul>
+
+<h2>Get the song out</h2>
+<ul>
+  <li><b>Share ▾ → Bounce the mix</b>: the whole song as one WAV file in the song's <code>bounces/</code> folder. It also shows up under Versions → Bounces.</li>
+  <li><b>Share ▾ → Bounce stems</b>: one file per instrument, for a studio or a friend with a mixing program.</li>
+  <li><b>Share ▾ → Hand off to a DAW…</b>: writes a folder with a project file for a studio program, a MIDI file with the parts as regions and chords as markers, stems, the raw takes and <code>chart.txt</code>. For when a song outgrows Cobander.</li>
+  <li><b>Share ▾ → Share a part — mix + chart</b>: bounces one part (with a bar of ring-out) plus its chart, and copies a message for the group chat.</li>
+</ul>
+
+<h2>Compare mixes</h2>
+<ul>
+  <li><b>Versions → Tag this version…</b> before you start. Then <b>A/B</b> plays the tagged version against what you have now, from the same spot.</li>
+  <li>Every save is in <b>History</b>. Right-click a row → listen to the song before it, or roll back.</li>
+</ul>
+    <div class="next"><a href="record.html">← Record</a><a href="practice.html">Practice →</a></div>
+  </article>
+</div>
+</body>
+</html>

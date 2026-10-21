@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Write — Cobander manual</title>
+<meta name="description" content="The Write workspace: parts, tracks, takes, lyrics, chords, notes, needs, ideas, the Parts bin, History and Versions.">
+<link rel="icon" href="../icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<div class="page">
+  <aside class="side"><div class="sticky">
+    <a class="back" href="../">← cobander.com</a>
+    <div class="title">COBANDER<small>the manual</small></div>
+    <nav aria-label="Manual pages"><ul>
+      <li class="grp">Basics</li>
+      <li><a href="index.html">Start here</a></li>
+      <li class="grp">Workspaces</li>
+      <li><a class="here" href="write.html">Write</a></li>
+      <li><a href="record.html">Record</a></li>
+      <li><a href="mix.html">Mix</a></li>
+      <li><a href="practice.html">Practice</a></li>
+      <li><a href="band.html">Band</a></li>
+      <li class="grp">The band</li>
+      <li><a href="together.html">Together</a></li>
+      <li><a href="keys.html">Free &amp; Send noods</a></li>
+      <li class="grp">Reference</li>
+      <li><a href="shortcuts.html">Keyboard shortcuts</a></li>
+      <li><a href="faq.html">Troubleshooting</a></li>
+    </ul></nav>
+  </div></aside>
+  <article>
+<h1>Write</h1>
+<p class="lede">The song itself: parts on a timeline, tracks stacked below, and tabs on the right for Lyrics, Chords, Notes, Needs, Ideas, Parts, History and Versions. <kbd>Ctrl</kbd>+<kbd>1</kbd>.</p>
+
+<h2>Start a song</h2>
+<ul>
+  <li>Click <b>+</b> next to <b>Songs</b> on the left. Give it a working title; you can rename it later.</li>
+  <li>Pick a style (punk, folk, hip-hop, metal… 35 of them). It sets up the tempo, time signature, section order, starter tracks and a matching drum groove. Everything can be changed later.</li>
+  <li>Not sure of the key? Guess. Cobander can hear it from a take later.</li>
+  <li>Free Cobander keeps one song per band folder. The second song asks for a Send noods key. See <a href="keys.html">Free &amp; Send noods</a>.</li>
+</ul>
+
+<h2>The top row</h2>
+<ul>
+  <li><b>bpm</b>: how fast the song goes. 120 is a medium tempo.</li>
+  <li><b>Time signature</b>: how many beats in each bar. 4/4 is most songs. <b>Other…</b> takes anything, including groupings like 2+2+3/8.</li>
+  <li><b>key</b>: the home note of the song (G, Bm…). Click it to set it, detect it from the tracks, or transpose the whole song. A ⚠ means the takes disagree with the label; click it to see what the bass line says.</li>
+  <li><b>click</b>: the metronome. Turn it on when you record to a bare song; turn it off once the drums are there.</li>
+  <li><b>count-in</b>: one bar of clicks before recording starts, so you know when to come in.</li>
+  <li><b>loop</b>: play the same stretch of bars over and over. Set the bars here, drag across the bar numbers at the top of the timeline, or press <kbd>L</kbd> to loop the part you're in. <b>here</b> loops 4 bars from the playhead; <b>take</b> loops exactly the selected take.</li>
+</ul>
+
+<h2>Parts (sections)</h2>
+<ul>
+  <li>The <b>sections</b> strip above the tracks shows Intro, Verse, Chorus… Right-click the strip to add one. Grab a part to move it; grab its edge to resize it.</li>
+  <li><b>Repeated parts are linked.</b> Every Chorus plays the first one. Record or write in any copy and all of them change. Right-click a part → <b>Unlink</b> to make one different (the last chorus, say). <b>Stop linking</b> turns this off for the song.</li>
+  <li>Right-click a part for the rest: delete it and close the gap, duplicate it, move it earlier or later, split it at the playhead, merge with the next, insert empty bars, give it its own tempo and time signature, change its key, write drums for it.</li>
+  <li><b>Restructure song…</b> re-cuts your labelled parts into a new order (Verse – Chorus – Verse – Bridge – Chorus…). Nothing is deleted; Undo brings the old order back.</li>
+  <li>Press <kbd>1</kbd>–<kbd>9</kbd> to jump to a part. <kbd>Shift</kbd>+number loops it.</li>
+</ul>
+
+<h2>Tracks and takes</h2>
+<ul>
+  <li><b>+ track</b> asks what you're recording: Guitar, Bass, Vocals, Anything else, Drums (mics), Drum machine, Synth / keys, Guitar (MIDI), Bass (MIDI). Each comes with a sensible sound. Track types also set themselves from the name (bass, drums, vox…).</li>
+  <li>Drag a track's name up or down to reorder. <b>↕</b> (or <kbd>Alt</kbd>+wheel over the tracks) changes the track height so more fit on screen.</li>
+  <li>Click a take to select it. Drag it to move it; drag its ends to trim; drag it to another track to move it there (<kbd>Shift</kbd>-drag drops a copy). <kbd>S</kbd> splits it at the playhead, <kbd>M</kbd> mutes it, <kbd>Del</kbd> deletes it.</li>
+  <li><b>snap</b> makes things you drag land exactly on the beat grid. Zoom in (<kbd>Ctrl</kbd>+wheel) for a finer grid. Hold <kbd>Alt</kbd> while dragging to ignore snap once.</li>
+  <li>Right-click a take for everything else: keep this take, Comp, ★ Star it (the take with the most stars plays), fades, Normalize, Timing report, Tighten to the grid, Pitch check, Lyrics from this take, Chords from this track, Save to the Parts bin.</li>
+  <li><b>⤓ import</b> brings in WAV, MP3 or M4A files, or drag them straight onto the timeline. Each becomes its own track.</li>
+  <li>Deleted a take by mistake? <b>⋯ → Deleted takes</b> brings it back. The audio stays in the song folder.</li>
+</ul>
+
+<h2>Sketch without a mic</h2>
+<ul>
+  <li><b>🥁 Drums</b> (next to + track, or right-click a part → Drums for…): pick a style and feel, hit <b>🎲 Generate</b> for a whole part with fills, then click squares to add, accent or remove hits. Each row's <b>fill</b> menu fills the whole part.</li>
+  <li><b>Draw notes</b>: double-click an empty spot on any MIDI track (Synth / keys, Guitar (MIDI), Bass (MIDI)). Click-drag to draw a note, right-click a note for power chords or any chord. The <b>🎲 Riff</b> generator writes a riff that follows your chords.</li>
+  <li><b>🎵 Melody…</b> (Lyrics tab): type the words, pick a part, and Cobander writes a tune for them in key, over your chords. <b>🎲 Again</b> rolls a new one; <b>☆ Keep</b> saves the ones you like. A guide voice sings the vowels so you can hear it.</li>
+</ul>
+
+<h2>Lyrics</h2>
+<ul>
+  <li><b>Add lines…</b>: paste or type the words, one line per row. They start unpinned.</li>
+  <li><b>Pin next (P)</b>: play the song and press <kbd>P</kbd> as each line is sung. That is what Practice and the chart read from.</li>
+  <li><b>From the vocals</b>: Cobander listens to the vocal takes and types out the words, each line pinned where it's sung, word by word. It runs on your computer; the speech model downloads once (about 250 MB). Lines you already typed win; only words nobody typed are added. After a vocal take it offers to do this for you.</li>
+</ul>
+
+<h2>Chords</h2>
+<ul>
+  <li>Click the <b>chords</b> strip above the tracks to add a chord at that beat. The picker knows the song's key and offers chords that fit, or a whole progression.</li>
+  <li><b>From the recordings</b> (Chords tab): Cobander listens to the guitar / keys / bass takes and drafts the chords, bar by bar, with the bass line naming the roots. Drafts are dotted until someone edits them. Chords you typed are never replaced.</li>
+  <li>The Chords tab shows the chart: chords over the words, by part. <b>Copy text</b> pastes it into the group chat. <b>Save printable</b> writes a page that opens in any browser. <b>Transpose</b> shows it moved for a capo or another key.</li>
+  <li>Right-click a guitar / keys / bass track → <b>🎸 Chords &amp; tabs</b> for the capo views, chords from its takes, or the play-along highway.</li>
+</ul>
+
+<h2>Notes, Needs, Ideas</h2>
+<ul>
+  <li><b>Notes</b>: comments pinned to a spot on the timeline ("bar 44: guitar should get heavy here"). Right-click a take or lane → <b>Note here…</b>. Bandmates reply in a thread; <b>Resolve</b> hides it when it's sorted. Scratch notes below are free text everyone sees.</li>
+  <li><b>Needs</b>: what the song is still missing ("needs bass", "needs a harmony"). Type one and press Add. @Name assigns it; that person gets a "for you" badge on their song list. After a take that covers a need, Cobander offers to tick it.</li>
+  <li><b>Ideas</b>: quick sketches and voice memos kept off the timeline. <b>● Sketch</b> records one with your mic; <b>Add file…</b> takes a phone recording; <b>Text…</b> jots words. Right-click one to put it on the timeline.</li>
+</ul>
+
+<h2>Parts bin and Noodle pad</h2>
+<ul>
+  <li><b>Parts</b> tab, <b>This song</b>: every part of the song. Drag one onto the timeline to add another linked copy.</li>
+  <li><b>Band parts bin</b>: riffs and sections anyone in the band saved. Drop one into any song and it is re-timed to that song's tempo and moved to its key automatically. Filter by name, tag, style, key or who made it.</li>
+  <li><b>Save part…</b> puts the part under the playhead (or the selected take) in the bin, with its words.</li>
+  <li><b>Noodle pad</b> (🎸 next to Songs): your own scratch song with a 4-bar loop. Record whatever; each take offers "Save to Parts bin".</li>
+</ul>
+
+<h2>History and Versions</h2>
+<ul>
+  <li><b>History</b>: every save of this song, who did it and what changed. Click a row to roll back to it. Undo works on roll-backs too.</li>
+  <li><b>Versions</b>: snapshots you tagged by name (<b>Tag this version…</b>). <b>A/B</b> (or <kbd>B</kbd>) plays a tagged version against what you have now from the same spot. Bounces you shared are listed below.</li>
+  <li>Opening a song tells you what happened since you were last in it: new takes (outlined "new", one click to hear them), changed words or chords, new notes.</li>
+</ul>
+
+<h2>Change the key or tempo</h2>
+<ul>
+  <li><b>Transpose the song</b> (key chip, or right-click a part): moves the recordings, MIDI notes, chords and the key up or down together. Drums are left alone. The originals are kept, so transposing back lands on them. Past 3–4 half steps vocals sound processed; re-record for keeps.</li>
+  <li>Change the <b>bpm</b> and the takes follow like tape (pitch follows speed). Right-click the tempo for "keep takes as they are".</li>
+</ul>
+
+<h2>Share</h2>
+<ul>
+  <li><b>Share ▾</b> at the top of the song: <b>Bounce</b> the mix (one audio file), <b>Bounce stems</b> (one file per instrument), share a part with its chart for the group chat, copy the chord chart, hand off to a DAW (a studio program), or open the song on your phone.</li>
+  <li><b>⋯</b>: show the song folder, Deleted takes, <b>Lighten the folder…</b> (converts older takes to FLAC and clears audio nothing has used for 30 days), clear parked takes, the glossary, the shortcuts.</li>
+  <li><b>Save</b> (<kbd>Ctrl</kbd>+<kbd>S</kbd>) writes the song to the band folder; bandmates get it within seconds. Cobander also autosaves shortly after you stop editing. <b>Close</b> hands the song back to the band.</li>
+</ul>
+    <div class="next"><a href="index.html">← Start here</a><a href="record.html">Record →</a></div>
+  </article>
+</div>
+</body>
+</html>

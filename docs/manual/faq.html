@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Troubleshooting — Cobander manual</title>
+<meta name="description" content="Fixes for the usual Cobander problems: SmartScreen and Gatekeeper, no microphone, a locked song, a folder that is not syncing, iCloud still downloading, a Send noods key that is not accepted, updates stuck.">
+<link rel="icon" href="../icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<div class="page">
+  <aside class="side"><div class="sticky">
+    <a class="back" href="../">← cobander.com</a>
+    <div class="title">COBANDER<small>the manual</small></div>
+    <nav aria-label="Manual pages"><ul>
+      <li class="grp">Basics</li>
+      <li><a href="index.html">Start here</a></li>
+      <li class="grp">Workspaces</li>
+      <li><a href="write.html">Write</a></li>
+      <li><a href="record.html">Record</a></li>
+      <li><a href="mix.html">Mix</a></li>
+      <li><a href="practice.html">Practice</a></li>
+      <li><a href="band.html">Band</a></li>
+      <li class="grp">The band</li>
+      <li><a href="together.html">Together</a></li>
+      <li><a href="keys.html">Free &amp; Send noods</a></li>
+      <li class="grp">Reference</li>
+      <li><a href="shortcuts.html">Keyboard shortcuts</a></li>
+      <li><a class="here" href="faq.html">Troubleshooting</a></li>
+    </ul></nav>
+  </div></aside>
+  <article>
+<h1>Troubleshooting</h1>
+<p class="lede">The usual snags, and the fix for each. If yours isn't here, ⚙ → <b>Report a bug</b> opens the bug tracker, or write to <a href="mailto:noods@cobander.com">noods@cobander.com</a>.</p>
+
+<h2>Windows says it "protected your PC"</h2>
+<ul>
+  <li>That's SmartScreen not recognising a new installer. Click <b>More info</b>, then <b>Run anyway</b>. Once.</li>
+  <li>On a Mac, right-click Cobander → <b>Open</b> the first time.</li>
+  <li>Updates installed from inside Cobander don't ask again.</li>
+</ul>
+
+<h2>Windows: after the first update, the old shortcut is gone</h2>
+<ul>
+  <li>If you came from BandPad, open <b>Cobander</b> from the Start menu once. Same app, same band folder, same settings. The BandPad shortcut goes away.</li>
+</ul>
+
+<h2>No mic, or "Could not open the mic"</h2>
+<ul>
+  <li>Plug the interface in first, then ⚙ → <b>Refresh</b> next to Audio input, and pick it.</li>
+  <li><b>Windows</b>: Settings → Privacy → Microphone → turn on "Let desktop apps access your microphone".</li>
+  <li><b>Mac</b>: System Settings → Privacy &amp; Security → Microphone → turn on Cobander, then restart it.</li>
+  <li>If the mic you saved is unplugged, Cobander falls back to the default mic and says so.</li>
+  <li>The tuner closes the mic when you click <b>Done</b>, so nothing stays held open.</li>
+</ul>
+
+<h2>I hear myself twice</h2>
+<ul>
+  <li>Turn <b>monitor</b> off. Your interface already lets you hear yourself; Cobander was adding a late second copy.</li>
+</ul>
+
+<h2>My takes land late (or early)</h2>
+<ul>
+  <li>⚙ → <b>Record latency offset</b>. Click <b>Measure</b> with the input pointed at the output (a cable from line out to an input, or a mic that can hear the speakers). It refuses if the input is silent.</li>
+  <li>For a take already recorded, right-click it → <b>⏱ Timing report</b> → <b>Nudge</b>.</li>
+</ul>
+
+<h2>The recording crackles</h2>
+<ul>
+  <li>The input meter hit red. Turn the gain knob down on your interface, not in Cobander, and record again. Clipping can't be fixed afterwards.</li>
+  <li>USB mic or AirPods dropping out mid-take is caught and reported. Wired is steadier.</li>
+</ul>
+
+<h2>The song is locked by someone</h2>
+<ul>
+  <li>Someone else has it open for editing. You're <b>read-only</b>, but you can still add notes, needs, reactions, stars and lyric lines; they merge in for the editor within seconds.</li>
+  <li>Want to record? Click the 🔒 on a free track to unlock it for you. Record there; your take reaches the editor and they save it into the song.</li>
+  <li>Need the whole song? Try to edit and the holder sees you as ⏳ waiting. When they close it you get a <b>Take over / edit</b> nudge.</li>
+  <li>They left it open on a sleeping laptop? After it goes quiet for a minute or so the lock counts as stale and <b>Take over</b> in the banner works. Their unsaved changes stay on their computer until they come back.</li>
+</ul>
+
+<h2>"X took over this song — you are now read-only"</h2>
+<ul>
+  <li>A bandmate took the lock. Nothing of yours is lost: your unsaved changes stay in memory. Use <b>Take the song back &amp; save mine on top</b> in the banner, which merges your changes over theirs and keeps any takes or tracks they added.</li>
+</ul>
+
+<h2>Bandmates don't see my songs</h2>
+<ul>
+  <li>Everyone must point Cobander at the <b>same</b> folder, and that folder must be one the cloud app syncs on each computer. ⚙ shows which cloud it found; if it warns that the folder doesn't look synced, pick one inside Google Drive, OneDrive, iCloud Drive or Dropbox.</li>
+  <li>Share the folder from the cloud app itself (Drive "Share", OneDrive "Share", iCloud "Collaborate", Dropbox "Share"). Each bandmate then has it on their own computer.</li>
+  <li>Check the cloud app's icon: is it paused, signed out, or out of space?</li>
+</ul>
+
+<h2>A take is missing, or "not synced yet"</h2>
+<ul>
+  <li>The cloud is still downloading it. It appears when it arrives. Turn on "always keep on this device" / "available offline" for the band folder so this stops happening mid-song.</li>
+  <li><b>iCloud</b> evicts files it thinks you don't need. Cobander asks iCloud for them back when it notices; a song that shows "iCloud is downloading this song" lists itself once it has landed.</li>
+  <li>Still missing? <b>⋯ → Deleted takes</b> lists takes whose audio is in the folder but not on a track.</li>
+</ul>
+
+<h2>"Delivered an OLDER version" banner</h2>
+<ul>
+  <li>A sync hiccup handed Cobander an older save than the one you have. Click <b>Keep mine (merge theirs in)</b> unless you know better.</li>
+</ul>
+
+<h2>Cobander crashed mid-take</h2>
+<ul>
+  <li>Open the song. It offers <b>Recover the take</b>; the audio was streaming to your computer every second.</li>
+  <li>If the window goes blank, Cobander restarts itself instead of staying stuck with the song locked.</li>
+</ul>
+
+<h2>My Send noods key isn't accepted</h2>
+<ul>
+  <li>Paste the <b>whole</b> key from the email. It looks like <code>cob1.xxxx.xxxx</code>: three pieces separated by dots. Spaces and line breaks are fine; a missing piece isn't.</li>
+  <li>The key is for the band folder you're in. Moved the band to a new folder? Paste it again there.</li>
+  <li>Still no? Reply to the email the key came in, or write to <a href="mailto:noods@cobander.com">noods@cobander.com</a>. If it can't be fixed within a few days you get a refund.</li>
+</ul>
+
+<h2>"That's the free song" when I make a second song</h2>
+<ul>
+  <li>Free Cobander keeps one song per band folder. Paste a Send noods key right there, or click <b>Not now</b>. See <a href="keys.html">Free &amp; Send noods</a>.</li>
+  <li>Folders that already held several songs before the limit arrived keep all of them.</li>
+</ul>
+
+<h2>The Update bar says it's waiting</h2>
+<ul>
+  <li>The new version is still syncing into the band folder from a bandmate's computer. Give it a minute and click <b>Check again</b>. Cobander also checks GitHub by itself.</li>
+  <li>An update that failed shows <b>Try again</b>. On a Mac, a failed self-update rolls back on its own.</li>
+  <li>Cobander won't update while you're recording. Stop the take first.</li>
+</ul>
+
+<h2>The phone page won't open</h2>
+<ul>
+  <li>Phone and computer must be on the same Wi-Fi. Guest networks often block this.</li>
+  <li>Windows asks once to allow Cobander on private networks. If you said no, allow it in Windows Firewall settings.</li>
+</ul>
+
+<h2>Speech-to-text (From the vocals) is slow or wrong</h2>
+<ul>
+  <li>It runs on your computer. The first run downloads the model (about 250 MB). ⚙ → <b>Speech-to-text model</b> picks a faster or more accurate one.</li>
+  <li>Lines you type yourself win: type them in the Lyrics tab first and let From the vocals pin them.</li>
+</ul>
+
+<h2>The band folder is getting big</h2>
+<ul>
+  <li><b>⋯ → Lighten the folder…</b> converts older WAV takes to FLAC (same audio, half the size) and clears audio nothing has used for 30 days. <b>Clear parked takes…</b> removes audio nothing in this song uses.</li>
+</ul>
+
+<h2>I want the MIDI keyboard to work</h2>
+<ul>
+  <li>Pick it under ⚙ → <b>MIDI input</b>. The <b>midi</b> light at the top of Record blinks when it's talking to Cobander.</li>
+</ul>
+    <div class="next"><a href="shortcuts.html">← Keyboard shortcuts</a><span></span></div>
+  </article>
+</div>
+</body>
+</html>

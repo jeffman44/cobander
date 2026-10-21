@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Record — Cobander manual</title>
+<meta name="description" content="The Record workspace: inputs, monitoring, arming a track, recording a take, punching in, comping, the tuner, timing and pitch reports.">
+<link rel="icon" href="../icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<div class="page">
+  <aside class="side"><div class="sticky">
+    <a class="back" href="../">← cobander.com</a>
+    <div class="title">COBANDER<small>the manual</small></div>
+    <nav aria-label="Manual pages"><ul>
+      <li class="grp">Basics</li>
+      <li><a href="index.html">Start here</a></li>
+      <li class="grp">Workspaces</li>
+      <li><a href="write.html">Write</a></li>
+      <li><a class="here" href="record.html">Record</a></li>
+      <li><a href="mix.html">Mix</a></li>
+      <li><a href="practice.html">Practice</a></li>
+      <li><a href="band.html">Band</a></li>
+      <li class="grp">The band</li>
+      <li><a href="together.html">Together</a></li>
+      <li><a href="keys.html">Free &amp; Send noods</a></li>
+      <li class="grp">Reference</li>
+      <li><a href="shortcuts.html">Keyboard shortcuts</a></li>
+      <li><a href="faq.html">Troubleshooting</a></li>
+    </ul></nav>
+  </div></aside>
+  <article>
+<h1>Record</h1>
+<p class="lede">Pick your input, hear yourself, arm a track, hit <kbd>R</kbd>. Takes are lossless FLAC and crash-safe. <kbd>Ctrl</kbd>+<kbd>2</kbd>.</p>
+
+<h2>Before the first take: Settings</h2>
+<p>Open ⚙ once and set these. They are remembered per computer.</p>
+<ul>
+  <li><b>Audio input</b>: the mic or audio interface Cobander records from. Plug it in first, then <b>Refresh</b>.</li>
+  <li><b>Audio output</b>: your interface's headphone or line out. The click, playback and monitoring go here.</li>
+  <li><b>Click output</b>: send the metronome somewhere else (a drummer's in-ears). Same as the audio output = everything together.</li>
+  <li><b>MIDI input</b>: the keyboard you play synth tracks with. Leave it if you don't have one.</li>
+  <li><b>Record latency offset</b>: your computer delays sound a tiny bit. Set this once so takes line up with the click; raise it if takes land late. <b>Measure</b> sets it for you: it plays 8 clicks out the output and listens for them on the input. Point the input at the output first (a cable from line out into an input, or a mic that can hear the speakers).</li>
+  <li><b>Click level</b>: how loud the click is in your headphones. −12 is a good start.</li>
+</ul>
+
+<h2>Record a take</h2>
+<ol>
+  <li>Add a track (<b>+ track</b>) and say what you're recording. Guitar can be a mic or plugged straight in; Cobander adds an amp sound. Bass plugs straight in. Vocals get a ready-made vocal chain.</li>
+  <li><b>Arm</b> the track: click the red ● on the track head. That's the track the take lands on. Nothing is armed when a song opens.</li>
+  <li>Watch the <b>input meter</b> at the top. Keep it green or amber. Red means the recording crackles (clips) and that can never be fixed afterwards. Turn the gain down on your interface, not in Cobander.</li>
+  <li>Turn <b>click</b> on if the song is bare, and leave <b>count-in</b> on so you get a bar of clicks before it starts.</li>
+  <li>Put the playhead where you want to start (<kbd>Home</kbd> for the top) and press <kbd>R</kbd>. Press <kbd>Space</kbd> or <kbd>Esc</kbd> to stop.</li>
+</ol>
+<div class="tip">While you record, the audio streams to your computer every second. If Cobander or the computer dies mid-take, opening the song offers <b>Recover the take</b>.</div>
+
+<h2>Hear yourself (monitor)</h2>
+<ul>
+  <li><b>monitor</b> plays your mic or instrument through Cobander while you play, with the track's amp and effects. Use headphones or you'll get feedback.</li>
+  <li>If you hear yourself twice (once live, once late), turn it off. Your interface already lets you hear yourself.</li>
+  <li>Takes are always recorded dry, so you can change the amp and effects later. Right-click the monitor chip to hear the dry signal instead.</li>
+</ul>
+
+<h2>Tune up</h2>
+<ul>
+  <li><b>tuner</b> (or <kbd>T</kbd>): play one string and Cobander shows the note and whether it's flat or sharp, like a clip-on tuner. It listens to the input picked in Settings.</li>
+  <li>Guitar and bass strings are listed. A4 is 440 Hz unless the band tunes differently. <b>Done</b> closes the mic.</li>
+  <li>Tune before every take. Out-of-tune takes are the one thing a mix can't fix.</li>
+</ul>
+
+<h2>Record one part over and over</h2>
+<ul>
+  <li>Set a <b>loop</b> around the part (or press <kbd>L</kbd> while you're in it) and press <kbd>R</kbd>. Each pass becomes its own take. Pick the best afterwards.</li>
+  <li>Right-click a part → enter its <b>room</b>: <b>● Record here</b> loop-records just that part. <b>Leave room</b> goes back to the whole song.</li>
+  <li>Loop recording warns at 20 passes and stops at 50.</li>
+</ul>
+
+<h2>Fix one bad bit (punch in)</h2>
+<ol>
+  <li>Set the loop around the bad bars (<b>take</b> next to the loop sets it to the selected take).</li>
+  <li>Tick <b>punch</b>, then press <kbd>R</kbd>.</li>
+  <li>Playback starts a bar early so you can come in. Only what you play inside the loop is kept. The old take stays everywhere else, and the other takes go quiet inside the range.</li>
+</ol>
+
+<h2>The Takes tab</h2>
+<p>Below the tracks, the <b>Takes</b> tab lists every recording on the selected track: who, when, how long. Right-click one (or the take on the timeline) for:</p>
+<ul>
+  <li><b>Keep this take</b>: mutes the ones overlapping it. <b>Listen to this take</b> plays only it.</li>
+  <li><b>Comp</b>: use this take for the loop, or for a part. It's the only one heard there; everything else plays as before. Stitch the best bits of several takes this way.</li>
+  <li><b>★ Star this take</b>: the take with the most stars plays. Bandmates vote.</li>
+  <li><b>⏱ Timing report</b>: how early or late each bar is, the worst bars, and a one-click <b>Nudge</b> when it's a fixed offset or <b>Tighten</b> when it isn't.</li>
+  <li><b>Tighten to the grid…</b>: pulls each hit part of the way onto the beat. Pick the grid (1/4 … 1/16, triplets) and a strength; 100% is robotic. The original stays in the folder; <b>Undo tighten</b> any time. MIDI takes quantize the same way.</li>
+  <li><b>🎯 Pitch check</b> (vocal takes): flat notes marked blue, sharp red, wrong notes amber, with a per-part report. It only shows; nothing is auto-tuned.</li>
+  <li><b>🎤 Lyrics from this take</b>: speech-to-text writes the words out, pinned where they're sung.</li>
+  <li><b>🎸 Chords from this track</b>: drafts the chords from a guitar, keys or bass take.</li>
+  <li><b>Normalize</b>: sets the take's level so its loudest moment is just under full.</li>
+  <li><b>Deleted takes</b> (button in the tab, or ⋯ at the top): bring back a take that was deleted or lost when two people saved at once.</li>
+</ul>
+
+<h2>Drums, keys and MIDI without a mic</h2>
+<ul>
+  <li><b>Drum machine</b> track: pick a built-in beat, then edit it hit by hit in the drum editor (🥁).</li>
+  <li><b>Drums (mics)</b>: record your real kit or e-kit through the audio interface.</li>
+  <li><b>Synth / keys</b>: play a MIDI keyboard or the on-screen keys. Wrong notes can be fixed afterwards in the note editor. The <b>midi</b> light at the top blinks when the keyboard is talking to Cobander; if it stays dark, pick the keyboard under MIDI input in Settings.</li>
+  <li><b>Guitar (MIDI)</b> and <b>Bass (MIDI)</b>: draw the notes instead of playing them. Sounds: clean, crunch, distorted, palm-mute, acoustic, picked bass.</li>
+</ul>
+
+<h2>Your own setups</h2>
+<ul>
+  <li>Right-click a track → <b>Save as my track setup…</b> keeps its amp, FX and level. Your setups sit at the top of + track on your computer.</li>
+  <li>A track head in Record shows the arm button first and the last take (who, when).</li>
+</ul>
+
+<h2>Space on the drive</h2>
+<ul>
+  <li>Takes are stored as FLAC: the exact same audio, about half the size of WAV.</li>
+  <li>Deleted takes stay listed on their track until the track is locked again, then they're gone for good unless the song or a tagged version still uses them.</li>
+  <li><b>⋯ → Lighten the folder…</b> converts any older WAV takes and clears audio nothing has used for 30 days. Versions, the last 500 saves, deleted songs, the Parts bin and bounces are kept.</li>
+</ul>
+    <div class="next"><a href="write.html">← Write</a><a href="mix.html">Mix →</a></div>
+  </article>
+</div>
+</body>
+</html>

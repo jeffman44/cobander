@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Together — Cobander manual</title>
+<meta name="description" content="How a band works in one shared folder: song locks, track locks, presence, read-only mode, @mentions, the Band feed, the phone page, and the local API and inbox for the curious.">
+<link rel="icon" href="../icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<div class="page">
+  <aside class="side"><div class="sticky">
+    <a class="back" href="../">← cobander.com</a>
+    <div class="title">COBANDER<small>the manual</small></div>
+    <nav aria-label="Manual pages"><ul>
+      <li class="grp">Basics</li>
+      <li><a href="index.html">Start here</a></li>
+      <li class="grp">Workspaces</li>
+      <li><a href="write.html">Write</a></li>
+      <li><a href="record.html">Record</a></li>
+      <li><a href="mix.html">Mix</a></li>
+      <li><a href="practice.html">Practice</a></li>
+      <li><a href="band.html">Band</a></li>
+      <li class="grp">The band</li>
+      <li><a class="here" href="together.html">Together</a></li>
+      <li><a href="keys.html">Free &amp; Send noods</a></li>
+      <li class="grp">Reference</li>
+      <li><a href="shortcuts.html">Keyboard shortcuts</a></li>
+      <li><a href="faq.html">Troubleshooting</a></li>
+    </ul></nav>
+  </div></aside>
+  <article>
+<h1>Together</h1>
+<p class="lede">There is no Cobander server. The band's shared folder is the server. Whatever one of you does, the rest get in seconds.</p>
+
+<h2>The shared folder</h2>
+<ul>
+  <li>Every bandmate points Cobander at the same folder inside Google Drive, OneDrive, iCloud Drive or Dropbox. The cloud app on each computer does the syncing.</li>
+  <li>Each song is a folder of its own: the song file, an <code>audio</code> folder with one file per take, <code>bounces</code>, <code>versions</code> and <code>history</code>. The band's Parts bin, templates and the Send noods key sit beside the songs.</li>
+  <li>Mac and Windows mix fine. One person on a Mac and three on Windows is just files in a folder.</li>
+  <li>Back up the folder the way you'd back up anything else. The cloud service already keeps copies; that's your call.</li>
+  <li>⚙ names which cloud it found. If it says the folder doesn't look synced, Cobander still works, but the band only sees each other's noodles if every bandmate uses the same synced folder.</li>
+</ul>
+
+<h2>Who can edit: song locks</h2>
+<ul>
+  <li>When you open a song to edit, you hold its <b>lock</b>. The badge at the top of the song says so. Bandmates who open it see <b>read-only</b> and the name of who has it.</li>
+  <li>Read-only bandmates can still talk: notes, replies, needs, reactions, stars and lyric edits go through the song's mailbox, and the editor's Cobander merges them in within seconds.</li>
+  <li>Try to edit a read-only song and the holder sees you as <b>⏳ waiting to edit</b>. When the song frees up you get a nudge with a <b>Take over / edit</b> button.</li>
+  <li><b>Close</b> hands the song back. The lock also clears itself if a computer crashes or goes to sleep; a bandmate can <b>Take over</b> after it goes quiet for a minute or so.</li>
+  <li>Your unsaved changes are never thrown away by someone taking over. You keep them until you take the song back or close.</li>
+</ul>
+
+<h2>Two people on one song: track locks</h2>
+<ul>
+  <li>Every track has a 🔒. Click it to <b>unlock</b> the track for you. Nobody else can touch a track you've unlocked, and you can't touch theirs ("🔒 Dan" on the track).</li>
+  <li>While someone else has the song open, you can still unlock free tracks and record or edit on them. Your takes reach them in a few seconds and they save them into the song.</li>
+  <li>Click 🔓 again (or <b>Lock all</b> / <b>🔓 Unlock all</b> at the top) to free it. A track nobody has touched for 10 minutes locks itself.</li>
+  <li>Tempo, time signature, structure, master and track order stay with whoever holds the song. Whole-song changes (tempo, transpose, restructure) wait until nobody else has a track unlocked.</li>
+  <li>Undo never rolls back a track someone else has unlocked.</li>
+</ul>
+
+<h2>Presence: who's here</h2>
+<ul>
+  <li>The Songs list and the song header show who has each song open and what they're doing: looking, 🎧 listening, ● rec, 🎙 rehearsing, ⏳ waiting to edit.</li>
+  <li>The Band page's <b>Rehearsing now</b> lists everyone in Practice at this moment.</li>
+</ul>
+
+<h2>@mentions and the feed</h2>
+<ul>
+  <li>Type <b>@Name</b> in a note, a reply, a need, a task or a Loose end to ping a bandmate. Needs and tasks assigned to you get a <b>for you</b> badge on the Songs list and at the top of the Notes tab.</li>
+  <li>The <b>Band feed</b> at the bottom of the Songs list shows everything the band did, across every song, live. Click its header to fold it; folded, it counts what's new. Click an entry to open that song.</li>
+  <li>Opening a song shows <b>what changed</b> since you were last in it: who did what, new takes outlined "new", which parts' words or chords changed, new notes.</li>
+</ul>
+
+<h2>When two people save at once</h2>
+<ul>
+  <li>Cobander merges field by field: your notes and theirs, your takes and theirs. When you both edit the same note, need or lyric, the banner says so (yours is kept).</li>
+  <li>If the cloud delivers an older version than you have (a sync hiccup), a banner offers <b>Keep mine (merge theirs in)</b> or <b>Load the older one</b>. Keep yours unless you know better.</li>
+  <li>A take lost to a save conflict is never gone: <b>⋯ → Deleted takes</b> restores it.</li>
+</ul>
+
+<h2>Your phone</h2>
+<ul>
+  <li>Share ▾ → <b>Open on your phone…</b> (or 📱 in Practice) shows a QR code. On the same Wi-Fi your phone follows the song live: words, chords, the part you're in, the capo display, with play / pause and part skips.</li>
+  <li>Only a phone with the link's key can see it, and only on your home network.</li>
+</ul>
+
+<h2>Updates through the folder</h2>
+<ul>
+  <li>Installers can live in the band folder, so one bandmate downloading an update means everyone gets it. Cobander also checks GitHub when there's no band folder.</li>
+  <li>Cobander refuses an update whose checksum doesn't match. See <a href="index.html">Start here</a> for the Update bar.</li>
+</ul>
+
+<h2>For the curious: the assistant API and inbox</h2>
+<ul>
+  <li>Under ⚙ → <b>Assistant / control API</b>: a local-only HTTP API lets an AI assistant or a script read meters, change the mix, bounce, add notes and more while Cobander is open. It only answers on your own computer, with a token kept in Cobander's settings.</li>
+  <li>The same commands can be dropped as files into an <b>inbox</b> folder; no network needed.</li>
+  <li>The song format is plain JSON and audio files. The full guide, <code>AI.md</code>, is copied into the band folder.</li>
+  <li>An assistant that only saved a mix doesn't show up as a bandmate on the Band page.</li>
+</ul>
+    <div class="next"><a href="band.html">← Band</a><a href="keys.html">Free &amp; Send noods →</a></div>
+  </article>
+</div>
+</body>
+</html>
