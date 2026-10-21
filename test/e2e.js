@@ -1278,6 +1278,10 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/practice', { open: true }); await sleep(400);
       await jeff.evalJs(`const v = document.querySelector('#k-view'); v.value = 'crawl'; v.dispatchEvent(new Event('change')); true`); await sleep(600);
       assert.ok(await jeff.evalJs(`document.querySelectorAll('#k-plane .k-cw').length >= 8`), 'crawl words on the plane');
+      // a word being sung sits ON the line (translateY 0), not past it
+      { const tr = await jeff.evalJs(`[...document.querySelectorAll('#k-plane .k-cw.now')].map((n) => n.style.transform)`); assert.ok(tr.length && tr.every((x) => x.startsWith('translateY(0px)')), 'sung words snap to the line'); }
+      await jeff.evalJs(`{ const kv = document.querySelector('#k-vol'); kv.value = 40; kv.dispatchEvent(new Event('input')); } true`);
+      assert.ok(await jeff.evalJs(`Math.abs(window.bandpadDebug.engine.listen - 0.4) < 1e-6 && localStorage.getItem('bp.practiceVol') === '40'`), 'practice volume');
       assert.ok(await jeff.evalJs(`(() => { const k = document.querySelector('#karaoke').getBoundingClientRect(); const sb = document.querySelector('#sidebar').getBoundingClientRect(); return k.left >= sb.right - 1 && k.top > 40; })()`), 'practice covers only the song area');
       assert.ok(await jeff.evalJs(`!document.querySelector('#k-crawl').hidden`), 'crawl view shown');
       await jeff.shot('practice-crawl');

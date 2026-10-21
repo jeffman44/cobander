@@ -1,5 +1,11 @@
 # Cobander changelog
 
+## 0.15.5
+- 3D practice view: each word now lands on the line exactly when it's sung, holds there a beat, then drops away — instead of sliding straight through.
+- Practice has a volume slider (just your speakers — the mix doesn't change; remembered between sessions).
+- Choose your character: the row labels line up with the first row of choices, hats aren't cropped at the brim, "Frontman" is "Singer".
+- A lighter wordmark that's readable at small sizes.
+
 ## 0.15.4
 - Send noods is the paid thing now, and it's a key. Free Cobander is the whole app with one song per band folder; a Send noods key (pay what the band can spare, once) lifts the limit for everyone in the band — paste it under ⚙ → Enter a key, or when the second song asks. The key lives in the shared folder, verifies offline, never expires, never phones home. Folders that already have more songs keep them all.
 - Choose your character is a real character builder now: Liberated Pixel Cup art (hundreds of human-drawn parts) — body, skin, hair and colour, beard, face, top, jacket, legs, shoes, hat — plus your instrument. Your character animates on the Band page and leaps through the level-up show; the pose changes with every new name.

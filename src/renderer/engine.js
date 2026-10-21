@@ -293,8 +293,10 @@
       this.limiter = makeLimiter(this.ctx); this.limiterBypass = this.ctx.createGain(); this.limiterOn = this.ctx.createGain();
       // analyser sits BEFORE the limiter so the clip light shows what the limiter had to catch
       this.masterIn.connect(this.masterGain); this.masterGain.connect(this.masterAnalyser);
-      this.masterAnalyser.connect(this.limiterOn); this.limiterOn.connect(this.limiter); this.limiter.connect(this.ctx.destination);
-      this.masterAnalyser.connect(this.limiterBypass); this.limiterBypass.connect(this.ctx.destination);
+      // listen gain: the volume knob in Practice — this computer's speakers only, never part of the saved mix
+      this.listenGain = this.ctx.createGain(); this.listenGain.gain.value = this.listen === undefined ? 1 : this.listen; this.listenGain.connect(this.ctx.destination);
+      this.masterAnalyser.connect(this.limiterOn); this.limiterOn.connect(this.limiter); this.limiter.connect(this.listenGain);
+      this.masterAnalyser.connect(this.limiterBypass); this.limiterBypass.connect(this.listenGain);
       this.clickGain = this.ctx.createGain(); this.clickGain.connect(this.ctx.destination);
       this.monitorGain = this.ctx.createGain(); this.monitorGain.gain.value = 0; this.monitorGain.connect(this.masterIn);
       if (this.recordOffsetMs === null) this.recordOffsetMs = this.autoOffsetMs();
@@ -363,6 +365,7 @@
       this.clickGain.gain.value = dbToGain(clamp(this.click.gainDb, -60, 0, -12));
     }
 
+    setListen(v) { this.listen = Math.max(0, Math.min(1, Number(v))); if (this.listenGain) this.listenGain.gain.setTargetAtTime(this.listen * this.listen, this.ctx.currentTime, 0.02); }   /* squared: the slider feels linear */
     setMaster(patch) {
       const merged = { ...this.master, ...patch, reverb: { ...this.master.reverb, ...(patch.reverb || {}) } };
       const prevReverb = JSON.stringify(this.master.reverb);

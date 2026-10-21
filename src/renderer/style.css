@@ -780,7 +780,7 @@ body.ws-record .track-head button.arm.active::after { content: ' REC'; }
 .om { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.2em; background: center / contain no-repeat; }
 .gi { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.2em; background: currentColor; -webkit-mask: center / contain no-repeat; mask: center / contain no-repeat; }
 .om-noodles { background-image: url(icons/om-1F35C.svg); } .om-takeout { background-image: url(icons/om-1F961.svg); } .om-chopsticks { background-image: url(icons/om-1F962.svg); }
-.om-pot { background-image: url(icons/om-1F372.svg); } .om-pan { background-image: url(icons/om-1F373.svg); } .om-spoon { background-image: url(icons/om-1F944.svg); }
+.om-speaker { background-image: url(icons/om-1F50A.svg); } .om-pot { background-image: url(icons/om-1F372.svg); } .om-pan { background-image: url(icons/om-1F373.svg); } .om-spoon { background-image: url(icons/om-1F944.svg); }
 .om-plate { background-image: url(icons/om-1F37D.svg); } .om-dragon { background-image: url(icons/om-1F409.svg); } .om-beer { background-image: url(icons/om-1F37A.svg); }
 .om-pour { background-image: url(icons/om-1FAD7.svg); } .om-yarn { background-image: url(icons/om-1F9F6.svg); } .om-clipboard { background-image: url(icons/om-1F4CB.svg); }
 .om-guitar { background-image: url(icons/om-1F3B8.svg); } .om-mic { background-image: url(icons/om-1F399.svg); } .om-swords { background-image: url(icons/om-2694.svg); }
@@ -910,3 +910,4 @@ dialog#charpick { max-width: 1100px; width: min(1100px, 96vw); max-height: 96vh;
 #takeout-key { font-family: ui-monospace, monospace; font-size: 12px; width: 100%; box-sizing: border-box; }
 #takeout .row { align-items: center; gap: 10px; }
 #s-takeout-key { margin-left: 2px; }
+#k-vol { width: 90px; height: 14px; margin-left: 4px; accent-color: var(--xp); }

@@ -4202,7 +4202,9 @@
   }
   // Words flying at you: every line sits on a 3D plane, far away when it's a while off, hitting the glowing line at
   // the bottom when it's time to sing it, then sliding under you. Lines are DOM nodes reused frame to frame.
-  const crawl = { key: '', nodes: new Map(), lookahead: 9, back: 1.6 };
+  const crawl = { key: '', nodes: new Map(), lookahead: 9, back: 1.6, hold: 0.7 };   // hold: how long a word sits on the line after it's been sung
+  { const v = $('#k-vol'); let saved = 100; try { saved = Number(localStorage.getItem('bp.practiceVol') ?? 100); } catch (_) {} v.value = String(saved); engine.setListen(saved / 100);
+    v.addEventListener('input', () => { engine.setListen(v.value / 100); try { localStorage.setItem('bp.practiceVol', v.value); } catch (_) {} }); }
   function karaCrawl(t, ls, a) {
     const plane = $('#k-plane'); if (!plane) return;
     // one flyer per WORD: each comes down the lane at its own time and lands in its place on the line, so the lyric
@@ -4221,12 +4223,13 @@
     const H = plane.clientHeight || 600; const px = H / crawl.lookahead;
     for (const [, n] of crawl.nodes) {
       const wt = Number(n.dataset.t), we = Number(n.dataset.e); const dt = wt - t;
-      if (dt > crawl.lookahead || we < t - crawl.back) { n.style.display = 'none'; continue; }
-      n.style.display = ''; const y = Math.max(-crawl.back, dt) * px;
-      const now = dt <= 0 && we >= t, sung = we < t;
+      const gone = we + crawl.hold;   // leaves the line only after it has been sung AND held a beat
+      if (dt > crawl.lookahead || gone < t - crawl.back) { n.style.display = 'none'; continue; }
+      n.style.display = ''; const y = dt > 0 ? dt * px : Math.max(-crawl.back, Math.min(0, gone - t)) * px;   // flies in, SNAPS to the line at its time, hangs, then drops away
+      const now = dt <= 0 && t <= gone, sung = t > gone;
       n.className = 'k-cw' + (now ? ' now' : sung ? ' sung' : '');
       n.style.transform = `translateY(${(-y).toFixed(1)}px) translateY(50%)`;
-      n.style.opacity = sung ? String(Math.max(0, 1 + (we - t) / crawl.back)) : String(Math.min(1, 0.3 + (1 - Math.max(0, dt) / crawl.lookahead)));
+      n.style.opacity = sung ? String(Math.max(0, 1 + (gone - t) / crawl.back)) : String(Math.min(1, 0.3 + (1 - Math.max(0, dt) / crawl.lookahead)));
     }
   }
   function karaFrame() {
