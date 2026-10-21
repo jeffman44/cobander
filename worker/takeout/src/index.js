@@ -4,7 +4,8 @@
 //
 // Secrets (wrangler secret put …):  TAKEOUT_PRIV (base64url raw Ed25519 private key, same as the script's),
 //   LS_SIGNING_SECRET (Lemon Squeezy webhook signing secret), KOFI_TOKEN (Ko-fi verification token),
-//   RESEND_API_KEY (resend.com), ADMIN_TOKEN (for /lookup and /resend). Vars: FROM (e.g. "Cobander <takeout@cobander.app>"),
+//   RESEND_API_KEY (resend.com), ADMIN_TOKEN (for /lookup and /resend), AGENT_TOKEN (support-drafting task: /inbox only),
+//   RESEND_READ_KEY (optional full-access Resend key to read inbound bodies; else RESEND_API_KEY is tried). Vars: FROM (e.g. "Cobander <takeout@cobander.app>"),
 //   PUB (the app's public key — the Worker refuses to start issuing keys that the app wouldn't accept), ROADIE_CENTS (default 6000).
 // KV binding: KEYS.
 
@@ -108,6 +109,42 @@ async function latestRelease(env) {
   if (env.KEYS) await env.KEYS.put('release:latest', JSON.stringify(slim), { expirationTtl: 600 });
   return slim;
 }
+
+// ---- support inbox (noods@ / support@ / hello@ / jeff@) ----
+// The Resend webhook stores each real message as KV `inbox:<id>`. A scheduled Claude task reads GET /inbox (AGENT_TOKEN),
+// writes a reply with POST /inbox/draft, and the Worker mails Jeff the draft with a link to an approve page. Nothing reaches a
+// customer until Jeff presses Send on that page (he can edit the text there first). Statuses: new → drafted → sent | done.
+const INBOX_TTL = 60 * 60 * 24 * 120;
+const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const addr = (x) => (Array.isArray(x) ? x : [x]).filter(Boolean).map(String);
+export async function inboxRecord(env, d) {
+  const rec = { id: String(d.email_id || d.id), from: addr(d.from).join(', '), to: addr(d.to), subject: d.subject || '(no subject)', at: d.created_at || new Date().toISOString(), status: 'new', text: null, message_id: d.message_id || null };
+  const key = env.RESEND_READ_KEY || env.RESEND_API_KEY;
+  if (key) {
+    try {
+      const r = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(rec.id)}`, { headers: { authorization: `Bearer ${key}` } });
+      if (r.ok) {
+        const m = await r.json();
+        rec.text = String(m.text || (m.html ? String(m.html).replace(/<style[\s\S]*?<\/style>|<[^>]+>/g, ' ').replace(/[ \t]+/g, ' ') : '')).slice(0, 20000);
+        rec.message_id = m.message_id || rec.message_id; if (m.reply_to && addr(m.reply_to).length) rec.reply_to = addr(m.reply_to)[0];
+        if (m.attachments && m.attachments.length) rec.attachments = m.attachments.map((a) => a.filename).slice(0, 10);
+      } else rec.fetch_error = `${r.status}`;
+    } catch (e) { rec.fetch_error = String(e.message || e).slice(0, 200); }
+  }
+  if (env.KEYS) await env.KEYS.put(`inbox:${rec.id}`, JSON.stringify(rec), { expirationTtl: INBOX_TTL });
+  return rec;
+}
+async function inboxGet(env, id) { const raw = env.KEYS && (await env.KEYS.get(`inbox:${id}`)); return raw ? JSON.parse(raw) : null; }
+async function inboxPut(env, rec) { await env.KEYS.put(`inbox:${rec.id}`, JSON.stringify(rec), { expirationTtl: INBOX_TTL }); }
+export async function inboxList(env, statuses) {
+  const out = []; let cursor;
+  do { const page = await env.KEYS.list({ prefix: 'inbox:', cursor }); for (const k of page.keys) { const r = await inboxGet(env, k.name.slice(6)); if (r && (!statuses || statuses.includes(r.status))) out.push(r); } cursor = page.list_complete ? null : page.cursor; } while (cursor);
+  return out.sort((a, b) => String(a.at).localeCompare(String(b.at)));
+}
+export const approveSig = (env, id) => hmacHex(env.ADMIN_TOKEN, `inbox-send:${id}`);
+const replyTo = (rec) => { const m = /<([^>]+)>/.exec(rec.reply_to || rec.from); return (m ? m[1] : rec.reply_to || rec.from).trim(); };
+const page = (title, body) => new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px;color:#222}pre{white-space:pre-wrap;background:#f4f1ea;padding:12px;border-radius:6px}textarea{width:100%;min-height:260px;font:inherit;padding:10px;box-sizing:border-box}button{font:inherit;padding:10px 18px;margin-right:8px;border-radius:6px;border:0;background:#c0392b;color:#fff;cursor:pointer}button.alt{background:#777}</style>${body}`, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-robots-tag': 'noindex' } });
+
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } });
 
 export default {
@@ -157,9 +194,48 @@ export default {
         const to = (d.to || []).map((x) => String(x).toLowerCase());
         if (!to.some((addr) => boxes.includes(addr.split('@')[0].replace(/^.*</, '')))) return json({ ok: true, ignored: 'not a real mailbox', to });
         if (/no-?reply@|noreply@|notifications?@|newsletter|mailer-daemon/i.test(from)) return json({ ok: true, ignored: 'automated sender' });
-        await sendEmail(env, env.NOTIFY, { subject: `[noods] ${d.subject || '(no subject)'} — from ${from}`, text: `New mail to ${(d.to || []).join(', ')} from ${from}.\n\nRead it: https://resend.com/emails/${d.email_id || ''}\n\n(Reply from the Resend inbox or from your own mail, as you like.)` });
+        const rec = await inboxRecord(env, d);
+        await sendEmail(env, env.NOTIFY, { subject: `[noods] ${rec.subject} — from ${from}`, text: `New mail to ${rec.to.join(', ')} from ${from}.\n\n${rec.text ? rec.text.slice(0, 3000) : '(body not fetched' + (rec.fetch_error ? ': ' + rec.fetch_error : '') + ')'}\n\nA drafted reply will follow for you to approve.` });
       }
       return json({ ok: true });
+    }
+
+    // ---- support inbox ----
+    // Agent side (Authorization: Bearer AGENT_TOKEN or ADMIN_TOKEN): GET /inbox[?status=new,drafted]  POST /inbox/draft {id, reply}
+    //   POST /inbox/done {id, note}  (spam / nothing to answer)
+    if (url.pathname === '/inbox' || url.pathname === '/inbox/draft' || url.pathname === '/inbox/done') {
+      const auth = req.headers.get('authorization') || '';
+      if (!((env.AGENT_TOKEN && auth === `Bearer ${env.AGENT_TOKEN}`) || (env.ADMIN_TOKEN && auth === `Bearer ${env.ADMIN_TOKEN}`))) return json({ error: 'nope' }, 401);
+      if (req.method === 'GET' && url.pathname === '/inbox') return json({ items: await inboxList(env, String(url.searchParams.get('status') || 'new').split(',')) });
+      if (req.method !== 'POST') return json({ error: 'POST' }, 405);
+      const b = await req.json().catch(() => ({})); const rec = b.id && (await inboxGet(env, String(b.id)));
+      if (!rec) return json({ error: 'no such message' }, 404);
+      if (rec.status === 'sent') return json({ error: 'already answered' }, 409);
+      if (url.pathname === '/inbox/done') { rec.status = 'done'; rec.note = String(b.note || '').slice(0, 300); await inboxPut(env, rec); return json({ ok: true }); }
+      const reply = String(b.reply || '').trim(); if (!reply) return json({ error: 'reply required' }, 400);
+      rec.status = 'drafted'; rec.draft = reply.slice(0, 10000); rec.draftAt = new Date().toISOString(); if (b.note) rec.note = String(b.note).slice(0, 300); await inboxPut(env, rec);
+      const link = `${url.origin}/inbox/approve?id=${encodeURIComponent(rec.id)}&sig=${await approveSig(env, rec.id)}`;
+      const mail = env.NOTIFY ? await sendEmail(env, env.NOTIFY, { subject: `[noods draft] Re: ${rec.subject}`, text: `${rec.from} wrote:\n\n${(rec.text || '(no text)').slice(0, 4000)}\n\n———— draft reply ————\n\n${rec.draft}\n\n————\n${rec.note ? 'Note: ' + rec.note + '\n' : ''}\nReview, edit and send: ${link}\n(Nothing goes out until you press Send there.)` }) : { skipped: 'no NOTIFY' };
+      return json({ ok: true, mail });
+    }
+    // Jeff's approve page: GET shows the message + an editable draft, POST sends it (link-scanners only ever GET).
+    if (url.pathname === '/inbox/approve') {
+      const id = String(url.searchParams.get('id') || ''), sig = String(url.searchParams.get('sig') || '');
+      if (!env.ADMIN_TOKEN || !id || !timingEq(sig, await approveSig(env, id))) return page('Nope', '<p>That link is not valid.</p>');
+      const rec = await inboxGet(env, id); if (!rec) return page('Gone', '<p>That message is gone (older than 120 days?).</p>');
+      if (req.method === 'POST') {
+        const form = await req.formData(); const act = form.get('act');
+        if (rec.status === 'sent') return page('Already sent', `<p>Already sent ${esc(rec.sentAt)}.</p>`);
+        if (act === 'done') { rec.status = 'done'; await inboxPut(env, rec); return page('Done', '<p>Marked done — no reply sent.</p>'); }
+        const text = String(form.get('reply') || '').trim(); if (!text) return page('Empty', '<p>The reply was empty; nothing sent.</p>');
+        const subject = /^re:/i.test(rec.subject) ? rec.subject : `Re: ${rec.subject}`;
+        const headers = rec.message_id ? { 'In-Reply-To': rec.message_id, References: rec.message_id } : undefined;
+        const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify({ from: env.FROM, to: [replyTo(rec)], subject, text, ...(headers ? { headers } : {}) }) });
+        if (!r.ok) return page('Failed', `<p>Resend said ${r.status}: ${esc(await r.text())}</p>`);
+        rec.status = 'sent'; rec.sent = text; rec.sentAt = new Date().toISOString(); await inboxPut(env, rec);
+        return page('Sent', `<p>Sent to ${esc(replyTo(rec))}.</p>`);
+      }
+      return page(`Re: ${rec.subject}`, `<h2>${esc(rec.subject)}</h2><p><b>From</b> ${esc(rec.from)} · ${esc(rec.at)} · <b>${esc(rec.status)}</b></p><pre>${esc(rec.text || '(no text)')}</pre>${rec.note ? `<p><i>${esc(rec.note)}</i></p>` : ''}${rec.status === 'sent' ? `<h3>Sent ${esc(rec.sentAt)}</h3><pre>${esc(rec.sent)}</pre>` : `<form method="post"><h3>Reply to ${esc(replyTo(rec))}</h3><textarea name="reply">${esc(rec.draft || '')}</textarea><p><button name="act" value="send">Send</button><button class="alt" name="act" value="done">No reply needed</button></p></form>`}`);
     }
     // Jeff's side: GET /lookup?email=  and POST /resend?email=   (Authorization: Bearer ADMIN_TOKEN)
     if (url.pathname === '/lookup' || url.pathname === '/resend') {
