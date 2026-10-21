@@ -10,6 +10,7 @@ ROADIE_CENTS = "6000"
 MIN_CENTS = "1200"
 NOTIFY = "jeffman44@gmail.com"
 INBOXES = "noods,support,hello,jeff"
+ALLOW_TEST = "1"   # TEMPORARY: accept Lemon Squeezy test-mode orders for the end-to-end check — remove after
 
 [[kv_namespaces]]
 binding = "KEYS"
