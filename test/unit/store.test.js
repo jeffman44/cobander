@@ -5,9 +5,14 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const os = require('os');
 const path = require('path');
+// these tests fill folders with songs, so every tmp folder gets a Takeout key signed by a throwaway pair
+const TKP = require('crypto').generateKeyPairSync('ed25519');
+process.env.COBANDER_TAKEOUT_PUB = TKP.publicKey.export({ type: 'spki', format: 'der' }).subarray(-32).toString('base64url');
+const Takeout = require('../../src/takeout');
 const S = require('../../src/store');
+const TK = Takeout.sign({ band: 'Test Band' }, TKP.privateKey.export({ type: 'pkcs8', format: 'der' }).subarray(-32).toString('base64url'));
 
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'bp-store-'));
+const tmp = (unlocked = true) => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'bp-store-')); if (unlocked) fs.writeFileSync(path.join(d, Takeout.FILE), JSON.stringify({ key: TK })); return d; };
 const me = { user: 'Jeff', host: 'jeffpc', pid: 111 };
 const kat = { user: 'Kat', host: 'katmac', pid: 222 };
 
@@ -28,6 +33,17 @@ test('take file names carry a label and parse back to the id', () => {
   assert.equal(S.safeLabel('a:b*c'), 'a b c');
 });
 
+test('free folder: one song, then Takeout; a key lifts it', async () => {
+  const root = tmp(false); const st = new S.SongStore(root);
+  fs.mkdirSync(path.join(root, 'installers')); fs.mkdirSync(path.join(root, 'Plugins'));   // not songs: must not eat the free slot
+  assert.equal((await st.takeoutStatus()).unlocked, false); assert.equal((await st.takeoutStatus()).songs, 0);
+  await st.createSong('First'); assert.equal((await st.takeoutStatus()).songs, 1);
+  await assert.rejects(st.createSong('Second'), /Takeout lifts the limit/);
+  await assert.rejects(st.takeoutEnter('cob1.x.y'), /isn't a Takeout key/);
+  const stt = await st.takeoutEnter(TK); assert.equal(stt.unlocked, true); assert.equal(stt.band, 'Test Band'); assert.equal(stt.songs, 1);
+  assert.equal((await st.createSong('Second')).folder, 'Second');
+  assert.ok(!(await st.listSongs()).some((x) => x.folder.startsWith('_')), 'the key file is not a song');
+});
 test('create / load / save with optimistic concurrency', async () => {
   const st = new S.SongStore(tmp());
   const { folder, song } = await st.createSong('Tremors');

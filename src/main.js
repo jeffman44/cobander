@@ -375,6 +375,8 @@ ipcMain.handle('templates:write', (_e, t) => tracked(() => guardStore().writeTem
 ipcMain.handle('templates:delete', (_e, id) => guardStore().deleteTemplate(id));
 ipcMain.handle('history:read', (_e, folder, saveId) => guardStore().readHistory(folder, saveId));
 ipcMain.handle('songs:create', (_e, name) => guardStore().createSong(name));
+ipcMain.handle('takeout:status', () => store ? store.takeoutStatus() : { unlocked: false, tier: 'free', tierName: 'Free', band: null, songs: 0, limit: 1 });
+ipcMain.handle('takeout:enter', (_e, key) => guardStore().takeoutEnter(key));
 ipcMain.handle('songs:check', (_e, name) => guardStore().checkSongName(name));
 ipcMain.handle('song:open', (_e, folder, opts) => { guardStore(); return openSong(folder, opts || {}); });
 ipcMain.handle('song:close', () => closeOpenSong());

@@ -88,6 +88,7 @@
   .dish .name small { display: block; font: 400 15px/1.3 var(--body); color: #5e564a; letter-spacing: 0; white-space: normal; margin-top: 2px; }
   .dish .dots { flex: 1; border-bottom: 2px dotted #8e8371; transform: translateY(-6px); grid-column: 1; }
   .dish .price { font-family: var(--display); font-weight: 900; font-size: 34px; color: var(--chili); }
+  a.dish { text-decoration: none; } a.dish .price { color: #5e564a; }
   .dish .row { display: flex; align-items: baseline; gap: 8px; }
   .carton .go { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 22px; }
   .carton .btn.hot { background: var(--chili); color: #fff; } .carton .btn.hot:hover { background: #ef4a3b; }
@@ -177,13 +178,13 @@
     <div class="carton">
       <div class="stamp">NO SERVER<br>NO ACCOUNTS<br>NO SUBSCRIPTION</div>
       <h2>Takeout</h2>
-      <p class="sub">The ready-made Windows and Mac installers, signed so your computer doesn't panic, with updates forever. Pay what the band can spare, once, per band.</p>
-      <button class="dish" data-amt="12"><span class="name">A round for the band<small>the floor — four tallboys</small></span><span class="row"><span class="price">$12</span></span></button>
-      <button class="dish pick" data-amt="25"><span class="name">A round and the jukebox<small>what most bands pick</small></span><span class="row"><span class="price">$25</span></span></button>
-      <button class="dish" data-amt="60"><span class="name">Roadie<small>your band's name in the credits</small></span><span class="row"><span class="price">$60</span></span></button>
+      <p class="sub">Free Cobander is the whole app — every feature, every update — with one song per band. Takeout is a key that lifts the one-song limit for everyone in the band. Pay what the band can spare, once.</p>
+      <a class="dish free repo-link" href="https://github.com/OWNER/cobander/releases/latest" target="_blank" rel="noopener"><span class="name">Free<small>the whole app, one song. Windows and Mac, updates included</small></span><span class="row"><span class="price">$0</span></span></a>
+      <button class="dish pick" data-amt="25"><span class="name">Takeout<small>all the songs you want. One key for the whole band — $12 minimum, pay what you like</small></span><span class="row"><span class="price">$25</span></span></button>
+      <button class="dish" data-amt="60"><span class="name">Roadie<small>same key, plus your band's name in the credits</small></span><span class="row"><span class="price">$60</span></span></button>
       <div class="go">
-        <a class="btn hot" id="buy" href="https://ko-fi.com/jdeuel44" target="_blank" rel="noopener">Get Cobander for $25</a>
-        <span class="fine">Windows 10+ · macOS 13+ · Apple silicon and Intel</span>
+        <a class="btn hot" id="buy" href="https://ko-fi.com/jdeuel44" target="_blank" rel="noopener">Get Takeout for $25</a>
+        <span class="fine">The key arrives by email. Paste it once; the band folder keeps it.</span>
       </div>
     </div>
     <img class="jump" src="img/levelup.jpg" alt="The colander leaping with a bass guitar, confetti everywhere" loading="lazy">
@@ -201,7 +202,8 @@
 
   <section class="faq" id="faq">
     <h2>Questions</h2>
-    <details><summary>Do we all need to pay?</summary><p>No. One purchase covers the whole band — send the installer to your bandmates. Updates come to everyone through the shared folder.</p></details>
+    <details><summary>Do we all need to pay?</summary><p>No. One key covers the whole band — whoever pastes it into Cobander unlocks everyone, because it lives in the folder you share.</p></details>
+    <details><summary>What's in the free version?</summary><p>Everything. Write, Record, Mix, Practice, the Band page, sync, updates. The only limit is one song per band folder; Takeout lifts it. Folders that already hold more songs keep them all.</p></details>
     <details><summary>What if we don't share a cloud folder?</summary><p>Make one — a free Google Drive or OneDrive account is enough. Cobander needs a folder every bandmate's computer syncs; that's the whole system. There's no Cobander server, which is why there's no subscription.</p></details>
     <details><summary>Is it a real DAW?</summary><p>It records real takes, mixes with real EQ and compression, bounces stems, and hands the whole song off to a studio DAW with markers when it's ready for one. It is built for getting ideas down fast with a band, not for engineering a record.</p></details>
     <details><summary>Does my stuff leave my computer?</summary><p>Only to your band's shared folder. No telemetry, no accounts, no uploads. Speech-to-text, chord detection and pitch check all run locally.</p></details>
@@ -216,7 +218,7 @@
 </div>
 <script>
   const buy = document.getElementById('buy'); const BUY = 'https://ko-fi.com/jdeuel44';
-  for (const d of document.querySelectorAll('.dish')) d.addEventListener('click', () => { for (const x of document.querySelectorAll('.dish')) x.classList.toggle('pick', x === d); buy.textContent = `Get Cobander for $${d.dataset.amt}`; buy.href = BUY; });
+  for (const d of document.querySelectorAll('button.dish')) d.addEventListener('click', () => { for (const x of document.querySelectorAll('button.dish')) x.classList.toggle('pick', x === d); buy.textContent = `Get Takeout for $${d.dataset.amt}`; buy.href = BUY; });
   const m = /^([^.]+)\.github\.io$/.exec(location.hostname); const repo = m ? `${m[1]}/cobander` : null;
   if (repo) { for (const r of document.querySelectorAll('.repo')) r.textContent = repo; for (const a of document.querySelectorAll('.repo-link')) a.href = a.href.replace('OWNER/cobander', repo); }
 </script>

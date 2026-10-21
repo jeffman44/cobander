@@ -115,6 +115,7 @@
     $('#s-drive-warn').hidden = !state.settings.sharedFolder || !!state.settings.driveLike; $('#s-cloud').textContent = state.settings.cloud ? `✓ ${state.settings.cloud.name} folder` : '';
     await fillInputs();
     try { await engine.init(); await engine.initMidi(); const ms = $('#s-midi'); ms.innerHTML = ''; for (const [v, t] of [['', 'none'], ['any', 'any connected MIDI input'], ...engine.midi.inputs.map((i) => [i.id, i.name])]) { const o = el('option', null, t); o.value = v; if (v === (state.settings.midiInputId || '')) o.selected = true; ms.appendChild(o); } if (!engine.midi.access) ms.appendChild(el('option', null, '(Web MIDI not available)')); } catch (_) {}
+    renderTakeout();
     const api = await bp.api.info();
     $('#s-api').textContent = (api.running ? `http://127.0.0.1:${api.port}/\ntoken: ${api.token}` : (api.error || `API not running (port ${api.port} busy?)`)) + `\nsettings: ${api.settingsFile}\nfile inbox: ${api.inbox}`;
     d.returnValue = '';
@@ -192,7 +193,7 @@
   bp.update.status().then(renderUpdate).catch(() => {});
   // public links: GitHub, bugs, the tip jar (Ko-fi shows once package.json names a page)
   for (const b of document.querySelectorAll('.link-btn[data-link]')) b.addEventListener('click', () => bp.shell.openLink(b.dataset.link).catch(fail));
-  bp.shell.links().then((l) => { for (const b of document.querySelectorAll('.link-btn[data-link]')) { const k = b.dataset.link; const has = k === 'kofi' ? !!l.kofi : k === 'venmo' ? !!l.venmo : k === 'takeout' ? !!l.takeout : (k === 'openmoji' || k === 'gameicons' || k === 'lpc') ? true : !!l.repo; b.hidden = !has; } }).catch(() => {});
+  bp.shell.links().then((l) => { for (const b of document.querySelectorAll('.link-btn[data-link]')) { const k = b.dataset.link; const has = k === 'kofi' ? !!l.kofi : k === 'venmo' ? !!l.venmo : k === 'takeout' ? !!l.takeout : (k === 'openmoji' || k === 'gameicons' || k === 'lpc') ? true : !!l.repo; b.hidden = !has; if (k === 'takeout' && has) b.dataset.has = '1'; } renderTakeout(); }).catch(() => {});
   $('#s-check-update').addEventListener('click', async () => { const b = $('#s-check-update'); b.disabled = true; try { const st = await bp.update.check(); renderUpdate(st); if (!st.available) toast(st.latest ? `You're on the latest (${st.current}).` : 'No installers folder in the shared band folder yet.', { ms: 5000 }); } catch (err) { fail(err); } finally { b.disabled = false; } });
 
   var MT = window.BPMeter;   // hoisted: used from init-time renders
@@ -203,6 +204,39 @@
       d.addEventListener('close', function h() { d.removeEventListener('close', h); resolve(d.returnValue === 'ok' ? $('#prompt-input').value.trim() : null); });
     });
   }
+  // ---------- Takeout: the free-song gate ----------
+  // createSong / restore throw when a free folder already holds its one song; this turns that into the dialog.
+  function isTakeoutErr(err) { return /Takeout lifts the limit/.test(err && err.message ? err.message : String(err)); }
+  async function takeoutDialog({ hit = false } = {}) {
+    const d = $('#takeout'), inp = $('#takeout-key'), errEl = $('#takeout-err');
+    inp.value = ''; errEl.hidden = true; d.returnValue = '';
+    $('#takeout-title').textContent = hit ? 'That\'s the free song' : 'Takeout';
+    return new Promise((resolve) => {
+      d.addEventListener('close', async function h() {
+        d.removeEventListener('close', h);
+        if (d.returnValue !== 'ok') return resolve(false);
+        const key = inp.value.trim();
+        if (!key) { toast('Paste the key from your Takeout email first.', { kind: 'bad' }); return resolve(false); }
+        try { const st = await bp.shell.takeoutEnter(key); await renderTakeout(st); toast(`Takeout! ${st.band} is unlocked — every song you want.`, { ms: 6000 }); resolve(true); }
+        catch (err) { fail(err); resolve(false); }
+      });
+      d.showModal(); setTimeout(() => inp.focus(), 0);
+    });
+  }
+  // Runs a song-adding action; on the free limit, offers Takeout and retries once a key is in.
+  async function withTakeout(fn) {
+    try { return await fn(); }
+    catch (err) { if (!isTakeoutErr(err)) throw err; if (await takeoutDialog({ hit: true })) return fn(); return null; }
+  }
+  async function renderTakeout(st) {
+    try { st = st || await bp.shell.takeout(); } catch (_) { return; }
+    const t = st.unlocked ? `${st.tierName}: ${st.band} — unlimited songs. Thanks for the noods.` : `Free Cobander: one song per band folder${st.songs >= (st.limit || 1) ? ' (this folder has its song)' : ''}.`;
+    for (const id of ['#s-takeout', '#bp-takeout']) { const n = $(id); if (n) n.textContent = t; }
+    const get = $('#s-takeout-get'); if (get) get.hidden = st.unlocked || !get.dataset.has;
+    const k = $('#s-takeout-key'); if (k) k.hidden = st.unlocked;
+    state.takeout = st;
+  }
+  $('#s-takeout-key').addEventListener('click', () => takeoutDialog());
   // Three-way question. Returns the value of the chosen button.
   function ask(title, text, buttons) {
     return new Promise((resolve) => {
@@ -216,6 +250,7 @@
 
   // ---------- song list ----------
   async function refreshSongs() {
+    renderTakeout();
     renderNoSong();
     if (!state.settings.sharedFolder) { state.songs = []; renderSongs(); return; }
     try { state.songs = await bp.songs.list(); } catch (err) { fail(err); state.songs = []; }
@@ -633,7 +668,7 @@
     let sg = (state.songs || []).find((x) => x.name === name || x.folder === name);
     if (!sg) {
       if (state.folder && !(await closeSong())) return;
-      const r = await bp.songs.create(name); await refreshSongs(); state.quietEmpty = true; await openSong(r.folder); state.quietEmpty = false;
+      const r = await withTakeout(() => bp.songs.create(name)); if (!r) return; await refreshSongs(); state.quietEmpty = true; await openSong(r.folder); state.quietEmpty = false;
       if (state.folder !== r.folder || state.readOnly) return;
       await applyTemplate({ template: TPL.BUILTIN.find((x) => x.id === 'blank'), bpm: 120, timeSig: [4, 4], key: '', click: true, tracks: ['guitar'] });
       change(() => { state.song.sandbox = true; state.song.stage = 'idea'; engine.setLoop({ enabled: true, start: 0, end: barLen() * 4 }); }, { label: 'noodle pad set up', undoable: false });
@@ -708,7 +743,7 @@
       tracks: cur.trackSetups ? null : picked.map((k) => k.split(':').pop()), trackSetups: cur.trackSetups ? cur.trackSetups.filter((_, i) => picked.includes(`s${i}`)) : null };
     try { localStorage.setItem('bp.lastTemplate', cur.id); } catch (_) {}
     if (state.folder && !(await closeSong())) return;   // close (and save) the current song first, so no empty folder is left behind on Cancel
-    const r = await bp.songs.create(name); await refreshSongs(); state.quietEmpty = true; await openSong(r.folder); state.quietEmpty = false;
+    const r = await withTakeout(() => bp.songs.create(name)); if (!r) return; await refreshSongs(); state.quietEmpty = true; await openSong(r.folder); state.quietEmpty = false;
     if (state.folder === r.folder && !state.readOnly) await applyTemplate(opts);
   }
   function bpmOr(v, def) { const n = parseFloat(String(v).trim()); return Number.isFinite(n) && n >= 30 && n <= 300 ? n : def; }
@@ -2032,7 +2067,7 @@
     if (!list.length) { status('No deleted songs.'); return; }
     const rows = list.slice(0, 20).map((x) => [`Restore "${x.name}"${x.by ? ` (deleted by ${x.by}${x.at ? `, ${timeAgo(x.at)}` : ''})` : ''}`, x.id]);
     const id = await ask('Deleted songs', 'Restore one to the song list. (To erase them for good, empty the _deleted folder in Drive.)', [...rows, ['Close', '']]);
-    if (!id) return; const r = await bp.song.restore(id); await refreshSongs().catch(() => {}); toast(`Restored as "${r.folder}".`, { kind: 'ok', ms: 6000 });
+    if (!id) return; const r = await withTakeout(() => bp.song.restore(id)); if (!r) return; await refreshSongs().catch(() => {}); toast(`Restored as "${r.folder}".`, { kind: 'ok', ms: 6000 });
   }
   function bounceMenu(b) { return [{ title: b.name }, ...(b.dir ? [] : [{ label: 'Listen', action: () => previewBounce(b, { textContent: '' }) }]), { label: 'Show in folder', action: () => bp.shell.showInFolder(b.path) }, { label: 'Copy message for the group chat', action: () => navigator.clipboard.writeText(`"${state.song.name}" ${b.dir ? 'DAW export' : 'bounce'} is in the band folder: ${state.song.name}/bounces/${b.name}`).then(() => toast('Copied — paste it in the group chat.', { kind: 'ok', ms: 2500 })) }]; }
   (function wireTopbarMenus() {

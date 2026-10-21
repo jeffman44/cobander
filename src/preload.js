@@ -98,6 +98,8 @@ contextBridge.exposeInMainWorld('bandpad', {
     openSongFolder: (folder) => ipcRenderer.invoke('shell:openSongFolder', folder),
     openLink: (which) => ipcRenderer.invoke('shell:openLink', which),   // 'repo' | 'venmo' | 'kofi' | 'issues' | 'releases'
     links: () => ipcRenderer.invoke('shell:links'),
+    takeout: () => ipcRenderer.invoke('takeout:status'),
+    takeoutEnter: (key) => ipcRenderer.invoke('takeout:enter', key),
   },
   mic: { ensure: () => ipcRenderer.invoke('mic:ensure') },
   presence: { set: (p) => ipcRenderer.invoke('presence:set', p) },

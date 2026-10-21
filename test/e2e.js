@@ -13,6 +13,9 @@ const ROOT = path.join(__dirname, '..');
 const WORK = path.join(ROOT, '.e2e');
 const SHOTS = path.join(WORK, 'shots');
 const ELECTRON = require(path.join(ROOT, 'node_modules', 'electron'));
+const Takeout = require(path.join(ROOT, 'src', 'takeout.js'));
+// a throwaway Takeout keypair: the apps run with its public key so the harness can test the free-song gate and unlock it
+const TK = (() => { const c = require('crypto'); const { publicKey, privateKey } = c.generateKeyPairSync('ed25519'); return { pub: publicKey.export({ type: 'spki', format: 'der' }).subarray(-32).toString('base64url'), priv: privateKey.export({ type: 'pkcs8', format: 'der' }).subarray(-32).toString('base64url') }; })();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let failures = 0; const results = [];
 
@@ -56,7 +59,7 @@ class App {
     const ud = path.join(this.cfg, 'Cobander'); await fsp.mkdir(ud, { recursive: true });
     await fsp.writeFile(path.join(ud, 'settings.json'), JSON.stringify({ sharedFolder: this.shared, displayName: this.name, apiPort: this.port, apiToken: this.token, phonePort: this.port + 10, apiInbox: path.join(this.cfg, 'inbox'), fanfare: false, ...(this.name === 'Jeff' ? { autoUnlockTracks: true } : {}) }));
     this.log = fs.createWriteStream(path.join(WORK, `${this.name}.log`));
-    this.proc = spawn(ELECTRON, [ROOT, '--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'], { env: { ...process.env, XDG_CONFIG_HOME: this.cfg, BP_DEBUG: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    this.proc = spawn(ELECTRON, [ROOT, '--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'], { env: { ...process.env, XDG_CONFIG_HOME: this.cfg, BP_DEBUG: '1', COBANDER_TAKEOUT_PUB: TK.pub }, stdio: ['ignore', 'pipe', 'pipe'] });
     this.proc.stdout.pipe(this.log); this.proc.stderr.pipe(this.log);
     for (let i = 0; i < 120; i++) { try { await this.get('/state'); return; } catch (_) { await sleep(500); } }
     throw new Error(`${this.name} did not start`);
@@ -75,7 +78,7 @@ class App {
 }
 
 async function step(name, fn) {
-  if (process.env.ONLY && !name.includes(process.env.ONLY)) return;   // ONLY=<text> runs just the matching steps
+  if (process.env.ONLY && !process.env.ONLY.split('|').some((o) => name.includes(o))) return;   // ONLY=<text>[|<text>] runs just the matching steps
   const t0 = Date.now();
   try { await fn(); results.push(`ok   ${name} (${Date.now() - t0} ms)`); }
   catch (err) { failures++; results.push(`FAIL ${name}: ${err.stack || err.message}`); }
@@ -98,6 +101,20 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/clip/import', { path: path.join(WORK, 'riff.wav'), trackId: g.id, start: 0, name: 'riff A' });
       await jeff.post('/clip/import', { path: path.join(WORK, 'riff.wav'), trackId: g.id, start: 0, name: 'riff B' });
       const s = await jeff.post('/song/save'); assert.equal(s.result, 'ok');
+    });
+    await step('takeout: free folder keeps one song; a key unlocks the band', async () => {
+      const r = await jeff.post('/song/create', { name: 'Second Song' }).catch((e) => e);
+      assert.match(String(r.error || r.message || JSON.stringify(r)), /Takeout lifts the limit/, 'second song must hit the free limit');
+      assert.equal((await fsp.readdir(shared, { withFileTypes: true })).filter((e) => e.isDirectory() && !e.name.startsWith('_') && !e.name.startsWith('.')).length, 1);
+      assert.equal(Takeout.verify('cob1.nope.nope', TK.pub), null);
+      await jeff.evalJs(`document.querySelector('#s-takeout-key').click()`); await sleep(300);
+      assert.equal(await jeff.evalJs(`document.querySelector('#takeout').open`), true, 'the Takeout dialog opens');
+      await jeff.shot('takeout'); await jeff.evalJs(`document.querySelector('#takeout').close('cancel')`);
+      await fsp.writeFile(path.join(shared, Takeout.FILE), JSON.stringify({ key: Takeout.sign({ band: 'E2E Band', tier: 'roadie' }, TK.priv) }));
+      const r2 = await jeff.post('/song/create', { name: 'Second Song' }); assert.ok(r2.folder, 'unlocked folder creates a second song');
+      await jeff.post('/song/close').catch(() => {}); await jeff.post('/song/open', { folder: 'E2E Song' }).catch(() => {});
+      const st = await jeff.evalJs('window.bandpad.shell.takeout()').catch(() => null);
+      if (st) { assert.equal(st.unlocked, true); assert.equal(st.band, 'E2E Band'); }
       song = (await jeff.get('/state')).song; assert.equal(song.tracks.find((t) => t.name === 'Gtr').clips.length, 2);
     });
     await step('sections: add by bars, update, loop menu has them', async () => {

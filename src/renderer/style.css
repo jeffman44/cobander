@@ -903,3 +903,9 @@ dialog#charpick { max-width: 1100px; width: min(1100px, 96vw); max-height: 96vh;
 .empty .art-wait { width: min(520px, 90%); height: auto; border-radius: 12px; display: block; margin: 0 auto 18px; opacity: .95; }
 #band-page .art-banner { width: 100%; height: auto; border-radius: 10px; margin-bottom: 12px; display: block; }
 #levelup .lu-art { position: absolute; width: min(70vh, 640px); height: auto; opacity: .35; pointer-events: none; animation: lu-pop .8s cubic-bezier(.2,1.6,.4,1) both; }
+
+/* Takeout — the free-song gate */
+#takeout { max-width: 480px; }
+#takeout-key { font-family: ui-monospace, monospace; font-size: 12px; width: 100%; box-sizing: border-box; }
+#takeout .row { align-items: center; gap: 10px; }
+#s-takeout-key { margin-left: 2px; }

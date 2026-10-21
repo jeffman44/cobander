@@ -32,6 +32,7 @@ const VERSION_DIR = 'versions';
 const HISTORY_DIR = 'history';
 const TEMPLATE_DIR = '_templates';
 const TRASH_DIR = '_deleted';
+const Takeout = require('./takeout');
 const QUEST_DIR = '_quest';         // <Shared>/_quest/<who>.json — the quest board: each bandmate writes only their own file        // <Shared>/_deleted/<song> — deleted songs (restorable from the app; empty it by hand in Drive)
 const PARTS_DIR = '_parts';          // <Shared>/_parts/<id>.json + _parts/audio/<audioId>.wav — the band's parts bin (riffs, sections) to drop into any song   // <Shared>/_templates/<id>.json — band song templates (structure, tempo, track setups; no audio)
 const HISTORY_KEEP = 500;   // every save is kept as <song>/history/rev-<rev>-<saveId>.json; oldest pruned past this
@@ -284,6 +285,7 @@ class SongStore {
     if (path.dirname(src) !== tdir) throw new Error('bad deleted-song id');
     let meta = {}; try { meta = JSON.parse(await fsp.readFile(path.join(src, '_deleted.json'), 'utf8')); } catch (_) {}
     const base = safeSongName(meta.folder || String(id).replace(/ - deleted .*$/, '')) || 'Restored song';
+    Takeout.assertCanAdd(this.root, await this.songCount());
     let folder = base, k = 2; while (await fsp.stat(path.join(this.root, folder)).then(() => true, () => false)) folder = `${base} (restored${k > 2 ? ` ${k - 1}` : ''})`, k++;
     const dest = this.songDir(folder);
     try { await fsp.rename(src, dest); } catch (err) {
@@ -347,8 +349,19 @@ class SongStore {
     if (clash) throw new Error(`A song called "${clash}" already exists`);
     return folder;
   }
+  // Song folders in the shared folder (what the free limit counts).
+  async songCount() {
+    let entries = []; try { entries = await fsp.readdir(this.root, { withFileTypes: true }); } catch (_) {}
+    let n = 0;   // only folders that hold a song.json (installers/, Plugins/, a stray folder: not songs)
+    for (const e of entries) { if (!e.isDirectory() || e.name.startsWith('.') || e.name.startsWith('_')) continue; try { await fsp.stat(path.join(this.root, e.name, SONG_FILE)); n++; } catch (_) {} }
+    return n;
+  }
+  takeout() { return Takeout.status(this.root, null); }
+  async takeoutStatus() { return Takeout.status(this.root, await this.songCount()); }
+  async takeoutEnter(key) { await Takeout.write(this.root, key); return this.takeoutStatus(); }
   async createSong(name) {
     const folder = await this.checkSongName(name);
+    Takeout.assertCanAdd(this.root, await this.songCount());
     const dir = this.songDir(folder);
     try {
       await fsp.mkdir(dir, { recursive: false });

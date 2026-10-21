@@ -30,20 +30,21 @@ whole band opens at practice.
 
 ## Install
 
-**Takeout 🥡** — ready-made installers (Windows `.exe`, Mac `mac-arm64` / `mac-x64` zips) with one-click updates,
-pay what you want, one time, per band:
+**Free** — the whole app, every update, one song per band folder. Windows `.exe` and Mac `mac-arm64` / `mac-x64` zips on the
+[releases page](https://github.com/jeffman44/cobander/releases/latest). Open it, give yourself a name, and point it at a
+folder inside the cloud folder your band shares. Everyone in the band does the same with the same folder. That's the setup.
+Cobander checks for updates and installs them itself.
 
-- **$12** — a round for the band
-- **$25** — a round and the jukebox (suggested)
-- **$60** — Roadie: your band's name in the credits
+**Takeout 🥡** — a key that lifts the one-song limit for everyone in the band. Pay what the band can spare, once:
 
-Get it from the [download page](https://ko-fi.com/jdeuel44) *(storefront link coming; Ko-fi works today)*.
-Open it, give yourself a name, and point it at a folder inside the cloud folder your band shares. Everyone in the
-band does the same with the same folder. That's the setup. Cobander checks for updates and installs them itself.
+- **$25** — Takeout (suggested; $12 minimum)
+- **$60** — Roadie: same key, plus your band's name in the credits
 
-**Free** — the source is MIT; `npm install && npm start` runs it, `bash scripts/build.sh all` builds the same
-installers. Nothing is held back. The builds you make yourself aren't code-signed, so Windows SmartScreen will ask
-"Run anyway" and a Mac wants right-click → Open the first time; that's most of what Takeout pays for.
+Get it from the [Takeout page](https://ko-fi.com/jdeuel44) *(storefront link coming; Ko-fi works today)*. The key arrives by
+email; paste it under ⚙ → **Enter a key** (or when the second song asks). It lives in the shared folder, verifies offline,
+never expires, never phones home. Folders that already hold more songs keep them all.
+
+The source is MIT and the key check is one function in `src/takeout.js`. It's a tip jar with a nudge, not DRM.
 
 ## Build it yourself
 
