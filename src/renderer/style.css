@@ -97,7 +97,7 @@ input[type=number] { width: 64px; }
 .clip .label { position: absolute; left: 4px; top: 2px; font-size: 10px; color: #fff; text-shadow: 0 1px 2px #000; pointer-events: none; }
 .clip canvas { width: 100%; height: 100%; display: block; }
 .clip.recording { background: rgba(224,75,75,.4); border-color: var(--rec); }
-#playhead { position: absolute; top: 0; bottom: 0; width: 1px; background: #fff; pointer-events: none; z-index: 3; }
+#playhead { position: absolute; top: 0; height: 100%; width: 1px; background: #fff; pointer-events: none; z-index: 3; }
 #ask-text { white-space: pre-wrap; }
 #loop-region { position: absolute; top: 44px; height: 26px; background: rgba(91,141,239,.28); border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); pointer-events: none; z-index: 1; box-sizing: border-box; }
 #loop-region::after { content: 'loop'; position: absolute; left: 4px; top: 13px; font-size: 9px; color: #cfe0ff; }

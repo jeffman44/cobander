@@ -4855,6 +4855,10 @@
   // ---------- arrangement ----------
   const tracksEl = $('#tracks'), ruler = $('#ruler'), arrange = $('#arrange');
   const playheadEl = el('div'); playheadEl.id = 'playhead'; arrange.appendChild(playheadEl);
+  // #playhead / #room-shade are absolute inside the scrolling #arrange: top/bottom resolve to the VISIBLE box, so with more
+  // tracks than fit, the line stopped partway down. Stretch them to the content height whenever it changes.
+  const fitOverlays = () => { const h = Math.max(arrange.clientHeight, tracksEl.offsetTop + tracksEl.offsetHeight); playheadEl.style.height = `${h}px`; const sh = $('#room-shade'); if (sh) sh.style.height = `${h}px`; };
+  new ResizeObserver(fitOverlays).observe(tracksEl); new ResizeObserver(fitOverlays).observe(arrange);
   const loopEl = el('div'); loopEl.id = 'loop-region'; $('#ruler-row').appendChild(loopEl);
 
   function timelineWidth() { return Math.max(arrange.clientWidth - HEAD_W, (engine.songLength() + 30) * state.pxPerSec); }

@@ -1266,6 +1266,10 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       const h = await jeff.evalJs(`getComputedStyle(document.querySelector('.track')).height`); assert.ok(h === '132px' || h === '44px', `track height after one click: ${h}`);
       assert.equal(await jeff.evalJs(`localStorage.getItem('bp.trackH')`), h.replace('px', ''), 'remembered');
       await jeff.shot('track-height'); await jeff.evalJs(`document.querySelector('#btn-track-h').click(); document.querySelector('#btn-track-h').click()`);
+      // many tracks: the playhead line spans the whole content, not just the visible box
+      for (let i = 0; i < 14; i++) await jeff.post('/song/patch', { addTrack: { kind: 'guitar', name: `Pad ${i}` } });
+      await sleep(400);
+      { const r = await jeff.evalJs(`(() => { const a = document.querySelector('#arrange'), p = document.querySelector('#playhead'); return { sh: a.scrollHeight, ch: a.clientHeight, ph: p.getBoundingClientRect().height }; })()`); assert.ok(r.sh > r.ch + 50, `tracks overflow the viewport (${JSON.stringify(r)})`); assert.ok(r.ph >= r.sh - 2, `playhead spans the content ${JSON.stringify(r)}`); }
       // Mix = a console: timeline hidden, strips carry role / send / FX chips / quick fixes; Record heads show takes
       await jeff.post('/workspace', { ws: 'mix' }); await sleep(400);
       assert.ok(await jeff.evalJs(`document.querySelectorAll('#mixer .strip .quickfix').length >= 1 && document.querySelector('#master-area .lufs') !== null`), 'console strips');

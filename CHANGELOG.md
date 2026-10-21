@@ -1,6 +1,7 @@
 # Cobander changelog
 
 ## 0.15.6
+- The playhead line reaches every track, however many you have (it stopped partway down a tall song).
 - A user manual, at cobander.com/manual — linked under ⚙ and from the glossary (F1 twice).
 - Roadies: bands who sent noods with extra sauce are listed under ⚙ (and on cobander.com). Thanks.
 
