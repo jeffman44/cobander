@@ -25,6 +25,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: RCODESIGN=/usr/local/bin/rcodesign bash scripts/build.sh all
+        env: { HOME: /tmp/home, WINEPREFIX: /tmp/home/.wine, ELECTRON_BUILDER_CACHE: /tmp/home/.cache/electron-builder }   # wine refuses the runner's HOME (not owned by the container user)
       - name: release notes
         run: node -e "const m=require('./release/latest.json');require('fs').writeFileSync('release/notes.md',m.notes.map(n=>'- '+n).join('\n')+'\n')"
       - uses: softprops/action-gh-release@v2
