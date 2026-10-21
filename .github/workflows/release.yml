@@ -35,14 +35,15 @@ jobs:
             release/Cobander-*-mac-arm64.zip
             release/Cobander-*-mac-x64.zip
 
-  # Windows signing (Azure Artifact Signing) has to run on a Windows runner. Until the AZURE_* secrets exist this job
-  # skips signing and publishes the unsigned build exactly as before. latest.json is rebuilt AFTER signing, because
+  # Windows signing (Azure Artifact Signing) has to run on a Windows runner. Repo variable SIGN_WINDOWS=1 turns it on;
+  # without it this job skips signing and publishes the unsigned build exactly as before. latest.json is rebuilt AFTER signing, because
   # signing changes the exe's bytes and the updater checks sha256.
   publish:
     needs: build
     runs-on: windows-2025
-    env:
-      SIGN: ${{ secrets.AZURE_CLIENT_SECRET != '' && 'yes' || '' }}
+    permissions:
+      contents: write
+      id-token: write      # OIDC to Entra app cobander-github-signing (federated: repo:jeffman44/cobander:ref:refs/heads/release) — no stored secret
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -53,13 +54,17 @@ jobs:
         id: v
         shell: bash
         run: echo "v=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: azure login (OIDC)
+        if: vars.SIGN_WINDOWS == '1'
+        uses: azure/login@v2
+        with:
+          client-id: 7621f106-af90-4233-9fd0-dd1eb6299463
+          tenant-id: 7fc4097c-17b2-4913-b8d2-72308ce39403
+          allow-no-subscriptions: true
       - name: sign Windows installer
-        if: env.SIGN == 'yes'
+        if: vars.SIGN_WINDOWS == '1'
         uses: azure/artifact-signing-action@v2
         with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
           endpoint: https://eus.codesigning.azure.net/
           signing-account-name: cobander
           certificate-profile-name: cobander
@@ -68,6 +73,23 @@ jobs:
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+      - name: check signature
+        if: vars.SIGN_WINDOWS == '1'
+        shell: pwsh
+        run: |
+          $s = Get-AuthenticodeSignature (Get-ChildItem release\Cobander-*-win-x64.exe)
+          "$($s.Status) — $($s.SignerCertificate.Subject)"
+          if ($s.Status -ne 'Valid') { exit 1 }
       - name: latest.json
         shell: bash
         run: node scripts/manifest.js "${{ steps.v.outputs.v }}"
