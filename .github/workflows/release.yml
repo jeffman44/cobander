@@ -1,9 +1,11 @@
-# Tag a version (git tag v0.15.4 && git push --tags) and GitHub builds the installers and publishes the release.
-# The in-app updater reads latest.json from the latest release when a band has no installers/ folder of its own.
+# Push main to the `release` branch (git push origin main:release) and GitHub builds the installers, tags
+# v<package.json version>, and publishes the release. The in-app updater reads latest.json from the latest release
+# when a band has no installers/ folder of its own.
 name: release
 on:
   push:
-    tags: ['v*']
+    branches: ['release']
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
@@ -12,10 +14,9 @@ jobs:
     container: electronuserland/builder:wine     # node + wine, so the Windows NSIS installer builds on Linux
     steps:
       - uses: actions/checkout@v4
-      - name: version matches tag
-        run: |
-          V=$(node -p "require('./package.json').version"); T="${GITHUB_REF_NAME#v}"
-          [ "$V" = "$T" ] || { echo "package.json is $V but the tag is $T" >&2; exit 1; }
+      - name: version
+        id: v
+        run: echo "v=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
       - name: rcodesign (ad-hoc mac signing)
         run: |
           curl -sSL https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F0.29.0/apple-codesign-0.29.0-x86_64-unknown-linux-musl.tar.gz | tar xz
@@ -28,7 +29,9 @@ jobs:
         run: node -e "const m=require('./release/latest.json');require('fs').writeFileSync('release/notes.md',m.notes.map(n=>'- '+n).join('\n')+'\n')"
       - uses: softprops/action-gh-release@v2
         with:
-          name: Cobander ${{ github.ref_name }}
+          tag_name: v${{ steps.v.outputs.v }}
+          target_commitish: ${{ github.sha }}
+          name: Cobander ${{ steps.v.outputs.v }}
           body_path: release/notes.md
           files: |
             release/Cobander-*-win-x64.exe
