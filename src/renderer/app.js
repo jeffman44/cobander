@@ -231,12 +231,18 @@
   }
   async function renderTakeout(st) {
     try { st = st || await bp.shell.takeout(); } catch (_) { return; }
-    const t = st.unlocked ? `${st.tierName}: ${st.band} — unlimited songs. Thanks for the noods.` : `Free Cobander: one song per band folder${st.songs >= (st.limit || 1) ? ' (this folder has its song)' : ''}.`;
+    const who = st.members && st.members.length ? ` (${st.members.join(', ')})` : '';
+    const t = st.unlocked ? `${st.tierName}: licensed to ${st.band}${who} — unlimited songs. Thanks for the noods.`
+      : st.revoked ? `This copy was unlocked with a leaked key (${st.leakedFrom}'s), so it's back to one song per band folder. Your songs are all still here — send noods to keep adding.`
+      : `Free Cobander: one song per band folder${st.songs >= (st.limit || 1) ? ' (this folder has its song)' : ''}.`;
     for (const id of ['#s-takeout', '#bp-takeout']) { const n = $(id); if (n) n.textContent = t; }
     const get = $('#s-takeout-get'); if (get) get.hidden = st.unlocked || !get.dataset.has;
     const k = $('#s-takeout-key'); if (k) k.hidden = st.unlocked;
-    state.takeout = st;
+    for (const id of ['#s-takeout', '#bp-takeout']) { const n = $(id); if (n) n.classList.toggle('bad', !!st.revoked); }
+    const changed = !state.takeout || state.takeout.band !== st.band || state.takeout.revoked !== st.revoked;
+    state.takeout = st; if (changed && quest) loadQuest({ files: false }).catch(() => {});
   }
+  if (bp.shell.onTakeoutChanged) bp.shell.onTakeoutChanged(() => renderTakeout());
   $('#s-takeout-key').addEventListener('click', () => takeoutDialog());
   // Three-way question. Returns the value of the chosen button.
   function ask(title, text, buttons) {
@@ -339,7 +345,7 @@
   async function loadQuest({ files = true } = {}) {
     if (!quest || !state.settings.sharedFolder || !bp.quest) return null;
     if (files) { try { quest.files = await bp.quest.read(); } catch (_) { /* Drive hiccup: keep the last board */ } quest.fields = Q.merge(quest.files); }
-    quest.board = Q.board(quest.fields, state.songs || [], { me: me() });
+    quest.board = Q.board(quest.fields, state.songs || [], { me: me(), license: state.takeout && state.takeout.unlocked ? { band: state.takeout.band, members: state.takeout.members || [] } : null });
     questCelebrate(); renderXpChip(); renderBandPane(); renderBandFeed();
     return quest.board;
   }
@@ -594,6 +600,13 @@
     const v = await promptName(`${mb.name} shows up in Cobander as… (comma-separated display names, e.g. FossTheBoss)`, (mb.aliases || []).join(', ')); if (v === null) return;
     await memberWrite(mb, { aliases: v.split(',').map((a) => a.trim()).filter(Boolean).slice(0, 6) });
   }
+  // The band's name: typed here on the free version; with a key, the key's band name wins (it's who the key is for).
+  $('#qb-lvl-title').addEventListener('click', async () => {
+    if (!quest || !quest.board) return;
+    if (quest.board.licensedTo) { toast(`The Send noods key names the band: ${quest.board.licensedTo.band}. A different name needs a new key — email noods@cobander.com.`, { ms: 8000 }); return; }
+    const v = await promptName('Band name', quest.board.name === 'Your band' ? '' : quest.board.name); if (v) questWrite({ 'band:name': v.slice(0, 60) }).catch(fail);
+  });
+  $('#qb-lvl-title').title = 'Your band\'s name — click to change it';
   $('#qb-boss').addEventListener('click', () => editBoss().catch(fail));
   $('#qb-next').addEventListener('click', async () => { const v = await promptName('The target after the boss battle (a show, a recording, a date)', quest.board.next || ''); if (v !== null) questWrite({ 'band:next': v.slice(0, 200) }).catch(fail); });
   const addSetlistSong = () => { const v = $('#qb-new').value.trim(); if (!v) return; questWrite({ [`song:q:${Date.now().toString(36)}:meta`]: { name: v.slice(0, 80) } }).catch(fail); $('#qb-new').value = ''; };

@@ -1,5 +1,12 @@
 # Cobander changelog
 
+## 0.15.9
+- Send noods is $25 for the band (Groupie), $60 for Roadie. Keys bought before keep working.
+- A key now carries your band's name and, if you gave them, your bandmates' names. With a key in the folder, Cobander calls the band by that name and shows who it's licensed to under ⚙.
+- New bands start blank: "Your band" with nobody listed until people show up. Click the band's name on the Band page to set it.
+- Keys posted publicly can be switched off. A switched-off key puts that folder back on free (every song stays), and the band gets a fresh key by email.
+- New level names at the top and bottom of the ladder: Fresh Noodle … Living Legend, and the band tops out at Michelin Star.
+
 ## 0.15.8
 - Two bandmates editing their characters at the same time no longer wipe each other's changes. Each bandmate's character, role and nicknames are saved on their own, and a character someone lost that way comes back.
 - Cobander's insides are renamed from BandPad (nothing to do on your side — settings, songs and keys carry over).

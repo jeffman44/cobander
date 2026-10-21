@@ -479,6 +479,18 @@ ipcMain.handle('roadies:list', async () => {
   try { const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 4000); const r = await require('electron').net.fetch('https://cobander.com/roadies.json', { signal: ac.signal, cache: 'no-store' }); clearTimeout(t); if (r.ok) { const live = await r.json(); if (Array.isArray(live) && live.length) list = live; } } catch (_) {}
   roadiesCache = { at: Date.now(), list }; return list;
 });
+// Leaked keys: cobander.com/revoked.json = [{ fp, at }] (fingerprints only). Read-only fetch at startup and every 6 h, the
+// last good copy kept in userData so an offline computer still honours it. Sends nothing; COBANDER_REVOKED overrides for tests.
+const REVOKED_CACHE = () => path.join(app.getPath('userData'), 'revoked.json');
+function notifyTakeout() { if (win && !win.isDestroyed()) win.webContents.send('takeout:changed'); }
+function loadRevokedCache() {
+  let list = []; for (const f of [path.join(__dirname, '..', 'docs', 'revoked.json'), REVOKED_CACHE()]) { try { const j = JSON.parse(fs.readFileSync(f, 'utf8')); if (Array.isArray(j)) list = list.concat(j); } catch (_) {} }
+  require('./takeout').setRevoked(list);
+}
+async function refreshRevoked() {
+  const url = process.env.COBANDER_REVOKED || 'https://cobander.com/revoked.json';
+  try { const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 5000); const r = await require('electron').net.fetch(url, { signal: ac.signal, cache: 'no-store' }); clearTimeout(t); if (!r.ok) return; const live = await r.json(); if (!Array.isArray(live)) return; fs.writeFileSync(REVOKED_CACHE(), JSON.stringify(live)); loadRevokedCache(); notifyTakeout(); } catch (_) {}
+}
 ipcMain.handle('shell:openLink', (_e, which) => { const u = which === 'issues' && LINKS.repo ? `${LINKS.repo}/issues` : which === 'releases' && LINKS.repo ? `${LINKS.repo}/releases` : LINKS[which]; if (!u) throw new Error(`no link for ${which}`); return shell.openExternal(u); });
 ipcMain.handle('shell:openSongFolder', (_e, folder) => shell.openPath(guardStore().songDir(folder)));
 ipcMain.handle('mic:ensure', async () => {
@@ -745,6 +757,7 @@ async function flushAndQuit() {
 
 app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');   // multi-threaded speech-to-text (WASM threads) without cross-origin isolation
 app.whenReady().then(() => {
+  loadRevokedCache(); setTimeout(() => { refreshRevoked(); setInterval(refreshRevoked, 6 * 3600e3); }, 3000);
   loadSettings();
   powerMonitor.on('resume', () => noteWake('resume'));
   powerMonitor.on('unlock-screen', () => noteWake('unlock'));

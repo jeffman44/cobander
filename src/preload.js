@@ -101,6 +101,7 @@ contextBridge.exposeInMainWorld('cobander', {
     takeout: () => ipcRenderer.invoke('takeout:status'),
     roadies: () => ipcRenderer.invoke('roadies:list'),
     takeoutEnter: (key) => ipcRenderer.invoke('takeout:enter', key),
+    onTakeoutChanged: on('takeout:changed'),   // the leaked-key list changed (fetched in main)
   },
   mic: { ensure: () => ipcRenderer.invoke('mic:ensure') },
   presence: { set: (p) => ipcRenderer.invoke('presence:set', p) },

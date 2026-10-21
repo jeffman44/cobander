@@ -1,5 +1,7 @@
 const test = require('node:test'); const assert = require('node:assert/strict');
 const Q = require('../../src/renderer/quest.js');
+// the roster a band writes on its Band page (there's no built-in band any more)
+const ROSTER = ['band:members', [[{ name: 'Jeff', role: 'Bass & Vox', icon: '🎤', aliases: [] }, { name: 'Logan', role: 'Lead Guitar', icon: '🎸', aliases: [] }, { name: 'Zach', role: 'Drums', icon: '🥁', aliases: ['FossTheBoss'] }, { name: 'Dan', role: 'Rhythm Guitar', icon: '🎸', aliases: ['Daniel'] }], 'a']];
 const f = (user, fields) => ({ user, fields: Object.fromEntries(Object.entries(fields).map(([k, [v, at]]) => [k, { v, at, by: user }])) });
 const clip = (id, by, start, len, extra = {}) => ({ id, start, duration: len, trimStart: 0, trimEnd: 0, takenBy: by, takenAt: '2026-10-14T03:30:00', ...extra });
 function song() {
@@ -35,10 +37,10 @@ test('quest: a song with no sections scores coverage by length', () => {
 });
 test('quest: the board — members from the shared file (aliases), levels, achievements, song XP with goals/tasks/milestones', () => {
   const bp = [{ folder: 'Tremors', name: 'Tremors', quest: Q.songStats(song()), bounced: true }, { folder: 'Noodle pad - Dan', name: 'Noodle pad - Dan', quest: Q.songStats({ sandbox: true, tracks: [] }) }];
-  const b = Q.board(Q.merge([f('Dan', { 'song:f:Tremors:goal:title': [true, 'a'], 'song:f:Tremors:task:t1': [{ text: 'practice', done: true }, 'a'], 'song:f:Tremors:task:t2': [{ text: 'gone', done: true, deleted: true }, 'a'] })]), bp, { me: 'FossTheBoss' });
+  const b = Q.board(Q.merge([f('Dan', { [ROSTER[0]]: ROSTER[1], 'song:f:Tremors:goal:title': [true, 'a'], 'song:f:Tremors:task:t1': [{ text: 'practice', done: true }, 'a'], 'song:f:Tremors:task:t2': [{ text: 'gone', done: true, deleted: true }, 'a'] })]), bp, { me: 'FossTheBoss' });
   assert.deepEqual(b.songs.map((s) => s.name), ['Tremors'], 'noodle pads stay out');
   const zach = b.members.find((m) => m.name === 'Zach'); assert.ok(zach.isMe, 'FossTheBoss is Zach'); assert.equal(zach.midi, 1); assert.equal(zach.achievements.map((a) => a.id).join(','), 'first-take,night-owl');
-  const dan = b.members.find((m) => m.name === 'Dan'); assert.equal(dan.xp, 71 + Math.round(0.75 * 15)); assert.equal(dan.level.title, 'Roadie'); assert.equal(dan.level.n, 1); assert.equal(Q.levelXp(10), Math.round(25 * Math.pow(10, 1.75))); assert.equal(Q.MEMBER_LEVELS.length, 100); assert.equal(Q.MEMBER_LEVELS[99][1], 'Never a Doubt'); assert.equal(dan.perSong[0].pct, 75);
+  const dan = b.members.find((m) => m.name === 'Dan'); assert.equal(dan.xp, 71 + Math.round(0.75 * 15)); assert.equal(dan.level.title, 'Fresh Noodle'); assert.equal(dan.level.n, 1); assert.equal(Q.levelXp(10), Math.round(25 * Math.pow(10, 1.75))); assert.equal(Q.MEMBER_LEVELS.length, 100); assert.equal(Q.MEMBER_LEVELS[99][1], 'Living Legend'); assert.equal(dan.perSong[0].pct, 75);
   const s = b.songs[0]; assert.equal(s.prog.find((p) => p.member === 'Dan').pct, 75); assert.equal(s.prog.find((p) => p.member === 'Logan').pct, 0);
   assert.ok(s.milestones.find((x) => x.id === 'laidout').done && s.milestones.find((x) => x.id === 'bounce').done && !s.milestones.find((x) => x.id === 'chords').done && !s.milestones.find((x) => x.id === 'fullband').done);
   assert.equal(s.xp, 15 + 10 + Math.round(0.75 * 15 + 0.25 * 15 + 0.25 * 15) + 10 + 10, 'goal + task + coverage (Dan, Zach, Jeff via the linked copy) + laid out + bounced');
@@ -46,7 +48,7 @@ test('quest: the board — members from the shared file (aliases), levels, achie
 });
 test('quest: parts-written by hand only fills in for someone with no takes; setlist-only songs; same-name folding', () => {
   const bp = [{ folder: 'The Highwayman (cover)', name: 'The Highwayman (cover)', quest: Q.songStats(song()) }];
-  const b = Q.board(Q.merge([f('Dan', { 'song:q:hw:meta': [{ name: 'The Highwayman (Official Cover)' }, 'a'], 'song:q:hw:m:Logan:manual': [90, 'a'], 'song:q:hw:m:Dan:manual': [10, 'a'], 'song:q:sk:meta': [{ name: 'Skeptic (Cover)' }, 'a'], 'song:q:sk:m:Logan:pct': [100, 'a'] })]), bp);
+  const b = Q.board(Q.merge([f('Dan', { [ROSTER[0]]: ROSTER[1], 'song:q:hw:meta': [{ name: 'The Highwayman (Official Cover)' }, 'a'], 'song:q:hw:m:Logan:manual': [90, 'a'], 'song:q:hw:m:Dan:manual': [10, 'a'], 'song:q:sk:meta': [{ name: 'Skeptic (Cover)' }, 'a'], 'song:q:sk:m:Logan:pct': [100, 'a'] })]), bp);
   const hw = b.songs.find((s) => s.folder); assert.equal(hw.prog.find((p) => p.member === 'Logan').pct, 90); assert.equal(hw.prog.find((p) => p.member === 'Logan').manual, true);
   assert.equal(hw.prog.find((p) => p.member === 'Dan').pct, 75, 'Dan has takes: counted, the hand value is ignored');
   const sk = b.songs.find((s) => !s.folder); assert.equal(sk.qid, 'q:sk'); assert.equal(sk.prog.find((p) => p.member === 'Logan').written, true); assert.equal(sk.milestones.length, 0);
@@ -93,4 +95,14 @@ test('two bandmates picking characters at once: neither wipes the other (own-fil
   // someone else's copy of the roster can't change my character
   files[1].fields['band:members'] = { v: roster('noodle', 'shredder'), at: '2026-10-21T05:00:00Z', by: 'Logan' };
   assert.equal(Q.board(Q.merge(files), []).members.find((x) => x.name === 'Jeff').character, 'thumper');
+});
+
+test('band name: from the key when there is one, else what the band typed, else "Your band"; no built-in members', () => {
+  const Q = require('../../src/renderer/quest.js');
+  assert.equal(Q.board(new Map(), []).name, 'Your band');
+  assert.equal(Q.board(new Map(), []).members.length, 0);
+  const typed = Q.merge([f('Jeff', { 'band:name': ['The Tallboys', 'a'] })]);
+  assert.equal(Q.board(typed, []).name, 'The Tallboys');
+  const lic = Q.board(typed, [], { license: { band: 'Never a Doubt', members: ['Jeff', 'Logan'] } });
+  assert.equal(lic.name, 'Never a Doubt'); assert.deepEqual(lic.licensedTo.members, ['Jeff', 'Logan']);
 });

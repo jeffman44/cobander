@@ -20,6 +20,7 @@ export async function sign(claims, privB64u) {
   const band = String(claims.band || '').trim(); if (!band) throw new Error('band name required');
   const payload = { band, tier: claims.tier === 'roadie' ? 'roadie' : 'takeout', iat: claims.iat || new Date().toISOString().slice(0, 10) };
   if (claims.email) payload.email = String(claims.email).trim().toLowerCase();
+  const members = splitMembers(claims.members); if (members.length) payload.members = members;
   if (claims.order) payload.order = String(claims.order);
   const key = await crypto.subtle.importKey('pkcs8', cat(hex(PKCS8), unb64u(privB64u)), { name: 'Ed25519' }, false, ['sign']);
   const body = enc.encode(JSON.stringify(payload));
@@ -50,24 +51,32 @@ async function svixOk(secret, headers, body) {
 }
 const timingEq = (a, b) => a.length === b.length && [...a].reduce((ok, c, i) => ok & (c === b[i]), 1) === 1;
 
+// Bandmates on the key: "Jeff, Logan & Dan" / ["Jeff","Logan"] → ['Jeff','Logan','Dan'] (max 8, 30 chars each). Must match src/takeout.js.
+export function splitMembers(m) { return (Array.isArray(m) ? m : String(m || '').split(/\s*(?:,|;|\/|\band\b|&|\n)\s*/i)).map((x) => String(x || '').trim().slice(0, 30)).filter(Boolean).slice(0, 8); }
+// Ko-fi has one message box: "Never a Doubt (Jeff, Logan, Dan, Zach)" — band name, bandmates in parentheses (optional).
+export function parseBandMessage(msg) {
+  const t = String(msg || '').trim(); const m = /^(.*?)\s*\(([^()]*)\)\s*$/s.exec(t);
+  return m && m[1].trim() ? { band: m[1].trim().slice(0, 80), members: splitMembers(m[2]) } : { band: t.split('\n')[0].trim().slice(0, 80), members: splitMembers(t.split('\n').slice(1).join(',')) };
+}
 // ---- what a sale looks like, from either store ----
 // Lemon Squeezy: order_created; the checkout's custom field "band" is the band name. Ko-fi: Shop Order / Donation with the band
 // name in the message. Falls back to "<buyer>'s band" so a key still goes out; the band can ask for a rename.
 export function saleFromLemon(evt) {
   const a = evt && evt.data && evt.data.attributes; if (!a) return null;
   const custom = (evt.meta && evt.meta.custom_data) || {};
-  return { source: 'lemonsqueezy', order: String(evt.data.id), email: a.user_email, name: a.user_name, band: custom.band || a.user_name && `${a.user_name}'s band`, cents: Number(a.total_usd || a.total || 0), test: !!a.test_mode };
+  return { source: 'lemonsqueezy', order: String(evt.data.id), email: a.user_email, name: a.user_name, members: splitMembers(custom.members), band: custom.band || a.user_name && `${a.user_name}'s band`, cents: Number(a.total_usd || a.total || 0), test: !!a.test_mode };
 }
 export function saleFromKofi(d) {
   if (!d || !d.email) return null;
   const msg = String(d.message || '').trim();
-  return { source: 'kofi', order: String(d.kofi_transaction_id || d.message_id), email: d.email, name: d.from_name, band: msg.slice(0, 80) || (d.from_name && `${d.from_name}'s band`), cents: Math.round(parseFloat(d.amount || '0') * 100), test: false };
+  const pm = parseBandMessage(msg);
+  return { source: 'kofi', order: String(d.kofi_transaction_id || d.message_id), email: d.email, name: d.from_name, members: pm.members, band: pm.band || (d.from_name && `${d.from_name}'s band`), cents: Math.round(parseFloat(d.amount || '0') * 100), test: false };
 }
 export async function issue(sale, env) {
   const tier = sale.cents >= Number(env.ROADIE_CENTS || 6000) ? 'roadie' : 'takeout';
-  const key = await sign({ band: sale.band, tier, email: sale.email, order: sale.order }, env.TAKEOUT_PRIV);
+  const key = await sign({ band: sale.band, tier, members: sale.members, email: sale.email, order: sale.order }, env.TAKEOUT_PRIV);
   if (env.PUB && !(await verify(key, env.PUB))) throw new Error('signed a key the app would reject: TAKEOUT_PRIV does not match PUB');
-  const rec = { key, tier, band: sale.band, email: String(sale.email).toLowerCase(), name: sale.name, order: sale.order, source: sale.source, cents: sale.cents, at: new Date().toISOString() };
+  const rec = { key, tier, band: sale.band, members: splitMembers(sale.members), email: String(sale.email).toLowerCase(), name: sale.name, order: sale.order, source: sale.source, cents: sale.cents, at: new Date().toISOString() };
   if (env.KEYS) { await env.KEYS.put(`order:${sale.source}:${sale.order}`, JSON.stringify(rec)); await env.KEYS.put(`email:${rec.email}`, JSON.stringify(rec)); }
   return rec;
 }
@@ -75,13 +84,14 @@ export function emailFor(rec) {
   const roadie = rec.tier === 'roadie';
   const text = `Thanks for the noods${rec.name ? `, ${rec.name.split(' ')[0]}` : ''}.
 
-Here's ${rec.band}'s key — one key for the whole band:
+Here's ${rec.band}'s key — one key for the whole band${rec.members && rec.members.length ? ` (${rec.members.join(', ')})` : ''}:
 
 ${rec.key}
 
 In Cobander: ⚙ Settings → "Enter a key" (or just make a second song and paste it when it asks). It goes in the shared
-band folder, so whoever pastes it unlocks everyone.
-${roadie ? '\nRoadie: your band goes in the credits. Reply with how you want the name to read if it\'s different from "' + rec.band + '".\n' : ''}
+band folder, so whoever pastes it unlocks everyone. The key carries your band's name, and Cobander shows it.
+Keep it in the band — a key posted publicly gets switched off (you'd get a fresh one).
+${roadie ? '\nRoadie: your band goes on the Roadies wall. Reply with how you want the name to read if it\'s different from "' + rec.band + '".\n' : ''}
 Lost this email? Reply and it gets re-sent. — Jeff`;
   return { subject: `${rec.band} — your Cobander key (noods received)`, text };
 }
@@ -178,7 +188,7 @@ export default {
       const form = await req.formData(); let d; try { d = JSON.parse(form.get('data') || '{}'); } catch (_) { return json({ error: 'bad data' }, 400); }
       if (!env.KOFI_TOKEN || !timingEq(String(d.verification_token || ''), env.KOFI_TOKEN)) return json({ error: 'bad token' }, 401);
       const sale = saleFromKofi(d); if (!sale) return json({ error: 'no buyer email' }, 400);
-      if (sale.cents < Number(env.MIN_CENTS || 1200)) return json({ ok: true, ignored: 'below the Send noods minimum — extra sauce, thanks' });
+      if (sale.cents < Number(env.MIN_CENTS || 2500)) return json({ ok: true, ignored: 'under $25 — extra sauce, thanks' });
       const rec = await issue(sale, env); const mail = await sendEmail(env, rec.email, emailFor(rec)); await notifyRoadie(env, rec);
       return json({ ok: true, band: rec.band, tier: rec.tier, mail });
     }
@@ -250,7 +260,7 @@ export default {
     if (req.method === 'POST' && url.pathname === '/issue') {
       if (!env.ADMIN_TOKEN || (req.headers.get('authorization') || '') !== `Bearer ${env.ADMIN_TOKEN}`) return json({ error: 'nope' }, 401);
       const b = await req.json(); if (!b.band || !b.email) return json({ error: 'band and email required' }, 400);
-      const rec = await issue({ source: 'manual', order: b.order || `manual-${Date.now()}`, email: b.email, name: b.name, band: b.band, cents: Number(b.cents || 2500) }, env);
+      const rec = await issue({ source: 'manual', order: b.order || `manual-${Date.now()}`, email: b.email, name: b.name, band: b.band, members: splitMembers(b.members), cents: Number(b.cents || 2500) }, env);
       const mail = b.send === false ? { skipped: 'send:false' } : await sendEmail(env, rec.email, emailFor(rec));
       return json({ ok: true, key: rec.key, tier: rec.tier, mail });
     }

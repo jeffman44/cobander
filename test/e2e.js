@@ -1261,8 +1261,8 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/quest', { todo: { id: td.id, done: true } }); q = await jeff.get('/quest'); assert.ok(q.todos.find((t) => t.id === td.id).done, 'checked off');
       assert.ok(q.members.some((m) => m.name === 'Jeff' && m.xp > 0), 'XP to the doer');
       await jeff.shot('band-todos');
-      assert.ok(await jeff.evalJs(`document.querySelectorAll('#qb-members .char .gi').length >= 4 && !!document.querySelector('#qb-boss .gi-dragon')`), 'character sprites + boss dragon');
-      assert.ok(await jeff.evalJs(`document.querySelectorAll('#qb-members .char canvas.lpc').length >= 4 && [...document.querySelectorAll('#qb-members .char canvas.lpc')].every((c) => c.getContext('2d').getImageData(0, 0, c.width, c.height).data.some((v) => v))`), 'LPC characters drawn');
+      assert.ok(await jeff.evalJs(`document.querySelectorAll('#qb-members .char .gi').length >= 2 && !!document.querySelector('#qb-boss .gi-dragon')`), 'character sprites + boss dragon');
+      assert.ok(await jeff.evalJs(`document.querySelectorAll('#qb-members .char canvas.lpc').length >= 2 && [...document.querySelectorAll('#qb-members .char canvas.lpc')].every((c) => c.getContext('2d').getImageData(0, 0, c.width, c.height).data.some((v) => v))`), 'LPC characters drawn');
       // the level-up show (no take rolling → full show with sound), then dismissed
       await jeff.evalJs(`window.cobanderDebug_levelUp(21); true`); await sleep(900);
       assert.ok(await jeff.evalJs(`!!document.querySelector('#levelup') && /LEVEL 21/.test(document.querySelector('#levelup .lu-n').textContent) && document.querySelectorAll('#levelup .p').length > 50`), 'level-up show');

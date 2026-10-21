@@ -35,14 +35,15 @@ whole band opens at practice.
 folder inside the cloud folder your band shares. Everyone in the band does the same with the same folder. That's the setup.
 Cobander checks for updates and installs them itself.
 
-**Send noods 🍜** — a key that lifts the one-song limit for everyone in the band. Pay what the band can spare, once:
+**Send noods 🍜** — a key that lifts the one-song limit for everyone in the band, once:
 
-- **$25** — Send noods (suggested; $12 minimum)
-- **$60** — Roadie: same key, plus your band's name in the credits
+- **$25** — Groupie: one key for the whole band
+- **$60** — Roadie: same key, plus your band on the Roadies wall
 
-Download: [Windows](https://takeout.cobander.com/download/win) · [Mac, Apple silicon](https://takeout.cobander.com/download/mac-arm64) · [Mac, Intel](https://takeout.cobander.com/download/mac-x64). Get a key from the [Send noods page](https://ko-fi.com/jdeuel44) *(storefront link coming; Ko-fi works today)*. The key arrives by
+Download: [Windows](https://takeout.cobander.com/download/win) · [Mac, Apple silicon](https://takeout.cobander.com/download/mac-arm64) · [Mac, Intel](https://takeout.cobander.com/download/mac-x64). Get a key at [cobander.com](https://cobander.com/#menu). The key arrives by
 email; paste it under ⚙ → **Enter a key** (or when the second song asks). It lives in the shared folder, verifies offline,
-never expires, never phones home. Folders that already hold more songs keep them all.
+never expires. It carries the band's name, and a key posted publicly gets switched off (the band gets a fresh one).
+Folders that already hold more songs keep them all.
 
 The source is MIT and the key check is one function in `src/takeout.js`. It's a tip jar with a nudge, not DRM.
 

@@ -22,7 +22,7 @@ npx wrangler deploy                          # prints https://takeout.cobander.c
   custom field named `band` ("Band name") so the key carries it.
 - Ko-fi: Settings → Webhooks → URL `https://takeout.cobander.com/webhook/kofi`. The buyer's message is used as the band name.
 
-Tier is by amount: ≥ $60 Roadie, else Takeout; Ko-fi payments under $12 are treated as tips (no key).
+Tier is by amount: ≥ $60 Roadie, ≥ $25 Groupie; anything under $25 is a tip (no key). Ko-fi: the message is "Band name (bandmate, bandmate…)"; Lemon Squeezy: checkout custom fields `band` and `members`.
 
 ## By hand
 

@@ -29,18 +29,14 @@
   ];
   const GOALS = [['title', 'Final Title'], ['structure', 'Final Structure'], ['show', 'Show Ready']];
   const GOAL_XP = 15, PCT_XP = 15, WRITTEN_XP = 5, TASK_XP = 10;
-  const DEFAULT_MEMBERS = [
-    { name: 'Jeff', role: 'Bass & Vox', icon: '🎤', aliases: [] },
-    { name: 'Logan', role: 'Lead Guitar', icon: '🎸', aliases: [] },
-    { name: 'Zach', role: 'Drums', icon: '🥁', aliases: ['FossTheBoss'] },
-    { name: 'Dan', role: 'Rhythm Guitar', icon: '🎸', aliases: ['Daniel'] },
-  ];
+  // A new band starts with nobody listed: whoever records, writes or opens the band joins by themselves (see board()).
+  const DEFAULT_MEMBERS = [];
   // band level by share of the setlist's possible XP; member level by their own XP
   // band levels: a pot of noodles coming together (the band's whole-catalog progress)
-  const BAND_LEVELS = [[0, 'Dry Noodles'], [0.1, 'Water\'s Boiling'], [0.3, 'Al Dente'], [0.5, 'Saucy'], [0.7, 'Chef\'s Kiss'], [0.9, 'Never a Doubt']];
+  const BAND_LEVELS = [[0, 'Dry Noodles'], [0.1, 'Water\'s Boiling'], [0.3, 'Al Dente'], [0.5, 'Saucy'], [0.7, 'Chef\'s Kiss'], [0.9, 'Michelin Star']];
   // 100 levels; a new name every ten (the tier). XP for level n = 25·n^1.75 (lv 2 = 84, lv 10 ≈ 1.4k, lv 50 ≈ 23k, lv 100 ≈ 79k):
   // a band that records every week spends a year or two getting to the top names instead of a night.
-  const TIERS = ['Roadie', 'Open Mic', 'Garage Hero', 'Basement Star', 'Local Legend', 'Headliner', 'Touring Act', 'Rock Star', 'Hall of Famer', 'Never a Doubt'];
+  const TIERS = ['Fresh Noodle', 'Open Mic', 'Garage Hero', 'Basement Star', 'Local Legend', 'Headliner', 'Touring Act', 'Rock Star', 'Hall of Famer', 'Living Legend'];
   const TIER_BADGE = [null, 'gi-star', 'gi-trophy', 'gi-curtains', 'gi-bus', 'gi-crown', 'gi-skull', 'gi-laurel', 'gi-fire', 'gi-dragon'];   // what sits on your sprite at each tier
   const levelXp = (n) => (n <= 1 ? 0 : Math.round(25 * Math.pow(n, 1.75)));
   const MEMBER_LEVELS = Array.from({ length: 100 }, (_, i) => { const n = i + 1; const tier = Math.min(9, Math.floor((n - 1) / 10)); return [levelXp(n), TIERS[tier], TIER_BADGE[tier], tier + 1]; });
@@ -155,7 +151,7 @@
   }
 
   // ---- the board: songs from Cobander (each with .quest = songStats output, from listSongs) + the shared fields ----
-  function board(fields, bpSongs = [], { me = null } = {}) {
+  function board(fields, bpSongs = [], { me = null, license = null } = {}) {
     const m = fields instanceof Map ? fields : merge(fields);
     const roster = (Array.isArray(val(m, 'band:members')) ? val(m, 'band:members') : DEFAULT_MEMBERS).filter((x) => x && x.name).map(cleanMember);
     // band:members is ONE field for the whole roster, so before 0.15.8 two bandmates saving at once overwrote each other
@@ -231,7 +227,8 @@
     songs.sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || (b.xp / Math.max(1, b.max)) - (a.xp / Math.max(1, a.max)) || a.name.localeCompare(b.name));
     // parts bin saves count for their author
     const partsBy = val(m, 'band:partsBy', null);
-    const out = { name: String(val(m, 'band:name', 'Never a Doubt')).slice(0, 60), members: [], songs, boss: null, next: String(val(m, 'band:next', '') || '').slice(0, 200), aliasOf: alias };
+    // with a Send noods key the band is the one on the key (a band running someone else's leaked key sees their name)
+    const out = { name: String((license && license.band) || val(m, 'band:name', '') || 'Your band').slice(0, 60), licensedTo: license ? { band: license.band, members: license.members || [] } : null, members: [], songs, boss: null, next: String(val(m, 'band:next', '') || '').slice(0, 200), aliasOf: alias };
     // practice: minutes in Practice mode, logged by each player in their own file as practice:<who>:<YYYY-MM-DD>:<qid>
     // 1 XP a minute, at most 60 a day
     const songName = (qid) => { const q = quests.get(qid) || quests.get(alias.get(qid)); return q ? q.name : String(qid).replace(/^f:/, ''); };

@@ -7,7 +7,7 @@ routes = [{ pattern = "takeout.cobander.com", custom_domain = true }]
 FROM = "Cobander <noods@cobander.com>"
 PUB = "6VNy5P50t96e5vKcEvpOGArFlX8z5l6t7Gak4JCBg1M"
 ROADIE_CENTS = "6000"
-MIN_CENTS = "1200"
+MIN_CENTS = "2500"
 NOTIFY = "jeffman44@gmail.com"
 INBOXES = "noods,support,hello,jeff"
 

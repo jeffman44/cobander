@@ -500,7 +500,7 @@ write_page('band.html', 'Band', 'The Band workspace: levels and XP, achievements
   <li>Every take you record (25 XP), MIDI or drum part (15), note (5), reply (3), chord (2), lyric line (3), part laid out (5), need closed (5), idea (5), version tag (10), part saved to the bin (10) and save (1) counts for whoever did it, in every song in the folder.</li>
   <li>Practice minutes count too: 1 XP a minute, up to 60 a day.</li>
   <li>Your level chip at the top of the window shows your level and a "+25 XP" pop when you do something that counts. Click it to open the Band page.</li>
-  <li>100 levels, a new name every ten: Roadie → Open Mic → Garage Hero → Basement Star → Local Legend → Headliner → Touring Act → Rock Star → Hall of Famer → Never a Doubt. This ladder takes a band a year or two of weekly work.</li>
+  <li>100 levels, a new name every ten: Fresh Noodle → Open Mic → Garage Hero → Basement Star → Local Legend → Headliner → Touring Act → Rock Star → Hall of Famer → Living Legend. This ladder takes a band a year or two of weekly work.</li>
   <li><b>LEVEL UP</b> is a full-screen show: confetti, a fanfare and a crowd. Click anywhere to dismiss. It stays quiet while a take is recording. Turn it off under ⚙ → Level-up fanfare.</li>
 </ul>
 
@@ -518,7 +518,7 @@ write_page('band.html', 'Band', 'The Band workspace: levels and XP, achievements
 
 <h2>The band's level and the boss battle</h2>
 <ul>
-  <li>The top of the page shows the band's level and XP (Dry Noodles → Water's Boiling → Al Dente → Saucy → Chef's Kiss → Never a Doubt).</li>
+  <li>The top of the page shows the band's level and XP (Dry Noodles → Water's Boiling → Al Dente → Saucy → Chef's Kiss → Michelin Star). Click the band's name to change it; with a Send noods key, the key's band name is used.</li>
   <li><b>Boss battle</b>: the next thing the band is working towards. A practice, a show, a recording day. Click it to name it and give it a date. It counts down, and shows how many target songs are show-ready.</li>
   <li>Right-click a song in the setlist → <b>boss target</b> to make it one of the songs for that show. The line under the setlist is what comes after; click to edit.</li>
 </ul>
@@ -636,7 +636,7 @@ write_page('together.html', 'Together', 'How a band works in one shared folder: 
 # ---------------------------------------------------------------- keys
 write_page('keys.html', 'Free & Send noods', 'What free Cobander includes, what a Send noods key does, how to enter it, what to do if you lose it, and the Roadie wall.', '''
 <h1>Free &amp; Send noods</h1>
-<p class="lede">Free Cobander is the whole app. Sending noods buys a key that lifts the one-song limit for everyone in the band. Pay what the band can spare, once.</p>
+<p class="lede">Free Cobander is the whole app. Sending noods buys a key that lifts the one-song limit for everyone in the band: $25 for the band, once.</p>
 
 <h2>What's free</h2>
 <ul>
@@ -647,17 +647,18 @@ write_page('keys.html', 'Free & Send noods', 'What free Cobander includes, what 
 
 <h2>What a key does</h2>
 <ul>
-  <li>A <b>Send noods</b> key lifts the limit for the whole band. One key, not one per person or per computer.</li>
+  <li>A <b>Send noods</b> key lifts the limit for the whole band (up to 8 people). One key, not one per person or per computer.</li>
   <li>It lives in the shared folder. Whoever pastes it unlocks everyone.</li>
   <li>It checks itself on your computer, never phones home, and never expires. It keeps working if Cobander stops being developed.</li>
-  <li>It can be revoked if it's posted publicly or resold. Sharing it with your own band is the point.</li>
+  <li>It carries your band's name (and bandmates' names, if you gave them). With a key in the folder, Cobander calls the band by that name.</li>
+  <li>It can be switched off if it's posted publicly or resold — you'd get a fresh one. A switched-off key puts that folder back on free; no songs are lost. Sharing it with your own band is the point.</li>
 </ul>
 
 <h2>What it costs</h2>
 <ul>
-  <li><b>$25</b> suggested. <b>$12</b> minimum. Pay what you like above that.</li>
-  <li><b>$60 and up</b>: <b>Roadie</b>. The same key, plus your band's name on the Roadies wall, on cobander.com and inside the app under ⚙.</li>
-  <li>Get it from the <b>Send noods</b> button under ⚙, on the Band page, or on <a href="../#menu">cobander.com</a>. The key arrives by email, usually within a minute.</li>
+  <li><b>$25</b>: <b>Groupie</b>. One key for the whole band.</li>
+  <li><b>$60</b>: <b>Roadie</b>. The same key, plus your band's name on the Roadies wall, on cobander.com and inside the app under ⚙.</li>
+  <li>Get it from the <b>Send noods</b> button under ⚙, on the Band page, or on <a href="../#menu">cobander.com</a>. Give your band's name (and your bandmates' names if you like). The key arrives by email, usually within a minute.</li>
 </ul>
 
 <h2>Enter the key</h2>
@@ -667,7 +668,7 @@ write_page('keys.html', 'Free & Send noods', 'What free Cobander includes, what 
   <li>Or wait for the second song: when you make it, Cobander asks. Paste the key right there.</li>
 </ol>
 <ul>
-  <li>⚙ and the Band page then show the band's name and tier instead of "Free Cobander: one song per band folder".</li>
+  <li>⚙ and the Band page then show who the key is licensed to instead of "Free Cobander: one song per band folder".</li>
   <li>Bandmates don't need to do anything. The key is in the folder they already share.</li>
 </ul>
 

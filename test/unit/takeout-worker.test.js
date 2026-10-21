@@ -63,3 +63,18 @@ test('worker: support inbox — webhook stores, agent drafts, only the signed ap
     r = await W.fetch(new Request('https://t/inbox/draft', { method: 'POST', headers: { authorization: 'Bearer agt' }, body: JSON.stringify({ id: 'abc', reply: 'again' }) }), env); assert.equal(r.status, 409);
   } finally { global.fetch = realFetch; }
 });
+test('worker: bandmates from the Ko-fi message / LS field ride on the key; $25 floor; key verifies in the app with members', async () => {
+  const W = await import('../../worker/takeout/src/index.js');
+  assert.deepEqual(W.parseBandMessage('Never a Doubt (Jeff, Logan & Dan, Zach)'), { band: 'Never a Doubt', members: ['Jeff', 'Logan', 'Dan', 'Zach'] });
+  assert.deepEqual(W.parseBandMessage('The Tallboys'), { band: 'The Tallboys', members: [] });
+  assert.deepEqual(W.parseBandMessage('Kat & the Kittens\nKat, Sam'), { band: 'Kat & the Kittens', members: ['Kat', 'Sam'] });
+  const k = W.saleFromKofi({ email: 'k@f.i', from_name: 'Kat', amount: '25.00', message: 'Fuzz Lords (Kat, Sam)', kofi_transaction_id: 'z' });
+  assert.equal(k.band, 'Fuzz Lords'); assert.deepEqual(k.members, ['Kat', 'Sam']);
+  const ls = W.saleFromLemon({ meta: { event_name: 'order_created', custom_data: { band: 'Tallboys', members: 'A, B' } }, data: { id: '9', attributes: { user_email: 'a@b.c', total_usd: 2500 } } });
+  assert.deepEqual(ls.members, ['A', 'B']);
+  const kv = new Map(); const env = { TAKEOUT_PRIV: priv, PUB: pub, KEYS: { put: async (a, b) => kv.set(a, b), get: async (a) => kv.get(a) } };
+  const rec = await W.issue(k, env); const c = T.verify(rec.key, pub); assert.deepEqual(c.members, ['Kat', 'Sam']); assert.equal(c.band, 'Fuzz Lords');
+  assert.match(W.emailFor(rec).text, /\(Kat, Sam\)/);
+  const Wd = W.default; const form = new FormData(); form.set('data', JSON.stringify({ verification_token: 't', email: 'x@y.z', amount: '12.00', message: 'Cheap' }));
+  const r = await Wd.fetch(new Request('https://t/webhook/kofi', { method: 'POST', body: form }), { ...env, KOFI_TOKEN: 't' }); assert.match((await r.json()).ignored, /under \$25/);
+});
