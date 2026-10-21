@@ -1,5 +1,9 @@
 # Cobander changelog
 
+## 0.15.7
+- The Windows installer is code-signed (verified publisher), so Windows trusts it more and the "protected your PC" warning fades as downloads add up.
+- On a Mac, the microphone permission prompt says Cobander (it still said BandPad).
+
 ## 0.15.6
 - Mute / solo on a bandmate's track is for your ears only — it never ends up in the saved song (it used to leak in on the next save). Unlocking the track puts the song's own values back.
 - 3D practice view: words approach at a steady speed and land on the line exactly when they're sung (the tilted-plane version read as off-time).
