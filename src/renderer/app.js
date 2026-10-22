@@ -326,7 +326,7 @@
     renderTakeout();
     renderNoSong();
     if (!state.settings.sharedFolder) { state.songs = []; renderSongs(); return; }
-    try { state.songs = await bp.songs.list(); } catch (err) { fail(err); state.songs = []; }
+    try { state.songs = await bp.songs.list(); state.songsLoaded = true; } catch (err) { fail(err); state.songs = []; }
     renderSongs(); if (quest) loadQuest();
   }
   const cloudName = () => (state.settings && state.settings.cloud ? state.settings.cloud.name : 'the shared folder');
@@ -336,7 +336,7 @@
     if (ready) { h.textContent = 'Pick a song on the left, or start a new one.'; p.innerHTML = 'Everything lives in the band\'s shared folder — whatever one of you noodles, the rest get in seconds. Hit <b>+ track</b> to say what you\'re recording, <b>R</b> to record, <b>Space</b> to play. Just want to mess around? 🎸 opens your Noodle pad.'; }
     else { h.textContent = 'Two things before the first song:'; p.innerHTML = `${state.settings.displayName ? '✓' : '○'} your name (bandmates see it on takes) &nbsp; ${state.settings.sharedFolder ? '✓' : '○'} the band's shared folder (Google Drive, OneDrive, iCloud Drive or Dropbox)<br><br>`; const b = el('button', 'primary', 'Open Settings'); b.addEventListener('click', openSettings); p.append(b); }
   }
-  bp.songs.onChanged((songs) => { state.songs = songs; if (quest) loadQuest({ files: false }); renderSongs(); updateBadges(); retryMissingClips(); if (state.song) renderPresence(); waitingCheck(); });
+  bp.songs.onChanged((songs) => { state.songs = songs; state.songsLoaded = true; if (quest) loadQuest({ files: false }); renderSongs(); updateBadges(); retryMissingClips(); if (state.song) renderPresence(); waitingCheck(); });
   // read-only and wanted to edit: everyone sees "X is waiting to edit"; when the song frees up you get a nudge
   function waitingCheck() {
     if (!state.waiting) return;
@@ -410,7 +410,7 @@
   const qseenSet = (o) => { try { localStorage.setItem('bp.questSeen', JSON.stringify(o)); } catch (_) {} };
   async function loadQuest({ files = true } = {}) {
     if (!quest || !state.settings.sharedFolder || !bp.quest) return null;
-    if (files) { try { quest.files = await bp.quest.read(); } catch (_) { /* Drive hiccup: keep the last board */ } quest.fields = Q.merge(quest.files); }
+    if (files) { try { quest.files = await bp.quest.read(); quest.filesOk = true; } catch (_) { /* Drive hiccup: keep the last board */ } quest.fields = Q.merge(quest.files); }
     quest.board = Q.board(quest.fields, state.songs || [], { me: me(), license: state.takeout && state.takeout.unlocked ? { band: state.takeout.band, members: state.takeout.members || [] } : null });
     questCelebrate(); renderXpChip(); renderBandPane(); renderBandFeed(); renderStage(); if (state.folder) renderTracks();
     return quest.board;
@@ -419,9 +419,12 @@
   function songQuest(folder) { return quest && quest.board && quest.board.songs.find((x) => x.folder === folder) || null; }
   // level-ups and new achievements (mine) → toasts, once
   function questCelebrate() {
+    /* only a board built from the band's quest files AND the song list counts: one built before either has loaded
+       (boot, a Drive hiccup) has the wrong XP and no character, and used to fire a bogus level-up on every start */
+    if (!quest.filesOk || !state.songsLoaded) return;
     const m = myQuest(); if (!m) return; const seen = QSEEN(); let changed = false;
     if (seen.level != null && m.level.n > seen.level) levelUpShow(m);
-    if (seen.level !== m.level.n) { seen.level = m.level.n; changed = true; }
+    if (seen.level == null || m.level.n > seen.level) { seen.level = m.level.n; changed = true; }   /* never lowered: a dip and back is not a level-up */
     const had = new Set(seen.ach || []); const now = m.achievements.map((a) => a.id);
     if (seen.ach) for (const a of m.achievements) if (!had.has(a.id)) toast(`${a.icon} Achievement: ${a.title} — ${a.desc}`, { kind: 'ok', ms: 9000 });
     if (!seen.ach || now.some((id) => !had.has(id)) || now.length !== had.size) { seen.ach = now; changed = true; }
@@ -713,7 +716,6 @@
     const old = $('#levelup'); if (old) old.remove();
     const o = el('div'); o.id = 'levelup'; const newName = (m.level.n - 1) % 10 === 0;
     const hero = el('span', `char t${m.level.tier} big${lookOf(m) ? ' body' : ''}`); { const lk = lookOf(m); if (lk) { hero.append(lpcCanvas(lk, { scale: 3, anims: ['jump', 'emote'] })); const ins = el('span', 'inst'); ins.append(el('i', `gi ${charOf(m)[2]}`)); hero.append(ins); } else hero.append(el('i', `gi ${charOf(m)[2]}`)); const badge = Q.TIER_BADGE[m.level.tier - 1]; if (badge) { const b = el('span', 'badge'); b.append(el('i', `gi ${badge}`)); hero.append(b); } }
-    const art = document.createElement('img'); art.className = 'lu-art'; art.src = 'art/levelup.jpg'; art.alt = ''; o.append(art);
     o.append(el('div', 'lu-title', 'LEVEL UP'), hero, el('div', 'lu-n', `LEVEL ${m.level.n}${newName ? ' — NEW NAME' : ''}`), el('div', 'lu-name', `${m.name} the ${m.level.title}`), el('div', 'lu-hint', 'click anywhere'));
     const cols = ['#f2b534', '#d8392b', '#fff', '#5b8def', '#4caf7d', '#ff4d6d']; const N = 70 + m.level.tier * 10;
     for (let i = 0; i < N; i++) { const p = el('span', 'p'); const a = Math.random() * Math.PI * 2, r = 180 + Math.random() * 520; p.style.setProperty('--dx', `${Math.cos(a) * r}px`); p.style.setProperty('--dy', `${Math.sin(a) * r + 200}px`); p.style.background = cols[i % cols.length]; p.style.animationDelay = `${(Math.random() * 0.35).toFixed(2)}s`; p.style.width = p.style.height = `${8 + Math.random() * 12}px`; if (i % 7 === 0) { p.className = 'p gi gi-noodles'; p.style.background = '#f2b534'; p.style.width = p.style.height = '26px'; } o.append(p); }

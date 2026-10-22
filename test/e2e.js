@@ -1312,6 +1312,11 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.ok(await jeff.evalJs(`!!document.querySelector('#levelup') && /LEVEL 21/.test(document.querySelector('#levelup .lu-n').textContent) && document.querySelectorAll('#levelup .p').length > 50`), 'level-up show');
       await jeff.shot('level-up'); await jeff.evalJs(`document.querySelector('#levelup').click(); true`); await sleep(600);
       assert.ok(await jeff.evalJs(`!document.querySelector('#levelup')`), 'show dismissed');
+      // a restart must not replay a level-up: the boards built before the quest files and song list load don't count
+      assert.ok(await jeff.evalJs(`JSON.parse(localStorage.getItem('bp.questSeen') || '{}').level != null`), 'level seen recorded');
+      await jeff.evalJs(`setTimeout(() => location.reload(), 50); true`).catch(() => {}); await sleep(1500);
+      await until(async () => !!(await jeff.evalJs(`!!document.querySelector('#xp-chip') && !document.querySelector('#xp-chip').hidden`).catch(() => false)), 30000, 'board back after reload');
+      for (let i = 0; i < 8; i++) { assert.ok(await jeff.evalJs(`!document.querySelector('#levelup')`), 'no level-up on restart'); await sleep(500); }
       // choose your character
       await jeff.evalJs(`document.querySelector('#qb-members .qb-member.me .char').click(); true`); await sleep(400);
       assert.ok(await jeff.evalJs(`document.querySelector('#charpick') && document.querySelector('#charpick').open && document.querySelectorAll('#charpick .char-pick').length >= 10 && document.querySelectorAll('#charpick .cb-row').length >= 10 && !!document.querySelector('#charpick .cb-preview canvas.lpc')`), 'character builder');

@@ -1,5 +1,9 @@
 # Cobander changelog
 
+## 0.17.4
+- No more level-up show every time Cobander starts. It only plays when you actually reach a new level, and always with your own character.
+- The level-up screen drops the big mascot picture behind your character.
+
 ## 0.17.3
 - The song folder format is now frozen (FORMAT.md): every later version opens songs made by this one, and this version keeps — never drops — anything a newer bandmate's Cobander adds to a song (new track or take settings, new kinds of notes or lists), merging it like everything else.
 
