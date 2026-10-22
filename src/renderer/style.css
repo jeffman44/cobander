@@ -991,7 +991,7 @@ dialog#charpick { max-width: 1100px; width: min(1100px, 96vw); max-height: 96vh;
 #song-list .chips .stage-who { width: 26px; height: 30px; display: inline-block; vertical-align: middle; }
 #song-list .chips .stage-who .lpc { left: -19px; top: -16px; }
 .track-head .face { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; position: relative; flex: none; background: var(--bg); border: 1px solid var(--line); }
-.track-head .face .lpc { position: absolute; left: -36px; top: -21px; width: 96px; height: 96px; }   /* the frame at 1.5×, windowed on the face (eyes to chin), not the hair */
+.track-head .face .lpc { position: absolute; left: -36px; top: -29px; width: 96px; height: 96px; }   /* the frame at 1.5×, windowed on the face (eyes to chin), not the hair */
 #no-song .stage-crowd { display: flex; justify-content: center; align-items: flex-end; gap: 10px; margin-top: 18px; min-height: 100px; }
 #no-song .stage-crowd .stage-who { width: 64px; height: 80px; } #no-song .stage-crowd .stage-who .lpc { left: 0; top: 0; width: 64px; height: 64px; transform: scale(1.25); transform-origin: top center; }
 

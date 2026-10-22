@@ -1,5 +1,11 @@
 # Cobander changelog
 
+## 0.16.4
+- A bandmate's character built after the screen first drew no longer stays as the stand-in rolled from their name (band strip, portraits).
+- Track-head portraits are framed on the face.
+- Whoever has the song open for editing owns its tracks: while a bandmate holds the song, nobody else can unlock a track or use Unlock all in it (🔒 shows their name) — take over first. Tracks you already had unlocked stay yours.
+- The level-up fanfare comes out of the output device you picked, not the system default (it had its own audio path when nothing had played yet).
+
 ## 0.16.3
 - The phone page has a RECORD tab: arm a track, watch the input level, ● record / ■ stop, Retake (drops the take and re-arms at the same spot) or Keep, loop a part, click and count-in, mute / solo, + track — the whole take driven from across the room. (Practice is the other tab; Share → Open on your phone.)
 - "Lyrics from the vocals" and "Chords from the recordings" ask before touching what's there: Replace all, or keep the lines / chords you typed and replace the rest. No more doubled lyric lines.

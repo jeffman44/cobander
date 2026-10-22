@@ -787,44 +787,49 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await until(async () => (await kat.get('/collab')).needs.some((n) => /gang vocal/.test(n.text)), 30000, 'Kat sees it after Jeff saves');
       await kat.post('/song/close').catch(() => {});
     });
-    await step('0.9: track locks — Kat unlocks a track in Jeff\'s song and works on it at the same time; each can only touch their own; idle locks fade', async () => {
+    await step('0.9/0.16: track locks — whoever holds the song owns its tracks; after a take-over the old holder keeps the tracks they had; each can only touch their own; idle locks fade', async () => {
       await jeff.post('/song/create', { name: 'Lock Song', bpm: 120 });
       await jeff.post('/song/patch', { addTrack: { kind: 'guitar', name: 'Jeff gtr' } }); await jeff.post('/song/patch', { addTrack: { kind: 'bass', name: 'Kat bass' } });
       assert.equal((await jeff.post('/song/save')).result, 'ok');
       let st = await jeff.get('/state'); const ja = st.song.tracks.find((t) => t.name === 'Jeff gtr'), kb = st.song.tracks.find((t) => t.name === 'Kat bass');
       assert.ok(await jeff.evalJs(`window.cobanderDebug.mineT('${kb.id}')`), 'Jeff (auto-unlock) has both tracks');
       await jeff.evalJs(`(async () => { await window.cobanderDebug.lockAll(); return true; })()`);
-      await jeff.evalJs(`(async () => { const s = window.cobanderDebug; return true; })()`);
       await jeff.evalJs(`document.querySelector('.track[data-id="${ja.id}"] .tlock').click(); true`); await sleep(1500);
       assert.ok(await jeff.evalJs(`window.cobanderDebug.mineT('${ja.id}')`) && !(await jeff.evalJs(`window.cobanderDebug.mineT('${kb.id}')`)), 'Jeff has only his guitar now');
-      // Kat opens it (read-only for the song) and unlocks the bass by clicking its 🔒
+      // Kat opens it read-only: Jeff holds the song, so every track is his — her 🔒 click does nothing, Unlock all is off
       await kat.post('/song/open', { folder: 'Lock Song' }); await sleep(1500);
       assert.equal((await kat.get('/state')).readOnly, true);
       await until(() => kat.evalJs(`!!document.querySelector('.track[data-id="${kb.id}"] .tlock')`), 10000, 'Kat sees the tracks');
+      assert.equal(await kat.evalJs(`window.cobanderDebug.heldBy('${kb.id}')`), 'Jeff', 'the song holder owns the free bass too');
+      assert.equal(await kat.evalJs(`document.querySelector('#btn-unlock-all').disabled`), true, 'Unlock all is off under someone else\'s song');
+      await kat.evalJs(`document.querySelector('.track[data-id="${kb.id}"] .tlock').click(); true`); await sleep(1200);
+      assert.equal(await kat.evalJs(`window.cobanderDebug.mineT('${kb.id}')`), false, 'Kat cannot unlock a track in Jeff\'s open song');
+      // Kat takes the song over: now she owns the free tracks; Jeff keeps the guitar he already had unlocked
+      await kat.post('/song/takeover'); await until(async () => (await kat.get('/state')).readOnly === false, 10000, 'Kat holds the song');
+      await until(async () => (await jeff.get('/state')).readOnly === true, 15000, 'Jeff is read-only now');
+      assert.ok(await jeff.evalJs(`window.cobanderDebug.mineT('${ja.id}')`), 'Jeff still holds his guitar');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.heldBy('${kb.id}')`), 'Kat', 'from Jeff\'s side the bass is Kat\'s (she holds the song)');
       await kat.evalJs(`document.querySelector('.track[data-id="${kb.id}"] .tlock').click(); true`);
       await until(() => kat.evalJs(`window.cobanderDebug.mineT('${kb.id}')`), 10000, 'Kat has the bass');
-      // each edits their own at the same time
-      assert.equal(await kat.evalJs(`window.cobanderDebug.editTrack('${kb.id}', { gainDb: -11 })`), true, 'Kat can edit the bass');
+      // each edits their own at the same time; Jeff's edit reaches Kat's song through the posted track and folds in on her save
+      assert.equal(await kat.evalJs(`window.cobanderDebug.editTrack('${kb.id}', { gainDb: -11 })`), true, 'Kat edits the bass');
       assert.equal(await kat.evalJs(`window.cobanderDebug.editTrack('${ja.id}', { gainDb: -20 })`), false, 'Kat can\'t touch Jeff\'s guitar');
-      await sleep(1500);
-      assert.notEqual(await kat.evalJs(`window.cobanderDebug.engine.track('${ja.id}').gainDb`), -20, 'refused edit was put back ' + await kat.evalJs(`JSON.stringify(window.__errs || [])`));
-      assert.equal((await kat.get('/state')).dirty, false, 'Kat\'s track edits aren\'t "unsaved changes" (they go to Jeff)');
-      await until(() => jeff.evalJs(`window.cobanderDebug.heldBy('${kb.id}') === 'Kat'`), 15000, 'Jeff sees Kat holds the bass');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.editTrack('${ja.id}', { gainDb: -7 })`), true, 'Jeff edits his guitar (read-only song, his track)');
       assert.equal(await jeff.evalJs(`window.cobanderDebug.editTrack('${kb.id}', { gainDb: 3 })`), false, 'Jeff can\'t touch Kat\'s bass');
-      assert.equal(await jeff.evalJs(`window.cobanderDebug.editTrack('${ja.id}', { gainDb: -7 })`), true, 'Jeff edits his guitar');
-      await until(async () => (await jeff.get('/state')).song.tracks.find((t) => t.id === kb.id).gainDb === -11, 20000, 'Jeff\'s song picks up Kat\'s bass change');
-      assert.equal((await jeff.post('/song/save')).result, 'ok');
-      st = await jeff.get('/state'); assert.equal(st.song.tracks.find((t) => t.id === ja.id).gainDb, -7); assert.equal(st.song.tracks.find((t) => t.id === kb.id).gainDb, -11);
-      assert.match(JSON.stringify(st.song.activity || []), /Kat: updated Kat bass/);
+      await sleep(1500); assert.equal((await jeff.get('/state')).dirty, false, 'Jeff\'s track edits aren\'t "unsaved changes" (they go to Kat)');
+      await until(async () => (await kat.get('/state')).song.tracks.find((t) => t.id === ja.id).gainDb === -7, 20000, 'Kat\'s song picks up Jeff\'s guitar change');
+      assert.equal((await kat.post('/song/save')).result, 'ok');
+      st = await kat.get('/state'); assert.equal(st.song.tracks.find((t) => t.id === ja.id).gainDb, -7); assert.equal(st.song.tracks.find((t) => t.id === kb.id).gainDb, -11);
+      assert.match(JSON.stringify(st.song.activity || []), /Jeff: updated Jeff gtr/);
       await until(async () => (await fsp.readdir(path.join(shared, 'Lock Song', '_tracks')).catch(() => [])).length === 0, 15000, 'folded post removed after the save');
-      // Kat's own view keeps her bass while Jeff's saves arrive
-      await sleep(3000); assert.equal(await kat.evalJs(`window.cobanderDebug.engine.track('${kb.id}').gainDb`), -11);
-      // a lock nobody touches for 10 min fades: age Kat's lock file → Jeff can unlock the bass
-      const lf = path.join(shared, 'Lock Song', '_tracklocks', `${kb.id}.json`); const l = JSON.parse(await fsp.readFile(lf, 'utf8')); l.at = Date.now() - 11 * 60 * 1000; await fsp.writeFile(lf, JSON.stringify(l));
-      await until(() => jeff.evalJs(`window.cobanderDebug.heldBy('${kb.id}') === null`), 15000, 'faded lock is free');
-      await jeff.evalJs(`document.querySelector('.track[data-id="${kb.id}"] .tlock').click(); true`);
-      await until(() => jeff.evalJs(`window.cobanderDebug.mineT('${kb.id}')`), 10000, 'Jeff took the faded bass lock');
-      await kat.post('/song/close').catch(() => {});
+      await sleep(3000); assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.track('${ja.id}').gainDb`), -7, 'Jeff\'s own view keeps his guitar while Kat\'s saves arrive');
+      // a lock nobody touches for 10 min fades: age Jeff's lock file → Kat (the song holder) can unlock the guitar
+      const lf = path.join(shared, 'Lock Song', '_tracklocks', `${ja.id}.json`); const l = JSON.parse(await fsp.readFile(lf, 'utf8')); l.at = Date.now() - 11 * 60 * 1000; await fsp.writeFile(lf, JSON.stringify(l));
+      await until(() => kat.evalJs(`window.cobanderDebug.heldBy('${ja.id}') === null`), 15000, 'faded lock is free');
+      await kat.evalJs(`document.querySelector('.track[data-id="${ja.id}"] .tlock').click(); true`);
+      await until(() => kat.evalJs(`window.cobanderDebug.mineT('${ja.id}')`), 10000, 'Kat took the faded guitar lock');
+      await kat.post('/song/close').catch(() => {}); await jeff.post('/song/close').catch(() => {});
+      await jeff.post('/song/open', { folder: 'Lock Song' }); await until(async () => (await jeff.get('/state')).readOnly === false, 10000, 'Jeff has the song back for the next steps');
     });
     await step('0.9: parts with their takes — delete a part and close the gap, duplicate, move earlier, slice, takes move with a dragged part', async () => {
       await jeff.post('/song/create', { name: 'Parts Song', bpm: 120 });

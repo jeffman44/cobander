@@ -545,7 +545,9 @@
     return { mode: 'away', folder: null };
   }
   function stageWho(box, m, doing, { title = true } = {}) {
-    const key = `${box}|${m.name}|${doing.mode}`; let w = stageCache.get(key);
+    // the key carries the look too: a character built (or loaded) after the first render replaces the stand-in rolled from the name
+    const lk0 = m.look ? JSON.stringify(m.look) : ''; let lh = 0; for (let i = 0; i < lk0.length; i++) lh = (lh * 31 + lk0.charCodeAt(i)) | 0;
+    const key = `${box}|${m.name}|${doing.mode}|${lh}`; let w = stageCache.get(key);
     if (w && !w.isConnected) { stageCache.delete(key); w = null; }   // its animation stopped when it left the page: build it fresh
     if (!w) {
       w = el('span', `stage-who ${doing.mode}${m.isMe ? ' me' : ''}${doing.mode !== 'away' ? ' here' : ''}`); w.dataset.name = m.name;
@@ -580,8 +582,8 @@
     const last = t.clips.slice().sort((a, b) => String(b.takenAt || '').localeCompare(String(a.takenAt || '')))[0]; const who = last && last.takenBy; if (!who) return null;
     const m = bandMembers().find((x) => isUser(x, who)) || { name: who }; const lk = lookOf(m); if (!lk) return null;
     const box = el('span', 'face'); box.title = `${who} recorded the last take here`;
-    let c = faceCache.get(who);
-    if (!c) { c = document.createElement('canvas'); c.className = 'lpc'; c.width = c.height = 64; LPC.render(c, lk, { anim: 'idle', scale: 1 }).catch(() => {}); faceCache.set(who, c); }
+    const fk = `${who}|${JSON.stringify(lk)}`; let c = faceCache.get(fk);
+    if (!c) { c = document.createElement('canvas'); c.className = 'lpc'; c.width = c.height = 64; LPC.render(c, lk, { anim: 'idle', scale: 1 }).catch(() => {}); faceCache.set(fk, c); }
     const cv = document.createElement('canvas'); cv.className = 'lpc'; cv.width = cv.height = 64; const draw = () => { try { cv.getContext('2d').drawImage(c, 0, 0); } catch (_) {} }; draw(); setTimeout(draw, 400);   /* the cached portrait may still be loading its sheets */
     box.append(cv); return box;
   }
@@ -631,10 +633,12 @@
     await memberWrite(mb, { character: sel, look }); toast(`You are ${Q.CHARACTERS.find(([id]) => id === sel)[1]}. 🤘`, { kind: 'ok', ms: 5000 });
   }
   // LEVEL UP: the full obnoxious show — unless a take is rolling
-  let luAudio = null;
   function levelUpSound(tier) {
+    // always through the engine's context: it is the one pointed at the output device you chose (a context of its
+    // own would come out of the system default — the laptop speakers while your interface is selected)
+    if (!engine.ctx) { engine.init().then(() => levelUpSound(tier)).catch(() => {}); return; }
     try {
-      const ctx = engine.ctx || (luAudio = luAudio || new (window.AudioContext || window.webkitAudioContext)()); const t0 = ctx.currentTime + 0.02; const out = ctx.createGain(); out.gain.value = 0.22; out.connect(ctx.destination);
+      const ctx = engine.ctx; const t0 = ctx.currentTime + 0.02; const out = ctx.createGain(); out.gain.value = 0.22; out.connect(ctx.destination);
       // power-chord fanfare: root–fifth–octave stabs, then a rising arpeggio; higher tiers get a longer, brighter run
       const stab = (f, at, len) => { for (const [mul, g] of [[1, 1], [1.5, 0.7], [2, 0.5]]) { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f * mul; const env = ctx.createGain(); env.gain.setValueAtTime(0, at); env.gain.linearRampToValueAtTime(g, at + 0.01); env.gain.exponentialRampToValueAtTime(0.001, at + len); const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(600, at); lp.frequency.exponentialRampToValueAtTime(5000, at + 0.08); o.connect(lp); lp.connect(env); env.connect(out); o.start(at); o.stop(at + len + 0.05); } };
       stab(110, t0, 0.22); stab(110, t0 + 0.26, 0.22); stab(146.8, t0 + 0.52, 0.5);
@@ -1579,7 +1583,9 @@
   const lockOf = (id) => state.tlocks[id];
   const isMe = (l) => !!(l && ME && l.user === ME.user && l.host === ME.host);
   const mineT = (id) => { const l = lockOf(id); return !!(l && !l.idle && isMe(l)); };
-  const heldBy = (id) => { const l = lockOf(id); return l && !l.idle && !isMe(l) ? l.user : null; };
+  // whoever has the SONG open for editing owns every track in it: nobody else unlocks anything there until they take over
+  const songHolder = () => { const s0 = state.folder && (state.songs || []).find((x) => x.folder === state.folder); const l = (s0 && s0.lock) || state.lock; return state.readOnly && l && !l.stale && !(s0 && (s0.lockMine || s0.lockSameMachine)) ? l.user : null; };
+  const heldBy = (id) => { const l = lockOf(id); if (l && !l.idle && !isMe(l)) return l.user; if (mineT(id)) return null; return songHolder(); };
   const canTouch = (t) => !!(t && state.song && mineT(t.id));
   const trackFp = (t) => { try { return JSON.stringify(t); } catch (_) { return Math.random().toString(); } };
   const songWideFp = () => JSON.stringify({ bpm: engine.bpm, ts: engine.timeSig, master: engine.master, order: engine.tracks.map((t) => t.id) });
@@ -1622,6 +1628,7 @@
   function touchLock(id) { const now = Date.now(); if (now - (touchAt.get(id) || 0) < 20000) return; touchAt.set(id, now); const l = lockOf(id); if (l) l.at = now; bp.tlock.touch(state.folder, id).catch(() => {}); }
   async function unlockTrack(id, { quiet = false } = {}) {
     if (!state.folder) return false; const t = engine.track(id); if (!t) return false;
+    { const who = songHolder(); if (who && !mineT(id)) { if (!quiet) status(`${who} has the song open — take over (banner above) to work on its tracks.`, 7000); return false; } }
     const r = await bp.tlock.claim(state.folder, id).catch((err) => ({ ok: false, err }));
     if (r && r.ok) { state.tlocks[id] = { ...r.lock, idle: false }; if (state.earsOnly && state.earsOnly[id]) { const st = ((state.base && state.base.tracks) || []).find((x) => x.id === id); const back = {}; for (const k of Object.keys(state.earsOnly[id])) back[k] = st ? !!st[k] : false; engine.updateTrack(id, back); delete state.earsOnly[id]; }   /* it's mine now: ears-only mute/solo ends, the song's own values come back, changes from here are real */ if (!quiet) { renderAll(); status(`${t.name} is yours — it locks again if you leave it alone for 10 minutes.`, 5000); } return true; }
     if (!quiet) status(r && r.lock ? `${r.lock.user} has ${t.name} unlocked right now.` : `Couldn't unlock ${t.name}.`, 6000);
@@ -5151,7 +5158,7 @@
   function syncArrangementEnd() { if (!state.song) { engine.arrangementEnd = 0; return; } let e = 0; for (const x of liveSections()) e = Math.max(e, x.end || 0); for (const c of liveChords()) e = Math.max(e, (c.time || 0) + barLenAt(c.time || 0)); for (const l of liveLyrics()) if (typeof l.time === 'number') e = Math.max(e, l.time + barLen()); engine.arrangementEnd = e; }
   function renderAll() { syncArrangementEnd(); renderTracks(); renderMixer(); renderFx(); drawRuler(); positionPlayhead(); updateBadges(); positionRoomShade(); renderKeyChip(); if (tabShown('takes')) renderTakes(); }
 
-  function renderUnlockBtn() { const b = $('#btn-unlock-all'); if (!b) return; const all = engine.tracks.length && engine.tracks.every((t) => mineT(t.id)); const anyMine = engine.tracks.some((t) => mineT(t.id)); b.textContent = all ? '🔒 Lock all' : '🔓 Unlock all'; b.title = all ? 'Lock your tracks again (frees them for the band)' : anyMine ? 'Unlock the rest of the tracks nobody else has' : 'Unlock every track nobody else has (they lock again after 10 min untouched)'; b.classList.toggle('active', anyMine); }
+  function renderUnlockBtn() { const b = $('#btn-unlock-all'); if (!b) return; const all = engine.tracks.length && engine.tracks.every((t) => mineT(t.id)); const anyMine = engine.tracks.some((t) => mineT(t.id)); b.textContent = all ? '🔒 Lock all' : '🔓 Unlock all'; b.title = all ? 'Lock your tracks again (frees them for the band)' : anyMine ? 'Unlock the rest of the tracks nobody else has' : 'Unlock every track nobody else has (they lock again after 10 min untouched)'; b.classList.toggle('active', anyMine); const who = songHolder(); b.disabled = !!who && !anyMine; if (who && !anyMine) b.title = `${who} has the song open — take over to work on its tracks`; }
   function renderTracks() {
     if (engine.ctx) engine.setMonitorTrack(state.armedTrack || state.selectedTrack || null);   // monitoring follows the armed track's FX
     try { renderSongParts(); } catch (_) { /* the bin never breaks the timeline */ }
