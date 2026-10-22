@@ -1,5 +1,10 @@
 # Cobander changelog
 
+## 0.16.5
+- Rename a song: ⋯ on the song → "Rename the song…". The folder on the band Drive is renamed to match (the folder is the song name — browsable by a human, no song1/song2), every take and version comes along, and the song's XP, goals and history follow it (song.json keeps `renamedFrom`). Refused while a bandmate has the song open or holds it. Control API: POST /song/rename {name}.
+- Mute / solo are yours, not the song's: they live on this computer only and are never saved to the shared song, on your own tracks too. Dan can sit on his solo'd guitar while you hear the whole mix. Your picks are remembered per song on this computer and come back when you reopen it.
+- Boot: avatars no longer flash name-rolled stand-ins before the band loads.
+
 ## 0.16.4
 - A bandmate's character built after the screen first drew no longer stays as the stand-in rolled from their name (band strip, portraits).
 - Track-head portraits are framed on the face.

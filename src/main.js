@@ -375,6 +375,7 @@ ipcMain.handle('templates:write', (_e, t) => tracked(() => guardStore().writeTem
 ipcMain.handle('templates:delete', (_e, id) => guardStore().deleteTemplate(id));
 ipcMain.handle('history:read', (_e, folder, saveId) => guardStore().readHistory(folder, saveId));
 ipcMain.handle('songs:create', (_e, name) => guardStore().createSong(name));
+ipcMain.handle('songs:rename', async (_e, folder, name) => { const r = await guardStore().renameSong(folder, name, identity); const k = `${settings.sharedFolder}::${folder}`; if (settings.lastSeen && settings.lastSeen[k]) { settings.lastSeen[`${settings.sharedFolder}::${r.folder}`] = settings.lastSeen[k]; delete settings.lastSeen[k]; await saveSettings(); } return r; });
 ipcMain.handle('takeout:status', () => store ? store.takeoutStatus() : { unlocked: false, tier: 'free', tierName: 'Groupie', band: null, songs: 0, limit: 1 });
 ipcMain.handle('takeout:enter', (_e, key) => guardStore().takeoutEnter(key));
 ipcMain.handle('songs:check', (_e, name) => guardStore().checkSongName(name));
@@ -541,6 +542,7 @@ async function startApi() {
     'POST /song/open': ({ body }) => askRenderer('openSong', body),
     'POST /song/close': () => askRenderer('closeSong', {}),
     'POST /song/create': ({ body }) => askRenderer('createSong', body),
+    'POST /song/rename': ({ body }) => askRenderer('renameSong', body || {}, 60000),
     'POST /song/save': ({ body }) => askRenderer('save', body),
     'POST /song/reload': () => askRenderer('reload', {}),
     'POST /song/takeover': () => askRenderer('takeOver', {}),

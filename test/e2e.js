@@ -1436,6 +1436,37 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.inputChannels`), 'right', 'setting reaches the engine');
       await jeff.post('/audio', { inputChannels: 'auto' });
     });
+    await step('0.16.5: rename a song = the folder moves (human-readable), XP follows, refused while someone else holds it; mute / solo stay on this computer', async () => {
+      // mute / solo: local only — toggled on your own track, saved nothing, back after a reopen
+      const st0 = await jeff.get('/state'); const gtr = st0.song.tracks.find((t) => t.instrument === 'audio');
+      const mine = await jeff.evalJs(`window.cobanderDebug.mineT(${JSON.stringify(gtr.id)})`); assert.equal(mine, true, 'Gtr is Jeff\'s');
+      await jeff.evalJs(`document.querySelector('.track[data-id="${gtr.id}"] button.mute').click()`); await sleep(200);
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.track(${JSON.stringify(gtr.id)}).mute`), true, 'muted for Jeff');
+      assert.equal(await jeff.evalJs(`JSON.parse(localStorage.getItem('bp.ms.QoL Song') || '{}')[${JSON.stringify(gtr.id)}].mute`), true, 'remembered on this computer');
+      await jeff.post('/song/save', { force: true }); await sleep(500);
+      assert.equal(!!JSON.parse(await fsp.readFile(path.join(shared, 'QoL Song', 'song.json'), 'utf8')).tracks.find((t) => t.id === gtr.id).mute, false, 'mute never reaches the shared song');
+      await jeff.post('/song/close'); await jeff.post('/song/open', { folder: 'QoL Song' }); await sleep(800);
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.track(${JSON.stringify(gtr.id)}).mute`), true, 'still muted here after a reopen');
+      await jeff.evalJs(`document.querySelector('.track[data-id="${gtr.id}"] button.mute').click()`); await sleep(200);
+      assert.equal(await jeff.evalJs(`localStorage.getItem('bp.ms.QoL Song')`), null, 'back to the song\'s own state = nothing remembered');
+      // rename
+      const xp0 = ((await jeff.get('/quest')).songs.find((s) => s.folder === 'QoL Song') || {}).xp || 0;
+      const r = await jeff.post('/song/rename', { name: 'Quality Song' });
+      assert.equal(r.folder, 'Quality Song', JSON.stringify(r)); assert.equal(r.name, 'Quality Song');
+      await until(async () => !(await fsp.stat(path.join(shared, 'QoL Song')).catch(() => null)) && !!(await fsp.stat(path.join(shared, 'Quality Song', 'song.json')).catch(() => null)), 5000, 'folder moved');
+      const sj = JSON.parse(await fsp.readFile(path.join(shared, 'Quality Song', 'song.json'), 'utf8')); assert.equal(sj.name, 'Quality Song'); assert.deepEqual(sj.renamedFrom, ['QoL Song']);
+      const st1 = await jeff.get('/state'); assert.equal(st1.folder, 'Quality Song', 'reopened under the new folder'); assert.equal(st1.song.tracks.length, st0.song.tracks.length, 'every track came along');
+      await sleep(1500); const q = (await jeff.get('/quest')).songs.find((s) => s.folder === 'Quality Song'); assert.ok(q, 'board row under the new folder');
+      assert.ok(q.xp >= xp0, `XP followed the rename (${q.xp} vs ${xp0})`); assert.ok(!(await jeff.get('/quest')).songs.find((s) => s.folder === 'QoL Song'), 'no ghost row for the old folder');
+      assert.ok((await jeff.get('/songs')).some((s) => s.folder === 'Quality Song' && s.name === 'Quality Song'), 'song list shows it');
+      // someone else holding it blocks the rename
+      await jeff.post('/song/close'); await kat.post('/song/open', { folder: 'Quality Song' }); await sleep(800);
+      await jeff.post('/song/open', { folder: 'Quality Song' }); await sleep(800);
+      const bad = await jeff.post('/song/rename', { name: 'Nope Song' }).catch((e) => ({ error: String(e.message || e) }));
+      assert.match(String(bad.error || ''), /Take over|holds|has this song open/i, JSON.stringify(bad));
+      assert.ok(await fsp.stat(path.join(shared, 'Quality Song')).catch(() => null), 'folder untouched');
+      await kat.post('/song/close').catch(() => {});
+    });
     await step('opening a song: the screen is usable when the loading bar goes (longest freeze after it is logged)', async () => {
       const songs = await jeff.get('/songs'); const pick = songs.map((x) => x.folder).find((f) => /Basement Anthem|Link Song|Tremors/.test(f)) || (songs[0] && songs[0].folder);
       if (!pick) return; await jeff.post('/song/close').catch(() => {});

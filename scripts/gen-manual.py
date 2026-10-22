@@ -398,7 +398,7 @@ write_page('mix.html', 'Mix', 'The Mix workspace: channel strips, faders, pan, s
 <h2>Mute and solo</h2>
 <ul>
   <li><b>M</b> silences a track. <b>S</b> plays only that track (and anything else soloed).</li>
-  <li>Mute or solo on a track someone else has unlocked is just for your ears; it doesn't change their mix.</li>
+  <li>Mute and solo are yours alone: they live on this computer, never in the shared song, so a bandmate sitting on a solo'd part doesn't take anything out of your mix. Cobander remembers your picks per song on this computer.</li>
 </ul>
 
 <h2>Get the song out</h2>
@@ -569,7 +569,7 @@ write_page('band.html', 'Band', 'The Band workspace: levels and XP, achievements
 <h2>Song stages</h2>
 <ul>
   <li>Each song has a stage: idea, writing, demo, done. The filter above the Songs list shows only one stage.</li>
-  <li>Right-click a song in the Songs list to set its stage, delete it (it moves to <code>_deleted</code> in the band folder; <b>Deleted songs…</b> brings it back), and more.</li>
+  <li>Right-click a song in the Songs list to set its stage, <b>rename it</b> (the folder on the band Drive is renamed to match — the folder is the song's name — and its XP, goals and history come along; a bandmate who has it open blocks the rename), delete it (it moves to <code>_deleted</code> in the band folder; <b>Deleted songs…</b> brings it back), and more.</li>
 </ul>
 ''')
 

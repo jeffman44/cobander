@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('cobander', {
   songs: {
     list: () => ipcRenderer.invoke('songs:list'),
     create: (name) => ipcRenderer.invoke('songs:create', name),
+    rename: (folder, name) => ipcRenderer.invoke('songs:rename', folder, name),
     check: (name) => ipcRenderer.invoke('songs:check', name),
     onChanged: on('songs:changed'),
   },

@@ -354,7 +354,7 @@
     if (!quest || !state.settings.sharedFolder || !bp.quest) return null;
     if (files) { try { quest.files = await bp.quest.read(); } catch (_) { /* Drive hiccup: keep the last board */ } quest.fields = Q.merge(quest.files); }
     quest.board = Q.board(quest.fields, state.songs || [], { me: me(), license: state.takeout && state.takeout.unlocked ? { band: state.takeout.band, members: state.takeout.members || [] } : null });
-    questCelebrate(); renderXpChip(); renderBandPane(); renderBandFeed();
+    questCelebrate(); renderXpChip(); renderBandPane(); renderBandFeed(); renderStage(); if (state.folder) renderTracks();
     return quest.board;
   }
   const myQuest = () => (quest && quest.board ? quest.board.members.find((m) => m.isMe) || null : null);
@@ -561,7 +561,7 @@
     return w;
   }
   function renderStage() {
-    if (!LPC.ready() || !stageReady) return;
+    if (!LPC.ready() || !stageReady || !(quest && quest.board)) return;   // not before the board is in: a stand-in rolled from the name would flash first
     const members = bandMembers();
     // song head: everyone with this song open
     const st = $('#stage'); if (st) { const here = []; if (state.folder) for (const m of members) { const d = whoDoing(m.name); if (d.folder === state.folder) here.push([m, d]); } st.replaceChildren(...here.map(([m, d]) => stageWho('head', m, d))); st.hidden = !here.length; }
@@ -1304,6 +1304,7 @@
     if (fresh) { state.undo = []; state.redo = []; state.snapshots = []; state.backup = null; renderFx.lastTrack = undefined; state.pendingActivity = []; state.ab = null; state.lastSeenAtOpen = r.lastSeen || null; state.freshClips = null; state.changes = null; state.mixAB = null; if (state.pitch) state.pitch.clear(); }
     await loadAudio(folder, r.song, fresh ? state.loadProgress : null);
     engine.loadSong(r.song);
+    msRestore();   /* this computer's mute / solo choices, on top of the song (never saved) */
     if (fresh) engine.playhead = 0;
     if (fresh && !r.readOnly && state.settings.autoUnlockTracks) { if (!ME) ME = await bp.identity().catch(() => null); state.tlocks = await bp.tlock.list(folder).catch(() => ({})); await unlockAll({ quiet: true }); }
     if (!fresh) { if (engine.track(keepArmed)) state.armedTrack = keepArmed; if (engine.track(keepSel)) state.selectedTrack = keepSel; if (engine.tracks.some((t) => t.clips.some((c) => c.id === keepClip))) state.selectedClip = keepClip; }
@@ -1360,11 +1361,16 @@
     return { ...state.song, ...f, notes: $('#notes').value };
   }
   // Mute / solo from anywhere (head, console strip, menu): a real edit on my track, ears-only on anyone else's.
+  // Mute / solo are listening choices, not song edits: they live on this computer only (per song, in localStorage) and
+  // never reach song.json — Dan soloing his guitar must not silence the mix for everyone else.
   function toggleMS(t, k) {
-    if (mineT(t.id)) change(() => engine.updateTrack(t.id, { [k]: !t[k] }), { undoable: false });
-    else { earsOnly(t.id, k); engine.updateTrack(t.id, { [k]: !t[k] }); status(`${k === 'mute' ? 'Muted' : 'Soloed'} just for you — it's not your track, so it isn't saved.`, 4000); }
+    earsOnly(t.id, k); engine.updateTrack(t.id, { [k]: !t[k] }); msRemember();
     renderAll();
   }
+  const msKey = () => `bp.ms.${state.folder || ''}`;
+  function msRemember() { try { const o = {}; for (const t of engine.tracks) { const e = state.earsOnly && state.earsOnly[t.id]; if (!e) continue; const st = ((state.base && state.base.tracks) || []).find((x) => x.id === t.id); const v = {}; for (const kk of ['mute', 'solo']) if (e[kk] && !!t[kk] !== !!(st && st[kk])) v[kk] = !!t[kk]; if (Object.keys(v).length) o[t.id] = v; } if (Object.keys(o).length) localStorage.setItem(msKey(), JSON.stringify(o)); else localStorage.removeItem(msKey()); } catch (_) {} }
+  // after a song loads: put this computer's mute / solo choices back on top of what the song says
+  function msRestore() { let o = null; try { o = JSON.parse(localStorage.getItem(msKey()) || 'null'); } catch (_) {} if (!o) return; for (const [id, v] of Object.entries(o)) { const t = engine.track(id); if (!t) continue; for (const kk of Object.keys(v)) { if (!!t[kk] !== v[kk]) { earsOnly(id, kk); engine.updateTrack(id, { [kk]: v[kk] }); } } } }
   // Remember what the song says for a track that isn't mine, the first time I touch its mute/solo locally.
   function earsOnly(id, k) { state.earsOnly = state.earsOnly || {}; (state.earsOnly[id] = state.earsOnly[id] || {})[k] = true; }   // collectSong puts the song's own value back for that field
   const collabFields = (song) => Object.fromEntries(CB.COLLECTIONS.filter((k) => song && song[k] !== undefined).map((k) => [k, song[k]]));
@@ -1630,7 +1636,7 @@
     if (!state.folder) return false; const t = engine.track(id); if (!t) return false;
     { const who = songHolder(); if (who && !mineT(id)) { if (!quiet) status(`${who} has the song open — take over (banner above) to work on its tracks.`, 7000); return false; } }
     const r = await bp.tlock.claim(state.folder, id).catch((err) => ({ ok: false, err }));
-    if (r && r.ok) { state.tlocks[id] = { ...r.lock, idle: false }; if (state.earsOnly && state.earsOnly[id]) { const st = ((state.base && state.base.tracks) || []).find((x) => x.id === id); const back = {}; for (const k of Object.keys(state.earsOnly[id])) back[k] = st ? !!st[k] : false; engine.updateTrack(id, back); delete state.earsOnly[id]; }   /* it's mine now: ears-only mute/solo ends, the song's own values come back, changes from here are real */ if (!quiet) { renderAll(); status(`${t.name} is yours — it locks again if you leave it alone for 10 minutes.`, 5000); } return true; }
+    if (r && r.ok) { state.tlocks[id] = { ...r.lock, idle: false }; /* mute / solo stay local to this computer even on a track that is now mine (they are never saved) */ if (!quiet) { renderAll(); status(`${t.name} is yours — it locks again if you leave it alone for 10 minutes.`, 5000); } return true; }
     if (!quiet) status(r && r.lock ? `${r.lock.user} has ${t.name} unlocked right now.` : `Couldn't unlock ${t.name}.`, 6000);
     return false;
   }
@@ -2197,6 +2203,28 @@
     return [{ title: t.name }, { label: 'Reset fader (0 dB)', action: () => { change(() => engine.updateTrack(t.id, { gainDb: 0 }), { label: `reset ${t.name} fader` }); renderAll(); }, disabled: ro() }, { label: 'Center pan', action: () => { change(() => engine.updateTrack(t.id, { pan: 0 }), { label: `center ${t.name} pan` }); renderAll(); }, disabled: ro() }, 'sep', ...trackItems(t)];
   }
   function setStage(k) { change(() => { if (k) state.song.stage = k; else delete state.song.stage; }, { label: k ? `stage → ${k}` : 'stage cleared' }); renderAll(); save(); }
+  // Rename the open song: save, close (frees the lock in the old folder), rename folder + song.json, reopen. Only the
+  // song holder, with nobody else in it.
+  const saveNow = () => save({ force: false });
+  async function renameSong(newName = null) {
+    if (!state.folder || !state.song) throw new Error('no song open');
+    if (state.readOnly) throw new Error('Take over the song first (banner above) — only whoever holds it can rename it.');
+    if (engine.recording || finishing) throw new Error('Stop recording first.');
+    const row = (state.songs || []).find((x) => x.folder === state.folder);
+    const others = ((row && row.presence) || []).filter((p) => p.user !== me()).map((p) => p.user);
+    if (others.length) throw new Error(`${others.join(', ')} ${others.length === 1 ? 'has' : 'have'} this song open — rename it when they're out.`);
+    const name = newName != null ? String(newName) : await promptName('Song name', state.song.name);
+    if (!name || !name.trim() || name.trim() === state.song.name) return null;
+    const folder = state.folder;
+    if (state.dirty) await saveNow();
+    if (!(await closeSong({ interactive: false }))) throw new Error('Could not close the song to rename it.');
+    const r = await bp.songs.rename(folder, name.trim());
+    try { const k = localStorage.getItem(`bp.ms.${folder}`); if (k) { localStorage.setItem(`bp.ms.${r.folder}`, k); localStorage.removeItem(`bp.ms.${folder}`); } } catch (_) {}   /* this computer's mute / solo picks follow the folder */
+    await refreshSongs(); await openSong(r.folder, { force: true });
+    logActivity(`renamed the song to ${r.name}`); markDirty(); await saveNow();
+    status(`Renamed to ${r.name} — the folder is "${r.folder}" now; XP and goals came along.`, 8000);
+    return r;
+  }
   function songMenu(sInfo) {
     const open = sInfo.folder === state.folder;
     return [{ title: sInfo.name }, { label: open ? (state.readOnly ? 'Take over / edit' : 'Already open') : 'Open', action: () => (open ? (state.readOnly ? takeOver() : null) : openSong(sInfo.folder)), disabled: open && !state.readOnly }, { label: 'Close', action: () => closeSong(), disabled: !open }, { label: 'Show folder', action: () => bp.shell.openSongFolder(sInfo.folder) }, { label: 'Hand off to a DAW…', action: () => exportDaw({}), disabled: !open }, { label: 'React to the song', sub: open ? reactionItems('song', sInfo.name) : null, disabled: !open || ro() }, { label: 'Note at playhead (whole song)…', action: () => addNote(null, engine.playhead), disabled: !open }, { label: 'Bounce mix', action: () => bounce('mix'), disabled: !open }, 'sep', { label: `Key${open && state.song && state.song.key ? `: ${state.song.key}` : ''}`, sub: [{ label: 'Detect from the tracks', hint: 'guitar, bass, keys, vocals', action: () => detectSongKey().catch(fail) }, 'sep', { title: 'Set the label only — nothing moves (to move the music: Transpose song)' }, ...window.BPTemplates.KEYS.map((k) => ({ label: k || 'no key', checked: open && state.song && (state.song.key || '') === k, action: () => setSongKey(k) }))], disabled: !open || ro() }, { label: 'Stage', sub: [...Object.entries(STAGES).map(([k, v]) => ({ label: v, checked: sInfo.stage === k, action: () => setStage(k) })), { label: 'no stage', action: () => setStage(null) }], disabled: !open || ro() }, { label: 'Transpose song', hint: 'moves the recordings, MIDI and chords', sub: open ? transposeItems(null) : [], disabled: !open || ro() }, { label: 'Import audio files as tracks…', hint: 'or drag them in', action: () => window.pickAudioFiles(0), disabled: !open || ro() }, { label: 'Restructure song…', action: () => openRestructure().catch(fail), disabled: !open || ro() }, { label: 'Save as band template…', action: () => saveAsTemplate(sInfo.folder).catch(fail) }, { label: 'New song…', action: () => newSongWizard().catch(fail) }, 'sep', { label: 'Delete song…', danger: true, action: () => deleteSong(sInfo).catch(fail), disabled: !!(sInfo.presence && sInfo.presence.length) || !!(sInfo.lock && !sInfo.lock.stale && !sInfo.lockMine), hint: sInfo.presence && sInfo.presence.length ? `${sInfo.presence.map((p) => p.user).join(', ')} has it open` : '' }, { label: 'Deleted songs…', action: () => deletedSongs().catch(fail) }];
@@ -6260,6 +6288,7 @@
   $('#btn-more').addEventListener('click', () => {
     const nDel = state.song ? deletedTakesList().length : 0;
     menuAt($('#btn-more'), [{ title: state.song ? state.song.name : 'Song' },
+      { label: 'Rename the song…', hint: 'folder too; XP and goals carry over', action: () => renameSong().catch(fail), disabled: state.readOnly },
       { label: 'Show the song folder', action: () => $('#btn-open-folder').click() },
       { label: nDel ? `Deleted takes (${nDel}) — restore…` : 'Deleted takes: none', action: () => recoverTakes().catch(fail), disabled: !nDel || state.readOnly },
       { label: '🥣 Lighten the folder… (FLAC + clear unused audio)', action: () => compactDrive().catch(fail) },
@@ -7105,6 +7134,7 @@
       case 'state': return { version: (upd.st && upd.st.current) || null, song: state.folder ? collectSong() : null, folder: state.folder, readOnly: state.readOnly, dirty: state.dirty || state.pendingTakes.size > 0, pendingTakes: [...state.pendingTakes.keys()], backup: state.backup ? { at: state.backup.at } : null, lastSaveError: state.lastSaveError, pendingExternal: state.pendingExternal, transport: engine.transportState(), selectedTrack: state.selectedTrack, armedTrack: state.armedTrack, missingClips: [...state.missingClips], unreferencedTakes: state.unreferenced, bounces: state.bounces, recordOffsetMs: engine.recordOffsetMs, audioInput: engine.inputDeviceId, snapshots: state.snapshots.map((s) => ({ id: s.id, label: s.label, at: s.at })) };
       case 'openSong': { if (!args.folder) throw new Error('folder required'); if (!state.songs.some((s) => s.folder === args.folder)) { await refreshSongs(); if (!state.songs.some((s) => s.folder === args.folder)) throw new Error(`no song folder "${args.folder}" in the shared folder (see GET /songs)`); } await openSong(args.folder, { force: !!args.force, interactive: false }); if (state.folder !== args.folder) throw new Error('could not open'); return { folder: state.folder, readOnly: state.readOnly, rev: state.song.rev }; }
       case 'closeSong': { const ok = await closeSong({ interactive: false }); if (!ok) throw new Error('could not close'); return {}; }
+      case 'renameSong': { if (!args.name) throw new Error('name required'); const r = await renameSong(String(args.name)); if (!r) throw new Error('nothing renamed'); return { folder: r.folder, name: r.name }; }
       case 'createSong': { if (!args.name) throw new Error('name required');
         if (args.template && !(await allTemplates()).some((x) => x.id === args.template)) throw new Error(`no template "${args.template}" (GET /templates)`);
         if (args.arrangement && !TPL.ARRANGEMENTS.some((x) => x.id === args.arrangement)) throw new Error(`no arrangement "${args.arrangement}" (GET /arrangements)`);

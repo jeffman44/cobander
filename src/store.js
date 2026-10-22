@@ -228,7 +228,7 @@ class SongStore {
           needsOpen: Collab.needsOpen(raw).length,
           needsMine: identity ? Collab.needsFor(raw, identity.user, people).length : 0,
           stage: typeof raw.stage === 'string' ? raw.stage.slice(0, 20) : null,
-          quest: Quest.songStats(raw),   // the game layer: who did what in this song (takes, notes, chords …) and how much of it each member's takes cover
+          quest: Quest.songStats(raw), renamedFrom: Array.isArray(raw.renamedFrom) ? raw.renamedFrom : undefined,   // the game layer: who did what in this song (takes, notes, chords …) and how much of it each member's takes cover
           bounced: await fsp.readdir(path.join(dir, BOUNCE_DIR)).then((n) => n.some((x) => /\.wav$/i.test(x)), () => false),
           recent: (Array.isArray(raw.activity) ? raw.activity.slice(-15) : []).filter((a) => a && a.at).map((a) => ({ by: String(a.by || '').slice(0, 40), at: a.at, items: (a.items || []).slice(0, 6).map((x) => String(x).slice(0, 120)) })),
           needsDone: Collab.live(raw.needs || []).filter((n) => n.done).length,
@@ -348,6 +348,27 @@ class SongStore {
     const clash = names.find((n) => n.toLowerCase() === folder.toLowerCase());   // Windows / macOS / Drive treat these as the same folder
     if (clash) throw new Error(`A song called "${clash}" already exists`);
     return folder;
+  }
+  // Rename a song: the folder IS the name (the shared folder stays readable for a human), so the folder is renamed and
+  // song.json gets the new name plus `renamedFrom` (the board carries XP / goals / tasks across by that). The caller
+  // must hold the song (lock) and have it closed in its own window; bandmates see the old folder go and the new one
+  // arrive, like any other song. A case-only rename (bass → Bass) is allowed.
+  async renameSong(folder, newName, identity = null) {
+    const dir = this.songDir(folder);
+    const want = safeSongName(newName); if (!want) throw new Error('name required');
+    if (want === folder) return { folder, name: String(newName).trim() };
+    let names = []; try { names = await fsp.readdir(this.root); } catch (_) {}
+    const clash = names.find((n) => n.toLowerCase() === want.toLowerCase() && n !== folder);
+    if (clash) throw new Error(`A song called "${clash}" already exists`);
+    const { song } = await this.loadSong(folder);
+    const lock = await this.readLock(folder).catch(() => null);
+    if (lock && !lock.stale && !(identity && this.isMine(lock, identity))) throw new Error(`${lock.user} has the song open — ask them to close it first`);
+    const dest = this.songDir(want);
+    if (want.toLowerCase() === folder.toLowerCase()) { const tmp = `${dir}.renaming`; await fsp.rename(dir, tmp); await fsp.rename(tmp, dest); }   // case-only: two hops (Windows / macOS / Drive are case-insensitive)
+    else await fsp.rename(dir, dest);
+    song.name = String(newName).trim().slice(0, 80); song.renamedFrom = [...new Set([...(song.renamedFrom || []), folder])].slice(-8);
+    await atomicWrite(path.join(dest, SONG_FILE), JSON.stringify(song, null, 2));
+    return { folder: want, name: song.name, from: folder };
   }
   // Song folders in the shared folder (what the free limit counts).
   async songCount() {

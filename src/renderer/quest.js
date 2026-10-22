@@ -191,6 +191,8 @@
       if (twin && !meta.deleted) { alias.set(qid, twin.qid); continue; }
       quests.set(qid, { qid, name: String(meta.name || 'untitled').slice(0, 80), folder: null, meta, cover: meta.cover != null ? !!meta.cover : isCover(meta.name) });
     }
+    // a renamed song keeps its board history: song.json lists the folder names it had (renamedFrom), those ids alias the new one
+    for (const q of quests.values()) { for (const old of (q.bp && Array.isArray(q.bp.renamedFrom) ? q.bp.renamedFrom : [])) { const oid = `f:${old}`; if (!quests.has(oid) && !alias.has(oid)) alias.set(oid, q.qid); } }
     const idsOf = (q) => [q.qid, ...[...alias].filter(([, b]) => b === q.qid).map(([a]) => a)];
     const read = (q, suffix, d) => { let best = null; for (const id of idsOf(q)) { const e = m.get(`song:${id}:${suffix}`); if (e && (!best || e.at > best.at)) best = e; } return best ? best.v : d; };
     const songs = [];
