@@ -1,5 +1,11 @@
 # Cobander changelog
 
+## 0.16.3
+- The phone page has a RECORD tab: arm a track, watch the input level, ● record / ■ stop, Retake (drops the take and re-arms at the same spot) or Keep, loop a part, click and count-in, mute / solo, + track — the whole take driven from across the room. (Practice is the other tab; Share → Open on your phone.)
+- "Lyrics from the vocals" and "Chords from the recordings" ask before touching what's there: Replace all, or keep the lines / chords you typed and replace the rest. No more doubled lyric lines.
+- One avatar per person: a bandmate whose install shows a different display name (Band page → "Also known in Cobander as…") is the same character everywhere — song list, song header, band strip, track portraits — instead of a second, randomly rolled one.
+- Control API: POST /quest accepts member {name, aliases, role}.
+
 ## 0.16.2
 - Auto-update from GitHub works. Every install so far asked GitHub for a repository named "github:jeffman44/cobander" and got nothing back, so the Update bar never appeared once the band folder stopped carrying installers. This one you install by hand from cobander.com; from here on the bar does it.
 - "Check for updates" says why when it can't read the release (unreachable, rate-limited, no manifest) instead of blaming the band folder.

@@ -501,6 +501,13 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.equal(s.needsOpen, 3); assert.equal(s.mentions, 1); assert.equal(s.needsMine, 1, 'the harmony is assigned to Kat'); assert.equal(s.presence[0].user, 'Jeff'); assert.equal(s.presence[0].mode, 'editing');
       await until(() => kat.evalJs(`document.querySelector('#song-list .chip-s.ping') && document.querySelector('#song-list .chip-s.ping').textContent`), 10000, 'ping chip');
       await kat.shot('songlist');
+      // avatars: Jeff shows up in the song list and the band strip as one character; an alias folds a second display name into the same member
+      await until(() => kat.evalJs(`!!document.querySelector('#song-list .stage-who[data-name="Jeff"]')`), 10000, 'Jeff avatar on the song row');
+      const strip0 = await kat.evalJs(`[...document.querySelectorAll('#band-strip .stage-who')].map((w) => w.dataset.name)`); assert.ok(strip0.includes('Jeff') && strip0.includes('Kat'), JSON.stringify(strip0));
+      await kat.post('/quest', { member: { name: 'Kat', aliases: ['Jeff'] } }); await sleep(600);   // pretend Jeff's install is Kat under another name
+      const strip1 = await until(async () => { const l = await kat.evalJs(`[...document.querySelectorAll('#band-strip .stage-who')].map((w) => w.dataset.name)`); return l.filter((n) => n === 'Jeff').length === 0 ? l : null; }, 10000, 'alias folds Jeff into Kat');
+      assert.ok(strip1.includes('Kat') && !strip1.includes('Jeff'), JSON.stringify(strip1));
+      await kat.post('/quest', { member: { name: 'Kat', aliases: [] } }); await sleep(600);
     });
     await step('Kat opens read-only, sees "Jeff is editing", then Jeff sees Kat listening', async () => {
       await kat.post('/song/open', { folder: 'E2E Song' });
@@ -1233,6 +1240,23 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.equal((await get('/state?k=nope')).code, 403, 'key required');
       const page = await get(`/?k=${key}`); assert.equal(page.code, 200); assert.match(page.body, /Cobander — practice/);
       const ps = JSON.parse((await get(`/state?k=${key}`)).body); assert.equal(ps.song, 'Fourteen'); assert.ok(ps.sections.length === 2 && ps.sections[0].bars[0].chords[0] === 'G', JSON.stringify(ps.sections[0]));
+      // the Record tab: arm from the phone, record with the (fake) mic, stop, the take lands; retake drops it and re-arms; loop a part; click / count-in toggles
+      const post = (p, body) => new Promise((resolve, reject) => { const rq = http.request({ host: '127.0.0.1', port: ph.port, path: p, method: 'POST', headers: { 'content-type': 'application/json' } }, (res) => { let d = ''; res.on('data', (c) => { d += c; }); res.on('end', () => resolve({ code: res.statusCode, body: d })); }); rq.on('error', reject); rq.end(JSON.stringify(body)); });
+      assert.match(page.body, /id="tab-record"/, 'phone page has the Record tab');
+      assert.ok(ps.rec && ps.rec.tracks.length >= 2 && typeof ps.rec.bar === 'string', JSON.stringify(ps.rec));
+      const gtrId = ps.rec.tracks.find((t) => t.name === 'Gtr').id;
+      await post(`/cmd?k=${key}`, { action: 'arm', trackId: gtrId }); let rs = JSON.parse((await get(`/state?k=${key}`)).body).rec; assert.equal(rs.armed, gtrId, 'armed from the phone');
+      await post(`/cmd?k=${key}`, { action: 'countin', on: false }); await post(`/cmd?k=${key}`, { action: 'click', on: false });
+      const takesBefore = rs.tracks.find((t) => t.id === gtrId).takes;
+      await post(`/cmd?k=${key}`, { action: 'record' }); rs = await until(async () => { const r = JSON.parse((await get(`/state?k=${key}`)).body).rec; return r.recording ? r : null; }, 8000, 'recording from the phone');
+      assert.ok(rs.inputOpen && rs.input != null, 'input level reported while recording'); await sleep(1500);
+      await post(`/cmd?k=${key}`, { action: 'stop' }); rs = await until(async () => { const r = JSON.parse((await get(`/state?k=${key}`)).body).rec; return !r.recording && !r.finishing && r.lastTake ? r : null; }, 15000, 'take landed');
+      assert.equal(rs.tracks.find((t) => t.id === gtrId).takes, takesBefore + 1); assert.equal(rs.lastTake.track, 'Gtr');
+      await post(`/cmd?k=${key}`, { action: 'retake' }); rs = await until(async () => { const r = JSON.parse((await get(`/state?k=${key}`)).body).rec; return !r.lastTake ? r : null; }, 5000, 'retake dropped it');
+      assert.equal(rs.tracks.find((t) => t.id === gtrId).takes, takesBefore, 'retake removed the take'); assert.equal(rs.armed, gtrId, 'still armed');
+      await post(`/cmd?k=${key}`, { action: 'loop', part: rs.parts[0].id }); rs = JSON.parse((await get(`/state?k=${key}`)).body).rec; assert.ok(rs.loop && Math.abs(rs.loop.from - rs.parts[0].start) < 0.01, 'looping the part');
+      await post(`/cmd?k=${key}`, { action: 'loop' }); rs = JSON.parse((await get(`/state?k=${key}`)).body).rec; assert.equal(rs.loop, null);
+      await post(`/cmd?k=${key}`, { action: 'arm', trackId: gtrId }); rs = JSON.parse((await get(`/state?k=${key}`)).body).rec; assert.equal(rs.armed, null, 'arm again disarms');
       // Show mode: setlist locked, click only, pedal (a key) steps songs
       await jeff.post('/workspace', { ws: 'write' });
       await jeff.post('/song/save'); await jeff.post('/song/create', { name: 'Encore' }); await jeff.post('/song/open', { folder: 'Fourteen' });

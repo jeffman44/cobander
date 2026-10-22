@@ -523,22 +523,25 @@
   const STAGE_LABEL = { rec: '● rec', playing: '🎧', practicing: '🎙', waiting: '⏳', listening: '🎧', looking: '👀', here: '', away: '' };
   const stageCache = new Map();   // `${box}|${name}|${mode}` → element (so a re-render never restarts a running animation)
   let stageReady = false;         // flipped once the whole module has run (kara / quest are declared further down)
+  // a presence name (what someone's install calls them) → the band member it belongs to, by name or "also known as"
+  const memberOf = (user) => (quest && quest.board ? Q.memberFor(quest.board.members, user) : null);
+  const isUser = (m, user) => String(m.name).toLowerCase() === String(user || '').toLowerCase() || (m.aliases || []).some((a) => String(a).toLowerCase() === String(user || '').toLowerCase());
   function bandMembers() {
     const ms = quest && quest.board ? quest.board.members.slice() : [];
-    const names = new Set(ms.map((m) => m.name));
-    for (const sg of state.songs || []) for (const p of sg.presence || []) if (p.user && !names.has(p.user)) { names.add(p.user); ms.push({ name: p.user, guest: true }); }
-    if (me() && !names.has(me())) ms.unshift({ name: me(), isMe: true });
+    for (const sg of state.songs || []) for (const p of sg.presence || []) if (p.user && !ms.some((m) => isUser(m, p.user))) ms.push({ name: p.user, guest: true });
+    if (me() && !ms.some((m) => isUser(m, me()))) ms.unshift({ name: me(), isMe: true });
     return ms;
   }
   // what a member is doing: my own state comes from the transport, everyone else's from the presence files
   function whoDoing(name) {
-    if (name === me()) {
+    const m = (quest && quest.board ? quest.board.members : []).find((x) => isUser(x, name)) || { name };
+    if (isUser(m, me())) {
       if (engine.recording) return { mode: 'rec', folder: state.folder };
       if (engine.playing) return { mode: kara.open ? 'practicing' : 'playing', folder: state.folder };
       if (state.folder) return { mode: state.waiting ? 'waiting' : 'listening', folder: state.folder };
       return { mode: 'here', folder: null };
     }
-    for (const sg of state.songs || []) for (const p of sg.presence || []) if (p.user === name) return { mode: p.mode === 'recording' ? 'rec' : p.mode === 'waiting' ? 'waiting' : p.mode === 'practicing' ? 'practicing' : p.playing ? 'playing' : 'looking', folder: sg.folder, song: sg.name, host: p.host };
+    for (const sg of state.songs || []) for (const p of sg.presence || []) if (isUser(m, p.user)) return { mode: p.mode === 'recording' ? 'rec' : p.mode === 'waiting' ? 'waiting' : p.mode === 'practicing' ? 'practicing' : p.playing ? 'playing' : 'looking', folder: sg.folder, song: sg.name, host: p.host };
     return { mode: 'away', folder: null };
   }
   function stageWho(box, m, doing, { title = true } = {}) {
@@ -575,7 +578,7 @@
   function trackFace(t) {
     if (!LPC.ready() || !t.clips.length) return null;
     const last = t.clips.slice().sort((a, b) => String(b.takenAt || '').localeCompare(String(a.takenAt || '')))[0]; const who = last && last.takenBy; if (!who) return null;
-    const m = bandMembers().find((x) => x.name === who) || { name: who }; const lk = lookOf(m); if (!lk) return null;
+    const m = bandMembers().find((x) => isUser(x, who)) || { name: who }; const lk = lookOf(m); if (!lk) return null;
     const box = el('span', 'face'); box.title = `${who} recorded the last take here`;
     let c = faceCache.get(who);
     if (!c) { c = document.createElement('canvas'); c.className = 'lpc'; c.width = c.height = 64; LPC.render(c, lk, { anim: 'idle', scale: 1 }).catch(() => {}); faceCache.set(who, c); }
@@ -705,7 +708,7 @@
           try {
             await openSong(s.folder, { interactive: false, quiet: true }); if (state.folder !== s.folder) { out.skipped.push(`${s.name} (couldn't open it)`); break; }
             if (state.readOnly) { out.skipped.push(`${s.name} (read-only)`); continue; }
-            const n = await chordsFromTracks(null, { replaceDrafts: true });
+            const n = await chordsFromTracks(null, { replaceDrafts: true, wipe: false });
             if (n > 0) { const r = await save(); if (r !== 'ok') { out.skipped.push(`${s.name} (save: ${r})`); break; } out.charted.push(`${s.name} (+${n})`); } else out.skipped.push(`${s.name} (nothing new to hear)`);
           } catch (e) { out.skipped.push(`${s.name} (${e.message || e})`); }
         }
@@ -743,7 +746,7 @@
       if (s.stage) { const c = el('span', `chip-s stage stage-${s.stage}`, STAGES[s.stage] || s.stage); c.title = 'Stage: how far along the song is — idea, writing, demo or done. Right-click the song to change it; the filter above the list sorts by it.'; chips.append(c); }
       if (s.needsMine) { const c = el('span', 'chip-s ping', `for you ${s.needsMine}`); c.title = `${s.needsMine} "needs" item${s.needsMine === 1 ? '' : 's'} assigned to you`; chips.append(c); }
       if (s.needsOpen) { const tot = s.needsOpen + (s.needsDone || 0); const c = el('span', 'chip-s needs', `needs ${s.needsOpen}${s.needsDone ? ` · ${Math.round(100 * s.needsDone / tot)}% done` : ''}`); c.title = (s.needs || []).join('\n'); chips.append(c); }
-      for (const p of s.presence || []) { if (s.lock && !s.lock.stale && p.user === s.lock.user && p.mode !== 'listening') continue; if (LPC.ready() && stageReady) { const m = bandMembers().find((x) => x.name === p.user) || { name: p.user }; chips.append(stageWho('list', m, whoDoing(p.user), { title: false })); } const c = el('span', 'chip-s here', `${p.user} ${p.mode === 'waiting' ? '⏳ waiting to edit' : p.mode === 'recording' ? '● rec' : p.mode === 'practicing' ? '🎙 rehearsing' : p.playing ? '🎧 listening' : 'looking'}`); c.title = `${p.user} has this song open on ${p.host}`; chips.append(c); }
+      for (const p of s.presence || []) { if (LPC.ready() && stageReady) { const m = bandMembers().find((x) => isUser(x, p.user)) || { name: p.user }; chips.append(stageWho('list', m, whoDoing(m.name), { title: false })); } if (s.lock && !s.lock.stale && p.user === s.lock.user && p.mode !== 'listening') continue; const c = el('span', 'chip-s here', `${p.user} ${p.mode === 'waiting' ? '⏳ waiting to edit' : p.mode === 'recording' ? '● rec' : p.mode === 'practicing' ? '🎙 rehearsing' : p.playing ? '🎧 listening' : 'looking'}`); c.title = `${p.user} has this song open on ${p.host}`; chips.append(c); }
       if (chips.children.length) li.appendChild(chips);
       { const qs = songQuest(s.folder); if (qs) { const bar = el('div', 'song-xp'); const f = el('i'); f.style.width = `${qs.max ? (100 * qs.xp / qs.max).toFixed(0) : 0}%`; bar.append(f); bar.title = `Quest: ${qs.xp} / ${qs.max} XP · ${qs.goals.filter((g) => g.done).map((g) => g.label).join(', ') || 'no goals yet'} · ${qs.prog.map((p) => `${p.member} ${p.pct}%${p.written ? ' ✓' : ''}`).join(' · ')}`; li.appendChild(bar); } }
       li.addEventListener('click', () => { if (s.folder === state.folder && state.readOnly && !(s.lock && !s.lock.stale && !s.lockMine)) takeOver().catch(fail); else openSong(s.folder).catch(fail); });
@@ -3983,11 +3986,19 @@
   const asrModel = () => (state.settings && state.settings.asrModel) || 'small.en';
   const isVocalTrack = (t) => t && (t.type === 'vocals' || /vox|vocal|voice|sing/i.test(t.name || '')) && t.instrument === 'audio';
   // transcribe takes (audio clips) → timed lyric lines (each with word timings for karaoke); replaces lines this take made before
-  async function transcribeClips(list, { replace = true } = {}) {
+  async function transcribeClips(list, { replace = true, wipe = null } = {}) {
     if (asrBusy) { status('Already transcribing — one at a time.'); return asrBusy; }
     // works read-only too: lyrics are a band collection (a bandmate's open copy folds them in, like notes)
     const items = list.filter(({ c }) => c && c.kind !== 'midi' && engine.buffers.get(audioId(c)));
     if (!items.length) { status('Nothing to transcribe: pick an audio take with singing on it.', 6000); return null; }
+    // lyrics already on the song: say so first — "Replace" wipes them (Undo brings them back), "Keep typed" re-pins typed lines and only replaces what speech-to-text wrote before
+    if (wipe === null) {
+      const ex = liveLyrics().filter((l) => String(l.text || '').trim()); const typedN = ex.filter((l) => !l.asr).length;
+      if (ex.length) {
+        const a = await ask('Lyrics from the vocals', `This song already has ${ex.length} lyric line${ex.length === 1 ? '' : 's'}${typedN ? ` (${typedN} typed by hand)` : ''}. Replace them with what Cobander hears? ${MOD}+Z brings them back.`, [['Replace all', 'replace', 'danger'], ...(typedN ? [['Keep typed lines, replace the rest', 'keep']] : []), ['Cancel', 'cancel']]);
+        if (!a || a === 'cancel') return null; wipe = a === 'replace';
+      } else wipe = false;
+    }
     const closeProg = toast('Speech-to-text: getting ready…', { ms: 900000 }); const progEl = $('#toasts').lastElementChild;
     const setP = (txt) => { const n = progEl && progEl.querySelector('.toast-text'); if (n) n.textContent = txt; };
     asrBusy = (async () => {
@@ -4006,14 +4017,15 @@
         // words someone already typed win: those lines get pinned where they're sung (with word timings) instead of
         // being duplicated; only what nobody typed is added as new lines
         const lo = Math.min(...items.map(({ c }) => c.start)) - 2, hi = Math.max(...items.map(({ c }) => clipEnd(c))) + 2;
-        const typed = liveLyrics().filter((l) => !l.asr && String(l.text || '').trim() && (typeof l.time !== 'number' || (l.time >= lo && l.time <= hi)))   /* typed lines here (pinned before or not) are re-pinned, never duplicated */
+        const typed = (wipe ? [] : liveLyrics()).filter((l) => !l.asr && String(l.text || '').trim() && (typeof l.time !== 'number' || (l.time >= lo && l.time <= hi)))   /* typed lines here (pinned before or not) are re-pinned, never duplicated */
           .map((l, k) => ({ l, k })).sort((a, b) => (typeof a.l.time === 'number' ? a.l.time : Infinity) - (typeof b.l.time === 'number' ? b.l.time : Infinity) || a.k - b.k).map((x) => x.l);
         const heard = all.map((l) => ({ ...l, time: l.at, end: l.at + (l.end - l.time), words: l.words.map((w) => ({ w: w.w, t: l.at + w.t, e: l.at + w.e })) }));
         const al = ASR.alignToTyped(typed.map((l) => ({ id: l.id, text: l.text })), heard);
         const extra = new Set(al.extra); const pinned = al.matches.length; const added = all.filter((_, i) => extra.has(heard[i])).length; made = pinned + added;
         cchange(() => {
           const arr = state.song.lyrics = state.song.lyrics || [];
-          if (replace) for (const l of arr) if (!l.deleted && l.asr && srcIds.has(l.asr)) { l.deleted = true; l.deletedBy = me(); }
+          if (wipe) { for (const l of arr) if (!l.deleted) { l.deleted = true; l.deletedBy = me(); } }
+          else if (replace) { for (const l of arr) if (!l.deleted && l.asr) { l.deleted = true; l.deletedBy = me(); } }
           for (const m of al.matches) { const l = arr.find((x) => x.id === m.id); if (!l) continue; l.time = Math.max(0, m.time); l.words = m.words.slice(0, 60).map((w) => ({ w: w.w, t: Math.round((w.t - l.time) * 1000) / 1000, e: Math.round((w.e - l.time) * 1000) / 1000 })); { const h = heard.find((x) => m.time >= x.time - 0.05 && m.time <= x.end + 0.05); l.heardFrom = h ? (h.c.src || h.c.id) : null; } }
           all.forEach((l, i) => { if (!extra.has(heard[i])) return; arr.push({ id: newId(), time: Math.max(0, l.at), text: l.text.slice(0, 200), words: l.words.slice(0, 40), asr: l.c.src || l.c.id, by: me(), at: nowIso() }); });
         }, { label: `lyrics from ${items.length === 1 ? items[0].c.name : `${items.length} takes`} (speech-to-text, ${made} lines)` });
@@ -4051,9 +4063,16 @@
   const bassTrack = (t) => AMX.role(t) === 'bass';
   const mono = (chs) => { if (chs.length === 1) return chs[0]; const n = chs[0].length, m = new Float32Array(n); for (const c of chs) for (let i = 0; i < n; i++) m[i] += c[i] / chs.length; return m; };
   let chordBusy = null;
-  async function chordsFromTracks(list = null, { replaceDrafts = true } = {}) {
+  async function chordsFromTracks(list = null, { replaceDrafts = true, wipe = null } = {}) {
     if (chordBusy) { status('Already listening for chords — one moment.'); return chordBusy; }
     if (!state.folder) throw new Error('no song open');
+    if (wipe === null) {
+      const ex = liveChords(); const typedN = ex.filter((c) => !c.det).length;
+      if (ex.length) {
+        const a = await ask('Chords from the recordings', `This song already has ${ex.length} chord${ex.length === 1 ? '' : 's'}${typedN ? ` (${typedN} typed by hand)` : ''}. Replace them with what Cobander hears? ${MOD}+Z brings them back.`, [['Replace all', 'replace', 'danger'], ...(typedN ? [['Keep typed chords, replace the drafts', 'keep']] : []), ['Cancel', 'cancel']]);
+        if (!a || a === 'cancel') return 0; wipe = a === 'replace';
+      } else wipe = false;
+    }
     await engine.init();
     const len = engine.contentLength(); if (!len) { status('Nothing recorded yet.'); return 0; }
     const tracks = (list || engine.tracks.filter((t) => harmonicTrack(t) || bassTrack(t))).filter((t) => engine.audible(t) && t.clips.some((c) => !engine.clipMuted(c)));
@@ -4075,7 +4094,7 @@
         if (!found.length) { status("Couldn't hear clear chords in those takes.", 7000); return 0; }
         const kh = found.keyHeard; const keyNow = state.song.key || '';
         if (kh && kh.confidence >= 0.6 && kh.key !== keyNow && !sameNotes(kh.key, keyNow)) toast(`The bass line says this song is in ${kh.key}${keyNow ? `, not ${keyNow}` : ''} — the chords were named in ${kh.key}.`, { kind: 'warn', ms: 20000, buttons: [[`Set the key to ${kh.key}`, () => setSongKey(kh.key, 'bass line')], ...(keyNow ? [[`Keep ${keyNow}`, () => {}]] : [])] });
-        const have = liveChords(); const barOfT = (t) => { let k = -1; for (let i = 0; i < barStarts.length; i++) if (barStarts[i] <= t + 1e-3) k = i; else break; return k; };
+        const have = wipe ? [] : liveChords(); const barOfT = (t) => { let k = -1; for (let i = 0; i < barStarts.length; i++) if (barStarts[i] <= t + 1e-3) k = i; else break; return k; };
         const keptBars = new Set(have.filter((c) => !(replaceDrafts && c.det)).map((c) => barOfT(c.time)));
         // linked copies take their chords from the room (a chord of their own would unlink them): listen there only
         const followers = Object.values(TPL.linkInfo(collectSong()) || {}).flatMap((g) => g.followers);
@@ -4086,7 +4105,8 @@
         if (!add.length) { status('Every bar already has chords — nothing to add (chords you typed always win).', 7000); return 0; }
         cchange(() => {
           const arr = state.song.chords = state.song.chords || [];
-          if (replaceDrafts) for (const c of arr) if (!c.deleted && c.det && !keptBars.has(barOfT(c.time))) { c.deleted = true; c.deletedBy = me(); }
+          if (wipe) { for (const c of arr) if (!c.deleted) { c.deleted = true; c.deletedBy = me(); } }
+          else if (replaceDrafts) { for (const c of arr) if (!c.deleted && c.det && !keptBars.has(barOfT(c.time))) { c.deleted = true; c.deletedBy = me(); } }
           for (const f of add) arr.push({ id: newId(), time: Math.round(f.time * 1000) / 1000, chord: f.chord, by: me(), at: nowIso(), det: true, conf: Math.round((f.conf || 0) * 100) / 100 });
         }, { label: `chords from the recordings (${add.length})` });
         renderAll(); if (tabShown('chart')) renderChart();
@@ -4098,6 +4118,49 @@
     return chordBusy;
   }
 
+  // ---------- your phone as a recording remote (phone.html "Record" tab) ----------
+  // What the phone shows: the tracks (arm / mute / solo / whose lock), the input level, the transport, the parts to
+  // loop, the last take. What it can do: everything the R key, the arm buttons and the transport do — plus "retake"
+  // (drop the last take and record again) and "keep" — without touching the computer.
+  function phoneRec() {
+    if (!state.folder || !state.song) return null;
+    const pp = MT.posAt(meter(), Math.max(0, engine.playing ? engine.currentPos() : engine.playhead) + 1e-4);
+    const lvl = engine.inputLevel();
+    const last = state.phoneLastTake && engine.tracks.flatMap((t) => t.clips).find((c) => c.id === state.phoneLastTake) ? state.phoneLastTake : null;
+    return {
+      tracks: engine.tracks.filter((t) => t.instrument !== 'drumkit').map((t) => ({ id: t.id, name: t.name, type: t.type, midi: String(t.instrument).startsWith('synth:'), armed: state.armedTrack === t.id, mute: !!t.mute, solo: !!t.solo, mine: mineT(t.id), heldBy: heldBy(t.id), takes: t.clips.length, last: t.clips.slice().sort((a, b) => String(b.takenAt || '').localeCompare(String(a.takenAt || '')))[0]?.name || null })),
+      armed: state.armedTrack || null, recording: !!engine.recording, playing: !!engine.playing, finishing: !!finishing, readOnly: !!state.readOnly,
+      bar: `${pp.bar}.${pp.beat}`, pos: engine.playing ? engine.currentPos() : engine.playhead, input: lvl ? lvl.peakDbfs : null, inputOpen: !!engine.stream,
+      click: !!engine.click.on, countIn: !!engine.click.countIn, countInBars: engine.click.countInBars || 1, loop: engine.loop.enabled ? { from: engine.loop.start, to: engine.loop.end } : null,
+      parts: liveSections().slice().sort((a, b) => a.start - b.start).map((x) => ({ id: x.id, name: x.name, start: x.start, end: x.end, bar: Math.round(barIdx(x.start)) + 1 })),
+      lastTake: last ? (() => { const t = engine.tracks.find((x) => x.clips.some((c) => c.id === last)); const c = t.clips.find((x) => x.id === last); return { id: c.id, name: c.name, track: t.name, secs: Math.round((engine.clipLength(c) || c.duration || 0) * 10) / 10 }; })() : null,
+      punch: !!($('#punch-on') && $('#punch-on').checked),
+    };
+  }
+  async function phoneRecCmd(a, args) {
+    if (!state.folder) return false;
+    const t = args.trackId ? engine.track(args.trackId) : null;
+    switch (a) {
+      case 'arm': { if (!t) throw new Error('no such track'); if (!mineT(t.id)) { const h = heldBy(t.id); if (h) throw new Error(`${h} has ${t.name} unlocked`); await unlockTrack(t.id, { quiet: true }); if (!mineT(t.id)) throw new Error(`${t.name} is locked`); } state.armedTrack = state.armedTrack === t.id ? null : t.id; renderTracks(); return true; }
+      case 'record': { if (engine.recording) return true; if (!state.armedTrack && t) state.armedTrack = t.id; await record(state.armedTrack || undefined); return true; }
+      case 'stop': { if (engine.recording) { const before = new Set(engine.tracks.flatMap((x) => x.clips.map((c) => c.id))); await finishRecording(); const fresh = engine.tracks.flatMap((x) => x.clips).filter((c) => !before.has(c.id)).sort((x, y) => String(y.takenAt || '').localeCompare(String(x.takenAt || '')))[0]; if (fresh) state.phoneLastTake = fresh.id; } else if (engine.playing) { engine.pause(); positionPlayhead(); } return true; }
+      case 'play': { if (engine.recording) return true; if (engine.playing) { engine.pause(); positionPlayhead(); } else await play(); return true; }
+      case 'tostart': { if (engine.recording) return true; engine.seek(engine.loop.enabled ? engine.loop.start : 0); positionPlayhead(); return true; }
+      case 'seek': { if (engine.recording) return true; engine.seek(Math.max(0, Number(args.t) || 0)); positionPlayhead(); return true; }
+      case 'loop': { if (engine.recording) return true; if (args.part) { const sc = liveSections().find((x) => x.id === args.part); if (!sc) throw new Error('no such part'); engine.setLoop({ enabled: true, start: sc.start, end: sc.end }); engine.seek(sc.start); } else engine.setLoop({ enabled: false }); $('#loop-on').checked = engine.loop.enabled; loopBarsFromEngine(); drawRuler(); positionPlayhead(); return true; }
+      case 'click': { engine.click.on = !!args.on; $('#click-on').checked = engine.click.on; engine.applyAll(); return true; }
+      case 'countin': { engine.click.countIn = !!args.on; if (args.bars) engine.click.countInBars = Math.max(1, Math.min(2, Number(args.bars) || 1)); $('#count-in').checked = engine.click.countIn; return true; }
+      case 'punch': { const p = $('#punch-on'); if (p) { p.checked = !!args.on; p.dispatchEvent(new Event('change')); } return true; }
+      case 'mute': case 'solo': { if (!t) throw new Error('no such track'); toggleMS(t, a); return true; }
+      case 'retake': {   // drop the last take this phone recorded and arm the same track at the same spot
+        if (engine.recording || finishing) return true; const id = state.phoneLastTake; const tt = id && engine.tracks.find((x) => x.clips.some((c) => c.id === id)); const c = tt && tt.clips.find((x) => x.id === id); if (!c) throw new Error('no take to drop');
+        const at = c.start; await deleteClip(tt, c, { confirm: false }); state.phoneLastTake = null; state.armedTrack = tt.id; engine.seek(at); renderTracks(); positionPlayhead(); status(`Dropped ${c.name} — ready to go again from ${fmtBar(at)}.`, 6000); return true;
+      }
+      case 'keep': { if (state.phoneLastTake) { const tt = engine.tracks.find((x) => x.clips.some((c) => c.id === state.phoneLastTake)); const c = tt && tt.clips.find((x) => x.id === state.phoneLastTake); if (tt && c) keepTake(tt, c); } state.phoneLastTake = null; return true; }
+      case 'addtrack': { if (state.readOnly) throw new Error('read-only'); const nt = engine.addTrack(String(args.name || 'Phone take').slice(0, 40)); pushUndo('add track'); state.armedTrack = nt.id; state.selectedTrack = nt.id; renderAll(); markDirty(); return true; }
+      default: return false;
+    }
+  }
   // ---------- your phone as a practice screen (main.js serves phone.html on the home network) ----------
   async function openPhoneLink() {
     const inf = await bp.phone.start(); const urls = (inf && inf.urls) || [];
@@ -4107,7 +4170,7 @@
     const box = $('#ask-text'); box.textContent = '';
     const qr = window.qrcode(0, 'M'); qr.addData(url); qr.make();
     const pic = el('div', 'qr'); pic.innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
-    box.append(el('div', null, 'Point your phone camera at this (same Wi-Fi as this computer). It follows the song live — words, chords, the part you\'re in — and has play / pause and part skips.'), pic, el('div', 'mono small', url));
+    box.append(el('div', null, 'Point your phone camera at this (same Wi-Fi as this computer). Practice: it follows the song live — words, chords, the part you\'re in — with play / pause and part skips. Record: arm a track, watch the input level, record / stop / retake / keep, loop a part, click and count-in — the whole take from across the room.'), pic, el('div', 'mono small', url));
     if (urls.length > 1) box.append(el('div', 'muted small', `Other addresses: ${urls.slice(1).map((u) => u.url.replace(/\?k=.*/, '')).join(', ')}`));
     box.append(el('div', 'muted small', 'Windows may ask to let Cobander on the network the first time — allow it on Private networks. Anyone with this link on your Wi-Fi can follow along; "New link" retires it.'));
     const menu = $('#ask-menu'); menu.innerHTML = '';
@@ -7144,7 +7207,7 @@
         else if (args.trackId) { const t = engine.track(args.trackId); if (!t) throw new Error(`no track ${args.trackId}`); list = t.clips.filter((c) => !c.link && !c.mute && c.kind !== 'midi').map((c) => ({ t, c })); }
         else list = engine.tracks.filter(isVocalTrack).flatMap((t) => t.clips.filter((c) => !c.link && !c.mute && c.kind !== 'midi').map((c) => ({ t, c })));
         if (args.model) { state.settings = await bp.settings.set({ asrModel: String(args.model) }); }
-        const n = await transcribeClips(list, { replace: args.replace !== false });
+        const n = await transcribeClips(list, { replace: args.replace !== false, wipe: args.wipe === true });   /* API: no dialog; wipe:true drops every existing line first */
         return { lines: n || 0, lyrics: liveLyrics().filter((l) => l.asr).map((l) => ({ id: l.id, time: l.time, text: l.text, words: (l.words || []).length })) };
       }
       case 'audioSettings': {
@@ -7180,10 +7243,12 @@
         const pr = practice; const end = Math.max(engine.contentLength() || 0, ...liveSections().map((x) => x.end), 1);
         return { song: state.song.name, v, lines: args.since === v ? null : ls.map((l) => ({ time: l.time, end: l.end, section: l.section, words: l.words.map((w) => ({ w: w.w, t: w.t, e: w.e })), chords: (l.chords || []).map((c) => ({ chord: c.chord, wi: c.wi })) })),
           sections: secs, bars: secs.length ? null : barsOf(0, end), pos: kara.open ? karaTime() : (engine.playing ? engine.currentPos() : engine.playhead), playing: !!(engine.playing || pr), rate: pr ? pr.pct / 100 : 1,
-          loop: pr ? { from: pr.from, to: pr.to } : engine.loop.enabled ? { from: engine.loop.start, to: engine.loop.end } : null, end, key: state.song.key || null, setlist: kara.setlist ? `song ${kara.setlist.i + 1}/${kara.setlist.order.length}` : null };
+          loop: pr ? { from: pr.from, to: pr.to } : engine.loop.enabled ? { from: engine.loop.start, to: engine.loop.end } : null, end, key: state.song.key || null, setlist: kara.setlist ? `song ${kara.setlist.i + 1}/${kara.setlist.order.length}` : null,
+          rec: phoneRec() };
       }
       case 'phoneCmd': {
         const a = String(args.action || '');
+        if (await phoneRecCmd(a, args)) return { ok: true };
         if (a === 'toggle') { if (kara.open) await karaToggle(); else if (engine.playing) { engine.pause(); positionPlayhead(); } else await play(); }
         else if (a === 'nextpart' || a === 'prevpart') { if (kara.open) karaPart(a === 'nextpart' ? 1 : -1); else { const ps = liveSections().map((x) => x.start).sort((x, y) => x - y); const t = engine.playing ? engine.currentPos() : engine.playhead; const to = a === 'nextpart' ? ps.find((x) => x > t + 0.05) : [...ps].reverse().find((x) => x < t - 1); if (to != null) { engine.seek(to); positionPlayhead(); } } }
         else if (a === 'nextsong' || a === 'prevsong') { if (kara.setlist) await karaGoSong(a === 'nextsong' ? 1 : -1); }
@@ -7195,7 +7260,7 @@
       case 'chartAll': return chartAllSongs({ interactive: false });
       case 'tabTrack': { writable(); const t = engine.track(args.trackId); if (!t) throw new Error('no such track'); await tabTrack(t); const tb = tabFor(t.id); if (!tb) throw new Error('no notes heard'); return { ...tb, text: tabsText(0) }; }
       case 'tabs': { need(); return { tabs: liveTabs(), text: tabsText(0) }; }
-      case 'chordsDetect': { writable(); const ts = Array.isArray(args.trackIds) ? args.trackIds.map((id) => engine.track(id)).filter(Boolean) : null; const n = await chordsFromTracks(ts, { replaceDrafts: args.replaceDrafts !== false }); return { added: n || 0, chords: liveChords().map((c) => ({ time: c.time, chord: c.chord, det: !!c.det })) }; }
+      case 'chordsDetect': { writable(); const ts = Array.isArray(args.trackIds) ? args.trackIds.map((id) => engine.track(id)).filter(Boolean) : null; const n = await chordsFromTracks(ts, { replaceDrafts: args.replaceDrafts !== false, wipe: args.wipe === true }); return { added: n || 0, chords: liveChords().map((c) => ({ time: c.time, chord: c.chord, det: !!c.det })) }; }
       case 'autoMix': { writable(); const r = await autoMix(); return r ? { changes: r.lines, tracks: engine.tracks.map((t) => ({ id: t.id, name: t.name, gainDb: t.gainDb, pan: t.pan, fx: t.fx })) } : null; }
       case 'autoMaster': { writable(); const r = await autoMaster({ target: args.target != null ? Number(args.target) : -14 }); return r ? { gainDb: engine.master.gainDb, limiter: engine.master.limiter, expectedLufs: r.expectedLufs } : null; }
       case 'mixAB': { if (!state.mixAB) throw new Error('nothing to A/B yet — Auto mix first'); mixABToggle(); return { showing: state.mixAB.showing }; }
@@ -7216,6 +7281,7 @@
         if (args.boss !== undefined) patch['band:boss'] = args.boss ? { title: String(args.boss.title || '').slice(0, 80), date: /^\d{4}-\d\d-\d\d$/.test(String(args.boss.date || '')) ? args.boss.date : '', songs: (args.boss.songs || []).map((x) => songOf(x).qid) } : null;
         if (args.next !== undefined) patch['band:next'] = String(args.next || '').slice(0, 200);
         if (args.bandName !== undefined) patch['band:name'] = String(args.bandName || '').slice(0, 60);
+        if (args.member) { const mb = Q.memberFor(b.members, args.member.name); if (!mb) throw new Error(`no member ${args.member.name}`); const ch = {}; if (args.member.aliases !== undefined) ch.aliases = (Array.isArray(args.member.aliases) ? args.member.aliases : String(args.member.aliases).split(',')).map((a) => String(a).trim()).filter(Boolean).slice(0, 6); if (args.member.role !== undefined) ch.role = String(args.member.role).slice(0, 30); await memberWrite(mb, ch); if (!Object.keys(patch).length) { await loadQuest(); renderSongs(); return { ok: true, member: memberRow(Q.memberFor(quest.board.members, mb.name) || mb) }; } }
         if (args.manual) { const s = songOf(args.manual.song); const mb = Q.memberFor(b.members, args.manual.member); if (!mb) throw new Error(`no member ${args.manual.member}`); patch[qKey(s, `m:${mb.name}:${s.folder ? 'manual' : 'pct'}`)] = args.manual.pct == null ? null : Q.clampPct(args.manual.pct); }
         if (!Object.keys(patch).length) throw new Error('nothing to set'); await questWrite(patch); return { ok: true, xp: quest.board.xp };
       }
