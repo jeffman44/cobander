@@ -201,7 +201,7 @@
   // public links: GitHub, bugs, the tip jar (Ko-fi shows once package.json names a page)
   for (const b of document.querySelectorAll('.link-btn[data-link]')) b.addEventListener('click', () => bp.shell.openLink(b.dataset.link).catch(fail));
   bp.shell.links().then((l) => { for (const b of document.querySelectorAll('.link-btn[data-link]')) { const k = b.dataset.link; const has = k === 'kofi' ? !!l.kofi : k === 'venmo' ? !!l.venmo : k === 'takeout' ? !!l.takeout : (k === 'openmoji' || k === 'gameicons' || k === 'lpc' || k === 'manual' || k === 'site' || k === 'roadie' || k === 'vip') ? true : !!l.repo; b.hidden = !has; if (k === 'takeout' && has) b.dataset.has = '1'; } renderTakeout(); }).catch(() => {});
-  $('#s-check-update').addEventListener('click', async () => { const b = $('#s-check-update'); b.disabled = true; try { const st = await bp.update.check(); renderUpdate(st); if (!st.available) toast(st.latest ? `You're on the latest (${st.current}).` : 'No installers folder in the shared band folder yet.', { ms: 5000 }); } catch (err) { fail(err); } finally { b.disabled = false; } });
+  $('#s-check-update').addEventListener('click', async () => { const b = $('#s-check-update'); b.disabled = true; try { const st = await bp.update.check(); renderUpdate(st); if (!st.available) toast(st.latest ? `You're on the latest (${st.current}).` : `Couldn't read the latest release${st.reason ? ` — ${st.reason}` : ''}.`, { ms: 8000 }); } catch (err) { fail(err); } finally { b.disabled = false; } });
 
   var MT = window.BPMeter;   // hoisted: used from init-time renders
   function promptName(title, initial = '') {

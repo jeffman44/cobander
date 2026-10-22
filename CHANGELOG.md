@@ -1,5 +1,9 @@
 # Cobander changelog
 
+## 0.16.2
+- Auto-update from GitHub works. Every install so far asked GitHub for a repository named "github:jeffman44/cobander" and got nothing back, so the Update bar never appeared once the band folder stopped carrying installers. This one you install by hand from cobander.com; from here on the bar does it.
+- "Check for updates" says why when it can't read the release (unreachable, rate-limited, no manifest) instead of blaming the band folder.
+
 ## 0.16.1
 - Mono takes stay mono: Settings → Record channels picks what a take keeps from a 2-input interface — auto (mono when the other input is dead or both sides carry the same signal), input 1 only, input 2 only, or stereo. Auto used to need the other input to be dead silent, so any noise on input 2 made the take stereo.
 - Right-click a stereo take → Make mono (input 1 / input 2 / both mixed): a new mono file, undoable; the stereo file stays in the folder.

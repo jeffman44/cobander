@@ -52,12 +52,13 @@ class Updater {
   async readGithubManifest() {
     const repo = this.o.repo; if (!repo || !this.o.fetch) return null;
     const now = Date.now(); if (this.gh && now - this.gh.at < 5 * 60 * 1000) return this.gh.m;
-    let m = null;
+    let m = null; this.ghError = null;
     try {
       const r = await this.o.fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers: { accept: 'application/vnd.github+json', 'user-agent': 'cobander-updater' } });
       if (r.ok) { const rel = await r.json(); const asset = (rel.assets || []).find((a) => a.name === MANIFEST); if (asset) { const r2 = await this.o.fetch(asset.browser_download_url, { headers: { 'user-agent': 'cobander-updater' } }); if (r2.ok) { m = await r2.json(); if (m && m.chunked && m.chunked.version && cmpVer(m.chunked.version, m.version) > 0) { const ck = m.chunked; m = { version: ck.version, date: ck.date, notes: ck.notes, files: {}, size: {}, sha256: {} }; for (const [k, f] of Object.entries(ck.files || {})) { m.files[k] = String(f.name || '').replace(/^BandPad-/, 'Cobander-'); m.size[k] = f.size; m.sha256[k] = f.sha256; } }   /* the band folder's latest.json carries the real release under `chunked` (the top level is the 0.8.1 bridge) */
           if (m && m.version) { m.github = { tag: rel.tag_name, assets: Object.fromEntries((rel.assets || []).map((a) => [a.name, { url: a.browser_download_url, size: a.size }])) }; delete m.chunked; } else m = null; } } }
-    } catch (_) { m = null; }
+      if (!r.ok) this.ghError = `GitHub answered ${r.status}`; else if (!m) this.ghError = 'the release has no latest.json';
+    } catch (err) { m = null; this.ghError = `GitHub unreachable: ${err.message || err}`; }
     this.gh = { at: now, m }; if (m) this.source = 'github';
     return m;
   }
@@ -65,7 +66,7 @@ class Updater {
   async check({ force = false } = {}) {
     if (this.installing) return this.status;
     const m = await this.readManifest();
-    if (!m) return this.set({ state: 'idle', latest: null, available: false });
+    if (!m) return this.set({ state: 'idle', latest: null, available: false, reason: this.ghError || (this.o.repo ? null : 'no GitHub repo configured') });
     const key = platformKey();
     // Chunked release (0.8.1+): the installer is stored on Drive as ≤25 MB parts (so it can be published without
     // anyone's PC joining it). Older Cobanders ignore `chunked` and use the top-level full installer instead.
@@ -197,4 +198,10 @@ class Updater {
   }
 }
 
-module.exports = { Updater, cmpVer, platformKey, MANIFEST, sha256File };
+// package.json "repository" → "owner/name" ("github:owner/name", a github.com URL, or {url})
+function repoSlug(repository) {
+  if (!repository) return null;
+  const s = String(repository.url || repository).trim().replace(/^github:/, '').replace(/^.*github\.com[/:]/, '').replace(/\.git$/, '').replace(/\/+$/, '');
+  return /^[\w.-]+\/[\w.-]+$/.test(s) ? s : null;
+}
+module.exports = { Updater, cmpVer, platformKey, MANIFEST, sha256File, repoSlug };
