@@ -1,5 +1,10 @@
 # Cobander changelog
 
+## 0.17.1
+- You're you on every computer: pick who you are in the band (from the names on the band's license, or the band roster) and a display name to show on top. Locks follow the person, not the computer, so opening a song on the laptop that's still marked open on your home PC just takes it — and your own unlocked tracks from the other computer are yours, not "locked by" you. A bandmate is still blocked, as before.
+- First start after the update: if your name already matches someone on the license you're matched quietly; otherwise Cobander asks once. Change it any time under ⚙ → Who are you in the band? A nickname that isn't your member name is added to your "also known as" list, so your character and XP follow.
+- The song list shows "you (on <computer>)" for a song you left open somewhere else.
+
 ## 0.17.0
 - Guitar tabs to play along with, lead and rhythm: Practice → play along lists every guitar part — "Rhythm guitar (Gtr L)", "Lead guitar (Solo)" — and you pick the one you're practising. Lead vs rhythm comes from the track name when it says so, otherwise from what was played (mostly chords = rhythm, mostly single notes = lead). The first time you pick a part it's read off its takes in the background (Practice keeps running); re-recorded takes are read again by themselves unless someone edited the tab.
 - Tabs are editable: ✎ Edit tab (Chords tab, Practice, or right-click a guitar / bass track → Edit the tab…). Click a string and type a fret (0–24, two digits for 10+), Delete clears, Shift+Delete clears the column, type a chord name and an empty column gets a playable shape (open chords, E- and A-shape barres, power chords; bass gets the root), Alt+←→ moves a note, Space plays from the cursor, Ctrl+Z undoes. Grid in 1/4, 1/8, triplets or 1/16 over the song's own beats. You can also write a tab by hand on a track with no takes.

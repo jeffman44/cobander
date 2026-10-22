@@ -229,7 +229,8 @@
 <dialog id="settings">
   <form method="dialog">
     <h3>Settings</h3>
-    <label>Your name (shown to bandmates on locks and takes)<input id="s-name" title="Your name — bandmates see it on locks and on the takes you record" type="text" placeholder="e.g. Kat"></label>
+    <label>Who are you in the band?<select id="s-member" title="Pick yourself from the band's license (or the band roster). Your tracks and songs follow you to every computer you use Cobander on."></select></label>
+    <label>Show me as<input id="s-name" title="The name bandmates see on locks, takes and the band page — a nickname is fine, change it any time" type="text" placeholder="e.g. Kat"></label>
     <label>Shared band folder (inside Google Drive, OneDrive, iCloud Drive or Dropbox)<div class="row"><input id="s-folder" title="The folder every bandmate points Cobander at. Pick one inside Google Drive, OneDrive, iCloud Drive or Dropbox so the whole band shares it." type="text" readonly><button type="button" id="s-pick" title="Pick the folder inside your cloud drive that the whole band shares. Everyone points Cobander at the same folder.">Choose…</button></div>
       <span id="s-cloud" class="small muted"></span>
       <span id="s-drive-warn" class="small warn-text" hidden>This doesn't look like a folder a cloud-sync app keeps on this computer (Google Drive for desktop, OneDrive, iCloud Drive, Dropbox). Cobander works in any folder, but the band only sees each other's noodles if every bandmate points Cobander at the same synced folder.</span>
@@ -253,6 +254,16 @@
       <div class="small mono" id="s-api"></div>
     </details>
     <menu><button value="ok" id="s-save" class="primary">Save</button><button value="cancel" class="cancel" formnovalidate>Cancel</button></menu>
+  </form>
+</dialog>
+
+<dialog id="whoami">
+  <form method="dialog">
+    <h3 id="wa-title">Who are you?</h3>
+    <p class="small muted">Pick yourself — your locks, tracks and songs follow you to every computer you use Cobander on.</p>
+    <div id="wa-members" class="wa-members"></div>
+    <label>Show me as<input id="wa-alias" type="text" maxlength="30" title="The name bandmates see — a nickname is fine, change it any time in Settings" placeholder="your name or a nickname"></label>
+    <menu><button value="skip" title="Keep going without picking — you can pick in Settings any time">Not now</button><button id="wa-ok" value="ok" class="primary" disabled>That's me</button></menu>
   </form>
 </dialog>
 

@@ -96,12 +96,26 @@ async function atomicWrite(filePath, data) {
 
 // machineName: remembered once in settings, because macOS changes os.hostname() with the network (.local/.lan/DHCP names)
 // and a changed name would make my own leftover lock look like someone else's.
-function clientIdentity(displayName, machineName = null) {
+// `member` = which band member this install is (picked from the license / band roster); `user` = the display name
+// shown on locks and takes (an editable alias). Ownership follows the member, so the same person on two computers is
+// one person — never "someone else" holding their own tracks.
+function clientIdentity(displayName, machineName = null, member = null, aliases = []) {
+  const m = member ? String(member).trim().slice(0, 30) : null;
   return {
-    user: (displayName || os.userInfo().username || 'someone').trim(),
+    user: (displayName || m || os.userInfo().username || 'someone').trim(),
     host: machineName || os.hostname(),
     pid: process.pid,
+    member: m || null,
+    aliases: (Array.isArray(aliases) ? aliases : []).map((a) => String(a || '').trim()).filter(Boolean).slice(0, 8),
   };
+}
+const normName = (x) => String(x || '').trim().toLowerCase();
+// Same band member? Both carry a member → compare those. Otherwise (an older client's lock) any of the names match.
+function samePerson(a, b) {
+  if (!a || !b) return false;
+  if (a.member && b.member) return normName(a.member) === normName(b.member);
+  const names = (x) => [x.member, x.user, ...(Array.isArray(x.aliases) ? x.aliases : [])].map(normName).filter(Boolean);
+  const nb = new Set(names(b)); return names(a).some((n) => nb.has(n));
 }
 
 function emptySong(name) {
@@ -224,6 +238,7 @@ class SongStore {
           lock,
           lockMine: identity ? this.isMine(lock, identity) : false,
           lockSameMachine: identity ? this.isSameMachine(lock, identity) : false,
+          lockMeElsewhere: identity ? this.isMeElsewhere(lock, identity) : false,
           conflictCopies: await this.conflictCopies(e.name),
           needsOpen: Collab.needsOpen(raw).length,
           needsMine: identity ? Collab.needsFor(raw, identity.user, people).length : 0,
@@ -817,22 +832,22 @@ class SongStore {
     const f = this.trackLockFile(folder, trackId); let cur = null;
     try { cur = JSON.parse(await fsp.readFile(f, 'utf8')); } catch (_) { cur = null; }
     const fresh = cur && Date.now() - Number(cur.at || 0) <= TRACK_LOCK_IDLE_MS;
-    const mine = cur && cur.user === identity.user && cur.host === identity.host;
+    const mine = cur && samePerson(cur, identity);
     if (cur && fresh && !mine && !force) return { ok: false, lock: cur };
-    const lock = { user: identity.user, host: identity.host, token: mine ? cur.token : newId(), at: Date.now() };
+    const lock = { user: identity.user, host: identity.host, ...(identity.member ? { member: identity.member } : {}), token: mine ? cur.token : newId(), at: Date.now() };
     await atomicWrite(f, JSON.stringify(lock));
     return { ok: true, lock };
   }
   async touchTrackLock(folder, trackId, identity) {
     const f = this.trackLockFile(folder, trackId); let cur = null;
     try { cur = JSON.parse(await fsp.readFile(f, 'utf8')); } catch (_) { return { ok: false }; }
-    if (!cur || cur.user !== identity.user || cur.host !== identity.host) return { ok: false, lock: cur };
+    if (!cur || !samePerson(cur, identity)) return { ok: false, lock: cur };
     cur.at = Date.now(); await atomicWrite(f, JSON.stringify(cur)); return { ok: true, lock: cur };
   }
   async releaseTrackLock(folder, trackId, identity) {
     const f = this.trackLockFile(folder, trackId); let cur = null;
     try { cur = JSON.parse(await fsp.readFile(f, 'utf8')); } catch (_) { return; }
-    if (cur && cur.user === identity.user && cur.host === identity.host) await fsp.unlink(f).catch(() => {});
+    if (cur && samePerson(cur, identity)) await fsp.unlink(f).catch(() => {});
   }
   // ---- a track-lock holder's track (not the song editor): their latest version, one file per track ----
   async postTrack(folder, identity, trackId, payload) {
@@ -910,18 +925,20 @@ class SongStore {
   topGen(folder) { return (this.maxGen && this.maxGen.get(folder)) || 0; }
 
   isMine(lock, identity) {
-    return !!lock && lock.user === identity.user && lock.host === identity.host && lock.pid === identity.pid;
+    return this.isSameMachine(lock, identity) && lock.pid === identity.pid;
   }
   // Same person on the same computer, different process: a previous instance that
   // crashed or was force-quit. Reclaimable without ceremony.
   isSameMachine(lock, identity) {
-    return !!lock && lock.user === identity.user && lock.host === identity.host;
+    return !!lock && samePerson(lock, identity) && lock.host === identity.host;
   }
+  // Same person, another computer (left the song open at home, now on the laptop): still you — reclaimable too.
+  isMeElsewhere(lock, identity) { return !!lock && samePerson(lock, identity) && lock.host !== identity.host; }
 
   // Acquire the lock. Returns {ok:true, lock} or {ok:false, lock} where lock is the live holder.
   async acquireLock(folder, identity, { force = false } = {}) {
     const existing = await this.readLock(folder);
-    if (existing && !existing.stale && !this.isSameMachine(existing, identity) && !force) {
+    if (existing && !existing.stale && !samePerson(existing, identity) && !force) {
       return { ok: false, lock: existing };
     }
     const lock = { ...identity, token: newId(), since: Date.now(), heartbeat: Date.now(), lockGen: Math.max(existing && Number.isFinite(existing.lockGen) ? existing.lockGen : 0, this.topGen(folder)) + 1 };
@@ -979,6 +996,7 @@ module.exports = {
   safeSongName,
   atomicWrite,
   clientIdentity,
+  samePerson,
   emptySong,
   newId,
   num,

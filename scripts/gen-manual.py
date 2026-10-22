@@ -83,6 +83,7 @@ write_page('index.html', 'Start here', 'How to use Cobander: setup, the five wor
   <li>Open Cobander and type your name. Bandmates see it on the takes you record.</li>
   <li>Click ⚙ and point Cobander at a folder inside the cloud folder your band shares (Google Drive, OneDrive, iCloud Drive or Dropbox). A new folder is fine: <code>Band stuff / Cobander</code>.</li>
   <li>Every bandmate does the same, with the same folder. That's it. Songs, takes, chords and words show up for everyone within seconds.</li>
+  <li>If the band has a license, Cobander asks <b>who you are</b> from the names on it — pick yourself and, if you like, a nickname to show. Use Cobander on a second computer and pick the same name: your tracks and songs are yours there too, nobody's locked out by their own home PC. (⚙ → Who are you in the band? changes it.)</li>
 </ol>
 <div class="tip">Share the folder with the band from the cloud app itself (Drive "Share", OneDrive "Share", iCloud "Collaborate", Dropbox "Share"). Then turn on "always keep on this device" / "available offline" for it, so takes aren't downloading in the middle of a song.</div>
 

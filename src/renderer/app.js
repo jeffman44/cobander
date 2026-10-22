@@ -69,7 +69,8 @@
     state.settings = await bp.settings.get();
     // audio held as float up to this many MB (default: a fifth of the machine's RAM, 256–1024 MB); the rest streams as 16-bit
     if (engine.buffers.floatBudget !== undefined) engine.buffers.floatBudget = 1e6 * (Number.isFinite(Number(state.settings.audioFloatMB)) ? Number(state.settings.audioFloatMB) : Math.max(256, Math.min(768, Math.round((navigator.deviceMemory || 4) * 1024 * 0.2))));
-    $('#who').textContent = state.settings.displayName || 'no name set — click ⚙';
+    { const mb = state.settings.member, dn = state.settings.displayName; $('#who').textContent = dn ? (mb && mb.toLowerCase() !== dn.toLowerCase() ? `${dn} (${mb})` : dn) : mb || 'no name set — click ⚙'; }
+    try { if (state.settings.identity) ME = state.settings.identity; } catch (_) { /* before the lock code has run */ }
     $('#folder-line').textContent = state.settings.sharedFolder || 'No shared folder yet — open Settings';
     $('#folder-line').title = state.settings.sharedFolder || '';
     engine.offsetManual = state.settings.recordOffsetMs != null; if (engine.offsetManual) engine.recordOffsetMs = state.settings.recordOffsetMs;
@@ -108,9 +109,63 @@
     b.disabled = false; scheduleInputRelease();
   });
 
+  // ---- who am I: the band member this install is. Picked from the license (members on the key), then the band
+  // roster; the display name is an editable alias on top. Locks follow the member, not the computer.
+  function whoChoices() {
+    const out = []; const add = (n) => { n = String(n || '').trim(); if (n && !out.some((x) => x.toLowerCase() === n.toLowerCase())) out.push(n); };
+    for (const n of (state.takeout && state.takeout.unlocked && state.takeout.members) || []) add(n);
+    try { for (const m of (quest && quest.board && quest.board.members) || []) if (!m.guest) add(m.name); } catch (_) {}
+    return out;
+  }
+  function fillWho() {
+    const sel = $('#s-member'); if (!sel) return; sel.innerHTML = '';
+    const cur = state.settings.member || '';
+    const opts = [['', '— pick yourself —'], ...whoChoices().map((n) => [n, n])];
+    if (cur && !opts.some(([v]) => v.toLowerCase() === cur.toLowerCase())) opts.push([cur, cur]);
+    opts.push(['*new*', 'Someone new (just use the name below)']);
+    for (const [v, t] of opts) { const o = el('option', null, t); o.value = v; if (v && cur && v.toLowerCase() === cur.toLowerCase()) o.selected = true; sel.appendChild(o); }
+    sel.onchange = () => { const v = sel.value; if (v && v !== '*new*' && !$('#s-name').value.trim()) $('#s-name').value = v; };
+  }
+  // a nickname that isn't the member's name goes on their "also known as" list, so avatars and XP still find them
+  async function rememberAlias(member, alias) {
+    if (!alias || !quest || !bp.quest || alias.toLowerCase() === member.toLowerCase()) return;
+    await loadQuest(); const mb = (quest.board && quest.board.members || []).find((m) => m.name.toLowerCase() === member.toLowerCase()); if (!mb) return;
+    if ((mb.aliases || []).some((a) => a.toLowerCase() === alias.toLowerCase())) return;
+    await memberWrite(mb, { aliases: [...(mb.aliases || []), alias].slice(-6) });
+  }
+  function whoDialog(choices) {
+    return new Promise((resolve) => {
+      const d = $('#whoami'), box = $('#wa-members'), alias = $('#wa-alias'), ok = $('#wa-ok'); let pick = null;
+      $('#wa-title').textContent = state.takeout && state.takeout.band ? `Who are you in ${state.takeout.band}?` : 'Who are you in the band?';
+      box.innerHTML = ''; alias.value = state.settings.displayName || '';
+      for (const n of choices) { const b = el('button', null, n); b.type = 'button'; b.addEventListener('click', () => { pick = n; for (const x of box.children) x.classList.toggle('on', x === b); if (!alias.value.trim() || choices.some((c) => c.toLowerCase() === alias.value.trim().toLowerCase())) alias.value = n; ok.disabled = false; }); box.append(b); }
+      ok.disabled = true; d.returnValue = ''; d.showModal();
+      d.addEventListener('close', function h() { d.removeEventListener('close', h); resolve(d.returnValue === 'ok' && pick ? { member: pick, alias: alias.value.trim() || pick } : null); });
+    });
+  }
+  // At start (and when the band folder changes): nothing picked yet → match the name already typed to a member
+  // silently; otherwise ask once per band folder.
+  async function whoCheck({ ask: askUser = true } = {}) {
+    if (!state.settings.sharedFolder || state.settings.member) return;
+    try { if (!state.takeout) await renderTakeout(); if (quest && !quest.board) await loadQuest(); } catch (_) {}
+    const choices = whoChoices(); if (!choices.length) return;
+    const dn = String(state.settings.displayName || '').trim().toLowerCase();
+    let hit = dn && choices.find((c) => c.toLowerCase() === dn);
+    if (!hit && dn) { try { const m = memberOf(state.settings.displayName); if (m && choices.some((c) => c.toLowerCase() === m.name.toLowerCase())) hit = m.name; } catch (_) {} }
+    let r = hit ? { member: hit, alias: state.settings.displayName } : null;
+    const skipKey = `bp.whoSkip.${state.settings.sharedFolder}`;
+    if (!r && askUser && ((state.takeout && state.takeout.unlocked && state.takeout.members) || []).length) {   /* asking needs a license with names on it; the roster alone only matches quietly */ let skipped = false; try { skipped = !!localStorage.getItem(skipKey); } catch (_) {} if (!skipped) { r = await whoDialog(choices); if (!r) { try { localStorage.setItem(skipKey, '1'); } catch (_) {} } } }
+    if (!r) return;
+    state.settings = await bp.settings.set({ member: r.member, displayName: r.alias || r.member });
+    await loadSettings(); rememberAlias(r.member, r.alias).catch(() => {});
+    if (state.folder) { state.tlocks = await bp.tlock.list(state.folder).catch(() => state.tlocks); renderAll(); }
+    await refreshSongs();
+  }
+
   async function openSettings() {
     const d = $('#settings');
     $('#s-name').value = state.settings.displayName || '';
+    fillWho();
     $('#s-folder').value = state.settings.sharedFolder || '';
     $('#s-offset').value = engine.offsetManual ? engine.recordOffsetMs : (engine.ctx ? engine.autoOffsetMs() : engine.recordOffsetMs ?? 0);
     $('#s-offset').dataset.shown = $('#s-offset').value; $('#s-offset').title = engine.offsetManual ? 'set by you — clear the box to go back to automatic' : 'automatic: follows your current output (re-measured before every take). Type a number to fix it.';
@@ -131,7 +186,8 @@
       if (d.returnValue !== 'ok') return;
       try {
         const patch = {
-          displayName: $('#s-name').value.trim() || null,
+          displayName: $('#s-name').value.trim() || ($('#s-member').value && $('#s-member').value !== '*new*' ? $('#s-member').value : null),
+          member: $('#s-member').value && $('#s-member').value !== '*new*' ? $('#s-member').value : null,
           sharedFolder: $('#s-folder').value || null,
           inputDeviceId: $('#s-input').value || null,
           inputChannels: $('#s-chans').value || 'auto',
@@ -152,11 +208,13 @@
         if (folderChanged) { const ok = await closeSong(); if (!ok) { delete patch.sharedFolder; status('Folder not changed: resolve the unsaved changes first. Other settings were saved.'); } }
         state.settings = await bp.settings.set(patch);
         await loadSettings();
+        if (patch.member) rememberAlias(patch.member, patch.displayName).catch(() => {});
         if (!patch.displayName) toast('No name set — bandmates will see you as this computer\'s login name. Set it in Settings any time.', { kind: 'warn', ms: 9000 });
         if (!patch.sharedFolder) toast('No shared band folder yet. Open Settings (gear) and choose the synced folder (Google Drive, OneDrive, iCloud Drive, Dropbox) that the whole band uses.', { kind: 'warn', ms: 12000 });
         engine.applyAll();
         if (engine.stream && patch.inputDeviceId !== engine.inputDeviceId) await engine.openInput(patch.inputDeviceId).catch(fail);
         await refreshSongs();
+        if (!patch.member && folderChanged) whoCheck().catch(() => {});
       } catch (err) { fail(err); }
     });
   }
@@ -290,7 +348,7 @@
   function lockBadge(s) {
     const lock = s.lock; if (!lock) return null;
     const b = el('span', 'lock' + (s.lockMine ? ' mine' : lock.stale ? ' stale' : ''));
-    b.textContent = s.lockMine ? 'you' : lock.stale ? `${lock.user} (stale)` : s.lockSameMachine ? 'you (old window)' : `${lock.user} has it open`;
+    b.textContent = s.lockMine ? 'you' : lock.stale ? `${lock.user} (stale)` : s.lockSameMachine ? 'you (old window)' : s.lockMeElsewhere ? `you (on ${lock.host || 'another computer'})` : `${lock.user} has it open`;
     b.title = `Lock: ${lock.user} has had this song open for editing on ${lock.host} since ${new Date(lock.since).toLocaleTimeString()}. While they hold it, others can only record on tracks they unlock.${lock.stale ? ' Their Cobander has not checked in for a while (maybe closed without closing the song), so you can take over safely.' : ''}`;
     return b;
   }
@@ -1587,10 +1645,11 @@
   // track order) need the song and every track to be free of other people.
   state.tlocks = {}; let ME = null; bp.identity().then((x) => { ME = x; }).catch(() => {});
   const lockOf = (id) => state.tlocks[id];
-  const isMe = (l) => !!(l && ME && l.user === ME.user && l.host === ME.host);
+  const samePerson = (a, b) => { if (!a || !b) return false; const n = (x) => String(x || '').trim().toLowerCase(); if (a.member && b.member) return n(a.member) === n(b.member); const names = (x) => [x.member, x.user, ...(x.aliases || [])].map(n).filter(Boolean); const nb = new Set(names(b)); return names(a).some((v) => nb.has(v)); };
+  const isMe = (l) => !!(l && ME && samePerson(l, ME));   /* the band member, on any of their computers */
   const mineT = (id) => { const l = lockOf(id); return !!(l && !l.idle && isMe(l)); };
   // whoever has the SONG open for editing owns every track in it: nobody else unlocks anything there until they take over
-  const songHolder = () => { const s0 = state.folder && (state.songs || []).find((x) => x.folder === state.folder); const l = (s0 && s0.lock) || state.lock; return state.readOnly && l && !l.stale && !(s0 && (s0.lockMine || s0.lockSameMachine)) ? l.user : null; };
+  const songHolder = () => { const s0 = state.folder && (state.songs || []).find((x) => x.folder === state.folder); const l = (s0 && s0.lock) || state.lock; return state.readOnly && l && !l.stale && !(s0 && (s0.lockMine || s0.lockSameMachine || s0.lockMeElsewhere)) ? l.user : null; };
   const heldBy = (id) => { const l = lockOf(id); if (l && !l.idle && !isMe(l)) return l.user; if (mineT(id)) return null; return songHolder(); };
   const canTouch = (t) => !!(t && state.song && mineT(t.id));
   const trackFp = (t) => { try { return JSON.stringify(t); } catch (_) { return Math.random().toString(); } };
@@ -1629,7 +1688,7 @@
   }
   state.trackDirty = new Set();
   function lockNudge(id) { const t = id && engine.track(id); if (!t || ro()) return; toast(`${t.name} is locked.`, { kind: 'warn', ms: 6000, buttons: [[`🔓 Unlock ${t.name}`, () => unlockTrack(t.id)], ['Unlock all', () => unlockAll()]] }); }
-  function claimLocal(id) { if (!ME) return; state.tlocks[id] = { user: ME.user, host: ME.host, token: 'pending', at: Date.now(), idle: false }; bp.tlock.claim(state.folder, id).then((r) => { if (r && r.lock) state.tlocks[id] = { ...r.lock, idle: false }; }).catch(() => {}); }
+  function claimLocal(id) { if (!ME) return; state.tlocks[id] = { user: ME.user, host: ME.host, member: ME.member || undefined, token: 'pending', at: Date.now(), idle: false }; bp.tlock.claim(state.folder, id).then((r) => { if (r && r.lock) state.tlocks[id] = { ...r.lock, idle: false }; }).catch(() => {}); }
   const touchAt = new Map();
   function touchLock(id) { const now = Date.now(); if (now - (touchAt.get(id) || 0) < 20000) return; touchAt.set(id, now); const l = lockOf(id); if (l) l.at = now; bp.tlock.touch(state.folder, id).catch(() => {}); }
   async function unlockTrack(id, { quiet = false } = {}) {
@@ -1839,7 +1898,7 @@
     if (mine) state.lock = lock;
     updateBadges();
   });
-  bp.song.onLockLost(({ lock }) => { setTimeout(sendPresence, 0); clearTimeout(state.autosaveTimer); state.lastSaveError = null; state.lock = null; state.readOnly = true; $('#bottom').classList.add('readonly'); updateBadges(); status(`${lock ? lock.user : 'Someone'} took over this song — you are now read-only.${state.dirty || state.pendingTakes.size ? ' Your unsaved changes are kept until you take it back or close.' : ' You still see their saves live.'}`, 0); renderAll(); });
+  bp.song.onLockLost(({ lock }) => { setTimeout(sendPresence, 0); clearTimeout(state.autosaveTimer); state.lastSaveError = null; state.lock = null; state.readOnly = true; $('#bottom').classList.add('readonly'); updateBadges(); status(`${lock && ME && samePerson(lock, ME) ? `You opened this song on ${lock.host || 'another computer'}` : `${lock ? lock.user : 'Someone'} took over this song`} — you are now read-only.${state.dirty || state.pendingTakes.size ? ' Your unsaved changes are kept until you take it back or close.' : ' You still see their saves live.'}`, 0); renderAll(); });
   bp.onStoreError(({ message }) => status(message, 10000));
 
   function updateBadges() {
@@ -7712,5 +7771,6 @@
     setTimeout(() => { if (!state.folder) checkCrashRecordings().catch(() => {}); }, 1500);
     try { if (!localStorage.getItem('bp.seen014')) { localStorage.setItem('bp.seen014', '1'); setTimeout(() => toast('New layout: Write · Record · Mix · Practice · Band up top (Ctrl+1–5). Each one shows just what that job needs — recording tools in Record, Auto mix in Mix, the band page in Band. Share ▾ and ⋯ on the song hold bounce / DAW / phone / folder.', { kind: 'ok', ms: 20000 }), 2500); } } catch (_) {}
     if (!state.settings.sharedFolder || !state.settings.displayName) { openSettings(); if (!state.settings.displayName) setTimeout(() => $('#s-name').focus(), 50); }
+    else whoCheck().catch(() => {});
   })();
 })();

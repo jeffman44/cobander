@@ -1011,3 +1011,8 @@ dialog#tabed { max-width: 1400px; width: min(1400px, 97vw); max-height: 96vh; ov
 #tabed label select, #tabed label input { width: auto; }
 #tabed .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 #tabed h3 { display: inline-block; margin-right: 16px; }
+
+/* who-am-I picker: one button per band member */
+.wa-members { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
+.wa-members button { min-width: 90px; }
+.wa-members button.on { outline: 2px solid var(--accent, #f5a623); }

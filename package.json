@@ -1,7 +1,7 @@
 {
   "name": "cobander",
   "productName": "Cobander",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "repository": "github:jeffman44/cobander",
   "description": "Cobander — noodle together. A band sketchpad: record, write, mix and practice with your band through a shared cloud folder (Google Drive, OneDrive, iCloud, Dropbox).",
   "main": "src/main.js",

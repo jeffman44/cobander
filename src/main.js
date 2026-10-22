@@ -62,12 +62,12 @@ function loadSettings() {
     settings.machineName = require('os').hostname().replace(/\.(local|lan|home|localdomain)$/i, '');
     try { fs.writeFileSync(SETTINGS_FILE(), JSON.stringify(settings, null, 2)); } catch (_) {}
   }
-  identity = clientIdentity(settings.displayName, settings.machineName);
+  identity = clientIdentity(settings.displayName, settings.machineName, settings.member);
 }
 async function saveSettings() {
   await fsp.mkdir(path.dirname(SETTINGS_FILE()), { recursive: true });
   await fsp.writeFile(SETTINGS_FILE(), JSON.stringify(settings, null, 2));
-  identity = clientIdentity(settings.displayName, settings.machineName);
+  identity = clientIdentity(settings.displayName, settings.machineName, settings.member);
 }
 const settingsView = () => ({ ...settings, identity, driveLike: looksLikeDrivePath(settings.sharedFolder), cloud: cloudProvider(settings.sharedFolder) });
 
@@ -343,7 +343,7 @@ ipcMain.handle('settings:set', async (_e, patch) => {
   }
   if (patch.apiInbox !== undefined) startInbox();
   // Name changed while holding a lock: re-stamp the lock so bandmates see the new name.
-  if (patch.displayName !== undefined && open && open.lock && open.lock.user !== identity.user) {
+  if ((patch.displayName !== undefined || patch.member !== undefined) && open && open.lock && (open.lock.user !== identity.user || (open.lock.member || null) !== identity.member)) {
     try {
       await takeOverLock(open.folder);
     } catch (err) { send('store:error', { message: `Could not update your name on the lock: ${err.message}` }); }

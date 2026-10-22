@@ -282,3 +282,27 @@ test('cloud provider detection covers Drive, OneDrive, iCloud, Dropbox and plain
   assert.equal(cloudProvider('/home/x/music/band'), null);
   assert.equal(looksLikeDrivePath('/Users/l/Dropbox/Band'), true);
 });
+
+test('samePerson: member decides; older locks match by name', () => {
+  assert.equal(S.samePerson({ user: 'Jeff', host: 'home' }, { user: 'Jeff', host: 'work', member: 'Jeff' }), true);
+  assert.equal(S.samePerson({ user: 'J-Dog', member: 'Jeff' }, { user: 'Jeffrey', member: 'jeff' }), true);
+  assert.equal(S.samePerson({ user: 'Jeff', member: 'Jeff' }, { user: 'Jeff', member: 'Dan' }), false, 'two members who both go by Jeff are two people');
+  assert.equal(S.samePerson({ user: 'Kat', host: 'x' }, { user: 'Jeff', member: 'Jeff' }), false);
+  assert.equal(S.samePerson(null, me), false);
+});
+
+test('the same member on another computer: track locks and the song lock are still theirs', async () => {
+  const root = tmp(); const a = new S.SongStore(root); const b = new S.SongStore(root);
+  const folder = (await a.createSong('Two Laptops', me)).folder;
+  const home = { user: 'Jeff', host: 'jeffpc', pid: 1, member: 'Jeff' }, work = { user: 'Jeff', host: 'worklap', pid: 2, member: 'Jeff' };
+  const oldHome = { user: 'Jeff', host: 'jeffpc', pid: 3 };   // a 0.17 install: no member on its locks
+  assert.equal((await a.claimTrackLock(folder, 't1', oldHome)).ok, true);
+  assert.equal((await b.claimTrackLock(folder, 't1', work)).ok, true, 'my own fresh track lock from home is mine at work');
+  assert.equal((await b.claimTrackLock(folder, 't1', kat)).ok, false, 'a bandmate is still blocked');
+  assert.equal((await b.touchTrackLock(folder, 't1', home)).ok, true);
+  assert.equal((await a.acquireLock(folder, home)).ok, true);
+  const w = await b.acquireLock(folder, work); assert.equal(w.ok, true, 'opening it at work takes my own lock from home');
+  const k = await b.acquireLock(folder, kat); assert.equal(k.ok, false);
+  const list = await b.listSongs({ ...home, pid: 9 }); const s0 = list.find((x) => x.folder === folder);
+  assert.equal(s0.lockMeElsewhere, true); assert.equal(s0.lockMine, false);
+});
