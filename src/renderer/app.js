@@ -1434,7 +1434,7 @@
   function msRestore() { let o = null; try { o = JSON.parse(localStorage.getItem(msKey()) || 'null'); } catch (_) {} if (!o) return; for (const [id, v] of Object.entries(o)) { const t = engine.track(id); if (!t) continue; for (const kk of Object.keys(v)) { if (!!t[kk] !== v[kk]) { earsOnly(id, kk); engine.updateTrack(id, { [kk]: v[kk] }); } } } }
   // Remember what the song says for a track that isn't mine, the first time I touch its mute/solo locally.
   function earsOnly(id, k) { state.earsOnly = state.earsOnly || {}; (state.earsOnly[id] = state.earsOnly[id] || {})[k] = true; }   // collectSong puts the song's own value back for that field
-  const collabFields = (song) => Object.fromEntries(CB.COLLECTIONS.filter((k) => song && song[k] !== undefined).map((k) => [k, song[k]]));
+  const collabFields = (song) => Object.fromEntries(CB.collectionKeys(song).filter((k) => song && song[k] !== undefined).map((k) => [k, song[k]]));
   // "tracks & takes" from an older save, today's notes / lyrics / chords / needs. With linked sections the takes only make
   // sense with the sections + link groups they were laid out in (mirrors and rooms), so those come back with them.
   const takesOnly = (body) => { const linked = Object.keys(body.linkGroups || {}).length || Object.keys((state.song && state.song.linkGroups) || {}).length; const out = { ...body, ...collabFields(state.song) }; if (linked) { out.sections = body.sections || []; out.linkGroups = body.linkGroups || {}; } return out; };
@@ -1538,7 +1538,10 @@
     const baseTracks = new Map(((baseline && baseline.tracks) || []).map((t) => [t.id, t]));
     const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     // song-level settings (tempo, notes text, loop…): one side changed it since the base → that side's value
-    if (baseline) for (const k of ['bpm', 'timeSig', 'notes', 'loop', 'master', 'key', 'stage']) if (same(mine[k], baseline[k]) && !same(theirs[k], baseline[k])) { if (theirs[k] === undefined) delete mine[k]; else mine[k] = JSON.parse(JSON.stringify(theirs[k])); }
+    /* format freeze: song-level fields this version doesn't know (a newer bandmate added them) follow the same one-side-changed rule */
+    const SKIP = new Set(['tracks', 'linkGroups', 'trash', 'trashTracks', 'rev', 'saveId', 'savedBy', 'savedAt', 'lineage', 'lineageFor', 'format', 'name', 'id', 'sampleRate', ...CB.collectionKeys(mine, theirs, baseline)]);
+    const songKeys = baseline ? [...new Set(['bpm', 'timeSig', 'notes', 'loop', 'master', 'key', 'stage', ...Object.keys(theirs || {}), ...Object.keys(baseline || {})])].filter((k) => !SKIP.has(k)) : [];
+    if (baseline) for (const k of songKeys) if (same(mine[k], baseline[k]) && !same(theirs[k], baseline[k])) { if (theirs[k] === undefined) delete mine[k]; else mine[k] = JSON.parse(JSON.stringify(theirs[k])); }
     { // link groups merge type by type (Alice links Verses while Bob links Choruses: both stay linked)
       const b = (baseline && baseline.linkGroups) || {}, m = mine.linkGroups || {}, t = theirs.linkGroups || {}; const out = { ...m };
       for (const k of new Set([...Object.keys(b), ...Object.keys(m), ...Object.keys(t)])) if (!!m[k] === !!b[k] && !!t[k] !== !!b[k]) { if (t[k]) out[k] = true; else delete out[k]; }
@@ -1790,7 +1793,7 @@
       let n = 0;
       for (const m of mails) {
         const ops = (m.op && m.op.ops) || [];
-        const ok = cchange(() => { for (const o of ops) { if (!MAIL_KEYS.includes(o.key) || !o.entry || !o.entry.id) continue; state.song[o.key] = CB.mergeList(state.song[o.key] || [], [o.entry], o.base ? [o.base] : [], o.key === 'markers' ? 'replies' : null); } }, { label: `${m.by}: ${m.op && m.op.label ? m.op.label : 'a comment'}`, undoable: false });
+        const ok = cchange(() => { for (const o of ops) { if (!o.entry || !o.entry.id || !(MAIL_KEYS.includes(o.key) || (!CB.COLLECTIONS.includes(o.key) && !['tracks', 'lineage', 'renamedFrom'].includes(o.key) && /^[a-z][A-Za-z0-9]{0,30}$/.test(String(o.key))))) continue;   /* format freeze: a newer bandmate's new collection is merged in too */ state.song[o.key] = CB.mergeList(state.song[o.key] || [], [o.entry], o.base ? [o.base] : [], o.key === 'markers' ? 'replies' : null); } }, { label: `${m.by}: ${m.op && m.op.label ? m.op.label : 'a comment'}`, undoable: false });
         if (ok) { n++; await bp.mail.remove(folder, m.file); }
       }
       if (n) { renderAll(); pingToastMail(mails); }

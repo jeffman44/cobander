@@ -73,9 +73,18 @@
     return out;
   }
   // Merge every collaboration collection of `theirs` into `mine` (in place). Returns human strings for what came from them.
+  // Format freeze: a newer Cobander may add a collection this version doesn't know. Any top-level array of {id} entries
+  // (other than the tracks) merges the same way, so an older client never drops a bandmate's new entries.
+  const NOT_COLLECTIONS = new Set(['tracks', 'lineage', 'renamedFrom']);
+  const isCollection = (v) => Array.isArray(v) && v.length > 0 && v.every((x) => x && typeof x === 'object' && !Array.isArray(x) && typeof x.id === 'string');
+  function collectionKeys(...songs) {
+    const keys = [...COLLECTIONS];
+    for (const sg of songs) if (sg && typeof sg === 'object') for (const k of Object.keys(sg)) if (!keys.includes(k) && !NOT_COLLECTIONS.has(k) && isCollection(sg[k])) keys.push(k);
+    return keys;
+  }
   function mergeCollections(mine, theirs, baseline) {
     const kept = []; const clash = [];
-    for (const key of COLLECTIONS) {
+    for (const key of collectionKeys(mine, theirs, baseline)) {
       conflicts = key === 'activity' ? null : [];
       const before = new Set(list(mine, key).map((x) => x.id));
       const merged = mergeList(list(mine, key), list(theirs, key), list(baseline, key), NESTED[key] || null);
@@ -261,7 +270,7 @@
   }
 
   return {
-    COLLECTIONS, ACTIVITY_CAP, SECTION_NAMES, PRESENCE_WORDS,
+    COLLECTIONS, collectionKeys, ACTIVITY_CAP, SECTION_NAMES, PRESENCE_WORDS,
     clone, live, list,
     mergeEntry, mergeList, mergeCollections,
     activityEntry, pushActivity, feed, eventKind, eventKinds, EVENT_KINDS,

@@ -1,5 +1,8 @@
 # Cobander changelog
 
+## 0.17.3
+- The song folder format is now frozen (FORMAT.md): every later version opens songs made by this one, and this version keeps — never drops — anything a newer bandmate's Cobander adds to a song (new track or take settings, new kinds of notes or lists), merging it like everything else.
+
 ## 0.17.2
 - Part stages: every track head has a stage chip — 💡 Idea → ✍️ Writing → 🎙 Demo'd → ⏺ Tracking → ✂️ Editing → 🎚 Mixing → 👂 Ready for review → ✅ Approved. Click it (or right-click the track → Part stage) to move a part along. Anyone in the band can, without unlocking or taking over the song: like a note, it's sent to whoever has the song open and merged in.
 - 🔁 Needs a redo: flag a part with a short note ("too much fizz in chorus 2") without moving its stage; clear it when it's done.

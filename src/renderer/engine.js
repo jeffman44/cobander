@@ -34,12 +34,25 @@
   function normalizeMaster(m) {
     const d = DEFAULT_MASTER(); const src = m || {}; const r = src.reverb || {};
     return {
+      ...extras(src, MASTER_KEYS),
       gainDb: clamp(src.gainDb, -60, 12, 0),
       limiter: src.limiter !== false,
       reverb: { decay: clamp(r.decay, 0.2, 8, d.reverb.decay), preDelay: clamp(r.preDelay, 0, 0.2, d.reverb.preDelay), damp: clamp(r.damp, 500, 20000, d.reverb.damp) },
     };
   }
 
+  // Format freeze (FORMAT.md): fields this version doesn't know are carried through untouched, so a song saved by a
+  // newer Cobander keeps what it added when an older one saves it. They never reach the audio graph — only the known
+  // fields below are read for sound.
+  const TRACK_KEYS = new Set(['id', 'name', 'color', 'type', 'typeSet', 'preset', 'instrument', 'drum', 'gainDb', 'pan', 'mute', 'solo', 'fx', 'clips']);
+  const FX_KEYS = new Set(['gate', 'amp', 'hpf', 'lpf', 'eq', 'comp', 'delay', 'reverbSend']);
+  const CLIP_KEYS = new Set(['id', 'kind', 'name', 'start', 'gainDb', 'trimStart', 'trimEnd', 'duration', 'takenBy', 'takenAt', 'mute', 'src', 'fadeIn', 'fadeOut', 'vs', 'ps', 'link', 'melody', 'tt', 'qz', 'pitch', 'part', 'notes', 'channels']);
+  const MASTER_KEYS = new Set(['gainDb', 'limiter', 'reverb']);
+  function extras(o, known) {
+    const out = {}; if (!o || typeof o !== 'object') return out;
+    for (const k of Object.keys(o)) { if (known.has(k) || k === '__proto__' || k === 'constructor' || o[k] === undefined || typeof o[k] === 'function') continue; try { out[k] = JSON.parse(JSON.stringify(o[k])); } catch (_) {} }
+    return out;
+  }
   // Whitelists every field so junk from a hand-edited song.json or an API call never lands in the graph.
   function normalizeTrack(t) {
     const d = DEFAULT_FX();
@@ -53,6 +66,7 @@
     const dd = DEFAULT_DRUM(); const dr = t.drum || {};
     const custom = dr.custom && typeof dr.custom === 'object' ? Object.fromEntries(['kick', 'snare', 'hat', 'ohat', 'tom', 'crash'].filter((k) => Array.isArray(dr.custom[k])).map((k) => [k, Array.from({ length: 16 }, (_, i) => [0, 1, 2].includes(dr.custom[k][i]) ? dr.custom[k][i] : 0)])) : null;
     return {
+      ...extras(t, TRACK_KEYS),
       id: String(t.id),
       name: String(t.name || 'Track').slice(0, 60),
       color: /^#[0-9a-fA-F]{6}$/.test(t.color || '') ? t.color : '#5b8def',
@@ -66,6 +80,7 @@
       mute: !!t.mute,
       solo: !!t.solo,
       fx: {
+        ...extras(src, FX_KEYS),
         gate: { on: !!gt.on, threshold: clamp(gt.threshold, -90, 0, -50) },
         amp: { on: !!am.on, model: AMP_MODELS.includes(am.model) ? am.model : 'clean', gain: clamp(am.gain, 0, 10, 3), bass: clamp(am.bass, -8, 8, 0), mid: clamp(am.mid, -8, 8, 0), treble: clamp(am.treble, -8, 8, 0), presence: clamp(am.presence, -8, 8, 0), cab: CABS.includes(String(am.cab)) ? String(am.cab) : '212', level: clamp(am.level, -24, 12, 0) },
         hpf: { on: !!(src.hpf && src.hpf.on), hz: clamp(src.hpf && src.hpf.hz, 20, 1000, d.hpf.hz) },
@@ -90,6 +105,7 @@
         const trimStart = clamp(c.trimStart, 0, 1e6, 0);
         const trimEnd = clamp(c.trimEnd, 0, Math.max(0, duration - trimStart - 0.01), 0);
         const base = {
+          ...extras(c, CLIP_KEYS),
           id: c.id, kind,
           name: String(c.name || (kind === 'midi' ? 'midi' : 'take')).slice(0, 60),
           start: clamp(c.start, 0, 1e6, 0),
