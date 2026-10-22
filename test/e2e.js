@@ -1524,6 +1524,29 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.equal(await jeff.evalJs(`(() => { const e = window.cobanderDebug.engine; return Number.isFinite(e.heardLatency()) && e.heardLatency() >= 0 && e.heardLatency() < 1; })()`), true);
       assert.ok(await jeff.evalJs(`document.querySelector('#k-sync').options.length`) >= 30);
     });
+    await step('0.17.2: part stages — anyone sets them without the lock (mailed to the holder); new takes on an approved part send it back to review', async () => {
+      await jeff.post('/song/close').catch(() => {}); await jeff.post('/song/open', { folder: 'Fourteen' }); await sleep(800);
+      let st = await jeff.get('/state'); assert.equal(st.readOnly, false, 'Jeff holds Fourteen'); const gtr = st.song.tracks.find((t) => t.name === 'Gtr'); const lead = st.song.tracks.find((t) => t.name === 'Lead Gtr');
+      await jeff.post('/part/stage', { trackId: gtr.id, stage: 'mixing' });
+      assert.match(await jeff.evalJs(`document.querySelector('.track[data-id="${gtr.id}"] .pstage').textContent`), /Mixing/, 'chip on the track head');
+      // Kat only has it read-only: her stage + redo flag still land, through the mailbox
+      await kat.post('/song/open', { folder: 'Fourteen' }); await sleep(800); assert.equal((await kat.get('/state')).readOnly, true);
+      await kat.post('/part/stage', { track: 'Lead Gtr', stage: 'review' }); await kat.post('/part/stage', { track: 'Gtr', redo: 'too much fizz' });
+      await until(async () => { const p = (await jeff.get('/part/stages')).stages; const l = p.find((x) => x.trackId === lead.id), g = p.find((x) => x.trackId === gtr.id); return l && l.stage === 'review' && g && g.redo && g.stage === 'mixing'; }, 30000, "Kat's stage + redo merged into Jeff's song");
+      const ps = await jeff.get('/part/stages'); assert.equal(ps.stages.find((x) => x.trackId === lead.id).by, 'Kat'); assert.equal(ps.rollup.staged, 2); assert.equal(ps.rollup.redo, 1);
+      await kat.post('/song/close').catch(() => {});
+      // approved, then a new take on it: back to review
+      await jeff.post('/part/stage', { trackId: gtr.id, stage: 'approved', redo: null });
+      await jeff.post('/clip/import', { path: path.join(WORK, 'lead.wav'), trackId: gtr.id, start: 6, name: 'extra' });
+      await until(async () => (await jeff.get('/part/stages')).stages.find((x) => x.trackId === gtr.id).stage === 'review', 10000, 'approved part bumped to review after a new take');
+      await jeff.post('/song/save', { force: true }); await sleep(500);
+      const sj = JSON.parse(await fsp.readFile(path.join(shared, 'Fourteen', 'song.json'), 'utf8')); assert.ok((sj.stages || []).some((x) => x.trackId === lead.id && x.stage === 'review'), 'stages saved in song.json');
+      await until(async () => { const s = (await jeff.get('/songs')).find((x) => x.folder === 'Fourteen'); return s && s.parts && s.parts.staged === 2; }, 15000, 'song list rollup');
+      // level-up screen draws the member's own character
+      await jeff.evalJs(`window.cobanderDebug_levelUp(12); true`); await sleep(300);
+      assert.equal(await jeff.evalJs(`!!document.querySelector('#levelup .char.body canvas.lpc')`), true, 'hero is the LPC character');
+      await jeff.evalJs(`document.querySelector('#levelup').click(); true`);
+    });
     await step('opening a song: the screen is usable when the loading bar goes (longest freeze after it is logged)', async () => {
       const songs = await jeff.get('/songs'); const pick = songs.map((x) => x.folder).find((f) => /Basement Anthem|Link Song|Tremors/.test(f)) || (songs[0] && songs[0].folder);
       if (!pick) return; await jeff.post('/song/close').catch(() => {});

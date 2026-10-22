@@ -13,6 +13,8 @@
 //   ideas     scratchpad sketches     {id, title, kind:'audio'|'text', audioId?, seconds?, text?, by, at, deleted?}
 //   versions  named snapshots         {id, name, by, at, rev, deleted?}   (body in <song>/versions/<id>.json)
 //   activity  who did what            {id, by, at, items:[string]}       (newest last, capped)
+//   stages    where each part is at    {id:'stg-<trackId>', trackId, stage, redo?:{text,by,at}|null, by, at}   (one per track;
+//             anyone in the band can set it — it goes through the mailbox like notes, no lock needed)
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -20,7 +22,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const COLLECTIONS = ['markers', 'reactions', 'sections', 'chords', 'lyrics', 'needs', 'votes', 'ideas', 'versions', 'activity', 'tabs'];
+  const COLLECTIONS = ['markers', 'reactions', 'sections', 'chords', 'lyrics', 'needs', 'votes', 'ideas', 'versions', 'activity', 'tabs', 'stages'];
   const NESTED = { markers: 'replies' };   // entry arrays inside entries, merged the same way
   const ACTIVITY_CAP = 400;
   const SECTION_NAMES = ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Post-chorus', 'Bridge', 'Solo', 'Breakdown', 'Hook', 'Build', 'Drop', 'Outro'];
@@ -91,6 +93,7 @@
       else if (key === 'lyrics') kept.push(`${added.length} lyric line${added.length > 1 ? 's' : ''}`);
       else if (key === 'needs') kept.push(`${added.length} "needs" item${added.length > 1 ? 's' : ''}`);
       else if (key === 'ideas') kept.push(`${added.length} idea${added.length > 1 ? 's' : ''}`);
+      else if (key === 'stages') kept.push(`${added.length} part stage${added.length > 1 ? 's' : ''}`);
       else if (key === 'versions') kept.push(`version ${added.map((v) => `"${v.name}"`).join(', ')}`);
     }
     if (clash.length) kept.push(`⚠ you both changed the same thing — yours was kept: ${clash.slice(0, 4).join(', ')}${clash.length > 4 ? ` +${clash.length - 4} more` : ''}`);
@@ -172,6 +175,49 @@
   // ---------- needs ----------
   const needsOpen = (song) => live(list(song, 'needs')).filter((n) => !n.done);
 
+  // ---------- part stages ----------
+  // How far along each part (track) is. Order matters: the rollup counts 'approved' as done.
+  const PART_STAGES = [
+    { k: 'idea', icon: '💡', label: 'Idea', tip: 'A riff or a line exists — nothing committed yet' },
+    { k: 'writing', icon: '✍️', label: 'Writing', tip: 'Working the part out; scratch takes are fine' },
+    { k: 'demo', icon: '🎙', label: "Demo'd", tip: 'A rough take good enough for the others to write against' },
+    { k: 'tracking', icon: '⏺', label: 'Tracking', tip: 'Recording the keeper takes' },
+    { k: 'editing', icon: '✂️', label: 'Editing', tip: 'Comping the best bits, tightening timing and tuning' },
+    { k: 'mixing', icon: '🎚', label: 'Mixing', tip: 'Level, tone and FX for this part' },
+    { k: 'review', icon: '👂', label: 'Ready for review', tip: 'Done from your side — the band listens and leaves notes' },
+    { k: 'approved', icon: '✅', label: 'Approved', tip: 'The band signed off. Changing the takes sends it back to review' },
+  ];
+  const STAGE_KEYS = PART_STAGES.map((x) => x.k);
+  const stageInfo = (k) => PART_STAGES.find((x) => x.k === k) || null;
+  const stageId = (trackId) => `stg-${trackId}`;
+  const partStage = (song, trackId) => live(list(song, 'stages')).find((x) => x.trackId === trackId) || null;
+  // set (or clear) a part's stage in place; returns the entry. `redo`: string = flag it, null = clear the flag, undefined = leave it.
+  function setPartStage(song, trackId, { stage, redo, by, at } = {}) {
+    if (stage !== undefined && stage !== null && !STAGE_KEYS.includes(stage)) throw new Error(`stage must be one of ${STAGE_KEYS.join(' | ')}`);
+    const arr = song.stages = list(song, 'stages');
+    const id = stageId(trackId); let e = arr.find((x) => x.id === id);
+    const now = at || new Date().toISOString();
+    if (!e) { e = { id, trackId, stage: null, redo: null, by, at: now }; arr.push(e); }
+    delete e.deleted;
+    if (stage !== undefined) e.stage = stage || null;
+    if (redo !== undefined) e.redo = redo ? { text: String(redo).slice(0, 200), by, at: now } : null;
+    e.by = by; e.at = now;
+    return e;
+  }
+  // song-list rollup over the tracks that exist: {total, approved, staged, redo, counts:{stage:n}}
+  function stageRollup(song) {
+    const ids = new Set(list(song, 'tracks').map((t) => t && t.id).filter(Boolean));
+    const out = { total: ids.size, approved: 0, staged: 0, redo: 0, counts: {} };
+    for (const e of live(list(song, 'stages'))) {
+      if (!ids.has(e.trackId)) continue;
+      if (e.redo) out.redo++;
+      if (!e.stage) continue;
+      out.staged++; out.counts[e.stage] = (out.counts[e.stage] || 0) + 1;
+      if (e.stage === 'approved') out.approved++;
+    }
+    return out;
+  }
+
   // ---------- votes ----------
   const votesFor = (song, clipId) => live(list(song, 'votes')).filter((v) => v.clipId === clipId);
   // Among `clipIds` (one overlap group), the take with the most stars, or null on a tie / no votes.
@@ -221,6 +267,7 @@
     activityEntry, pushActivity, feed, eventKind, eventKinds, EVENT_KINDS,
     mentionsIn, mentionsFor, knownPeople, nameMatch,
     needsOpen, needsFor, votesFor, topVoted,
+    PART_STAGES, STAGE_KEYS, stageInfo, stageId, partStage, setPartStage, stageRollup,
     sectionAt, chordAt, lyricAt, byTime, sectionColor, nextSectionName,
     parseChordBars, presenceLine,
   };

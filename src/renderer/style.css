@@ -1016,3 +1016,14 @@ dialog#tabed { max-width: 1400px; width: min(1400px, 97vw); max-height: 96vh; ov
 .wa-members { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
 .wa-members button { min-width: 90px; }
 .wa-members button.on { outline: 2px solid var(--accent, #f5a623); }
+/* part stages (0.17.2): a chip on every track head, anyone can change it */
+.track-head .pstage { margin-left: auto; flex: none; font-size: 10px; line-height: 15px; padding: 0 6px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,.05); color: var(--muted); cursor: pointer; white-space: nowrap; max-width: 46%; overflow: hidden; text-overflow: ellipsis; }
+.track-head .pstage:hover { border-color: var(--accent); color: var(--fg, #e6e9ef); }
+.track-head .pstage.none { opacity: .55; }
+.track-head .pstage.st-idea, .track-head .pstage.st-writing { color: #ffcf7a; }
+.track-head .pstage.st-demo, .track-head .pstage.st-tracking { color: #7fb8ff; }
+.track-head .pstage.st-editing, .track-head .pstage.st-mixing { color: #c9a6ff; }
+.track-head .pstage.st-review { color: #e07a3e; border-color: #e07a3e; }
+.track-head .pstage.st-approved { color: #6fd39a; border-color: #3fae8c; }
+.track-head .pstage.redo { box-shadow: inset 0 0 0 1px var(--warn); }
+#song-list .chip-s.parts { color: #6fd39a; } #song-list .chip-s.parts.all { border-color: #3fae8c; font-weight: 700; }

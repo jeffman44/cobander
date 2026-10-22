@@ -243,6 +243,7 @@ class SongStore {
           needsOpen: Collab.needsOpen(raw).length,
           needsMine: identity ? Collab.needsFor(raw, identity.user, people).length : 0,
           stage: typeof raw.stage === 'string' ? raw.stage.slice(0, 20) : null,
+          parts: Collab.stageRollup(raw),   // per-part stages: how many parts are approved / flagged for a redo
           quest: Quest.songStats(raw), renamedFrom: Array.isArray(raw.renamedFrom) ? raw.renamedFrom : undefined,   // the game layer: who did what in this song (takes, notes, chords …) and how much of it each member's takes cover
           bounced: await fsp.readdir(path.join(dir, BOUNCE_DIR)).then((n) => n.some((x) => /\.wav$/i.test(x)), () => false),
           recent: (Array.isArray(raw.activity) ? raw.activity.slice(-15) : []).filter((a) => a && a.at).map((a) => ({ by: String(a.by || '').slice(0, 40), at: a.at, items: (a.items || []).slice(0, 6).map((x) => String(x).slice(0, 120)) })),

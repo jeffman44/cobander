@@ -1,5 +1,13 @@
 # Cobander changelog
 
+## 0.17.2
+- Part stages: every track head has a stage chip — 💡 Idea → ✍️ Writing → 🎙 Demo'd → ⏺ Tracking → ✂️ Editing → 🎚 Mixing → 👂 Ready for review → ✅ Approved. Click it (or right-click the track → Part stage) to move a part along. Anyone in the band can, without unlocking or taking over the song: like a note, it's sent to whoever has the song open and merged in.
+- 🔁 Needs a redo: flag a part with a short note ("too much fizz in chorus 2") without moving its stage; clear it when it's done.
+- Changing the takes on an approved part sends it back to Ready for review (level, pan and FX moves don't).
+- The song list shows how many parts are approved ("✅ 5/8 parts") and how many are flagged for a redo; hover for the breakdown.
+- Rename the song is also on the song's right-click menu now (it was only under ⋯).
+- The level-up screen shows your own character again instead of a stand-in.
+
 ## 0.17.1
 - You're you on every computer: pick who you are in the band (from the names on the band's license, or the band roster) and a display name to show on top. Locks follow the person, not the computer, so opening a song on the laptop that's still marked open on your home PC just takes it — and your own unlocked tracks from the other computer are yours, not "locked by" you. A bandmate is still blocked, as before.
 - First start after the update: if your name already matches someone on the license you're matched quietly; otherwise Cobander asks once. Change it any time under ⚙ → Who are you in the band? A nickname that isn't your member name is added to your "also known as" list, so your character and XP follow.

@@ -581,6 +581,8 @@ async function startApi() {
     'POST /chords/detect': ({ body }) => askRenderer('chordsDetect', body || {}, 600000),
     'POST /tab': ({ body }) => askRenderer('tabTrack', body || {}, 600000),
     'GET /tabs': () => askRenderer('tabs', {}),
+    'POST /part/stage': ({ body }) => askRenderer('partStage', body || {}),
+    'GET /part/stages': () => askRenderer('partStages', {}),
     'POST /mix/auto': () => askRenderer('autoMix', {}, 900000),
     'POST /master/auto': ({ body }) => askRenderer('autoMaster', body || {}, 600000),
     'POST /mix/ab': () => askRenderer('mixAB', {}),

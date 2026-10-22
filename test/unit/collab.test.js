@@ -144,3 +144,27 @@ test('knownPeople collects names from takes and collections', () => {
   const song = { savedBy: 'Kat', tracks: [{ clips: [{ takenBy: 'Zach' }] }], markers: [{ by: 'Logan', replies: [{ by: 'Daniel' }] }] };
   assert.deepEqual(C.knownPeople(song, ['Jeff']), ['Daniel', 'Jeff', 'Kat', 'Logan', 'Zach']);
 });
+
+test('part stages: set, flag a redo, roll up per song', () => {
+  const song = { tracks: [{ id: 't1' }, { id: 't2' }, { id: 't3' }] };
+  C.setPartStage(song, 't1', { stage: 'approved', by: 'Sam' });
+  C.setPartStage(song, 't2', { stage: 'mixing', by: 'Jo' });
+  C.setPartStage(song, 't2', { redo: 'pitchy in chorus 2', by: 'Riley' });
+  C.setPartStage(song, 'gone', { stage: 'approved', by: 'Jo' });   // a deleted track does not count
+  assert.equal(C.partStage(song, 't2').stage, 'mixing');
+  assert.equal(C.partStage(song, 't2').redo.text, 'pitchy in chorus 2');
+  assert.deepEqual(C.stageRollup(song), { total: 3, approved: 1, staged: 2, redo: 1, counts: { approved: 1, mixing: 1 } });
+  C.setPartStage(song, 't2', { redo: null, by: 'Jo' });
+  assert.equal(C.partStage(song, 't2').redo, null);
+  assert.throws(() => C.setPartStage(song, 't1', { stage: 'nope' }));
+});
+
+test('part stages: two bandmates change different parts at once — both land', () => {
+  const base = { tracks: [{ id: 't1' }, { id: 't2' }] }; C.setPartStage(base, 't1', { stage: 'tracking', by: 'Sam', at: '2026-01-01' });
+  const mine = clone(base); C.setPartStage(mine, 't1', { stage: 'editing', by: 'Sam' });
+  const theirs = clone(base); C.setPartStage(theirs, 't2', { stage: 'demo', by: 'Jo' });
+  const kept = C.mergeCollections(mine, theirs, base);
+  assert.equal(C.partStage(mine, 't1').stage, 'editing');
+  assert.equal(C.partStage(mine, 't2').stage, 'demo');
+  assert.deepEqual(kept, ['1 part stage']);
+});

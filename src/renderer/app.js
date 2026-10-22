@@ -707,6 +707,8 @@
     } catch (_) { /* no audio, no problem */ }
   }
   function levelUpShow(m, { force = false } = {}) {
+    /* the quest stats row carries the level, not the look: take the look from the band roster (same as the band strip) */
+    { const bm = bandMembers().find((x) => isUser(x, m.name) || (m.aliases || []).some((al) => isUser(x, al)) || (x.aliases || []).some((al) => String(al).toLowerCase() === String(m.name || '').toLowerCase())); if (bm) m = { ...m, look: bm.look || m.look, character: m.character || bm.character }; }
     if (!force && (engine.recording || finishing || sketchRec || (state.settings && state.settings.fanfare === false))) { toast(`⚔ Level up — you're level ${m.level.n}: ${m.level.title}`, { kind: 'ok', ms: 9000 }); return; }
     const old = $('#levelup'); if (old) old.remove();
     const o = el('div'); o.id = 'levelup'; const newName = (m.level.n - 1) % 10 === 0;
@@ -806,6 +808,7 @@
       const chips = el('div', 'chips');
       if (s.mentions) { const c = el('span', 'chip-s ping', `@${s.mentions}`); c.title = `${s.mentions} note${s.mentions === 1 ? '' : 's'} mention you — open the song to read ${s.mentions === 1 ? 'it' : 'them'}`; chips.append(c); }
       if (s.stage) { const c = el('span', `chip-s stage stage-${s.stage}`, STAGES[s.stage] || s.stage); c.title = 'Stage: how far along the song is — idea, writing, demo or done. Right-click the song to change it; the filter above the list sorts by it.'; chips.append(c); }
+      { const pr = s.folder === state.folder && state.song ? CB.stageRollup(state.song) : s.parts; if (pr && pr.staged) { const c = el('span', `chip-s parts${pr.approved === pr.total ? ' all' : ''}`, `✅ ${pr.approved}/${pr.total} parts`); c.title = `Part stages: ${CB.PART_STAGES.filter((x) => pr.counts[x.k]).map((x) => `${x.icon} ${x.label} ${pr.counts[x.k]}`).join(' · ')}${pr.total > pr.staged ? ` · ${pr.total - pr.staged} not set` : ''}`; chips.append(c); } if (pr && pr.redo) { const c = el('span', 'chip-s needs', `🔁 ${pr.redo} redo`); c.title = `${pr.redo} part${pr.redo === 1 ? '' : 's'} flagged for a redo — open the song to see which`; chips.append(c); } }
       if (s.needsMine) { const c = el('span', 'chip-s ping', `for you ${s.needsMine}`); c.title = `${s.needsMine} "needs" item${s.needsMine === 1 ? '' : 's'} assigned to you`; chips.append(c); }
       if (s.needsOpen) { const tot = s.needsOpen + (s.needsDone || 0); const c = el('span', 'chip-s needs', `needs ${s.needsOpen}${s.needsDone ? ` · ${Math.round(100 * s.needsDone / tot)}% done` : ''}`); c.title = (s.needs || []).join('\n'); chips.append(c); }
       for (const p of s.presence || []) { if (LPC.ready() && stageReady) { const m = bandMembers().find((x) => isUser(x, p.user)) || { name: p.user }; chips.append(stageWho('list', m, whoDoing(m.name), { title: false })); } if (s.lock && !s.lock.stale && p.user === s.lock.user && p.mode !== 'listening') continue; const c = el('span', 'chip-s here', `${p.user} ${p.mode === 'waiting' ? '⏳ waiting to edit' : p.mode === 'recording' ? '● rec' : p.mode === 'practicing' ? '🎙 rehearsing' : p.playing ? '🎧 listening' : 'looking'}`); c.title = `${p.user} has this song open on ${p.host}`; chips.append(c); }
@@ -1657,6 +1660,7 @@
   function guardedChange(fn, { undoable, label, activity }) {
     if (state.ab) { status('You are A/B-ing a tagged version — press A/B to come back before editing.', 6000); return false; }
     const before = new Map(engine.tracks.map((t) => [t.id, trackFp(t)])); const sw0 = songWideFp();
+    const beforeClips = new Map(engine.tracks.map((t) => [t.id, clipsFp(t)]));
     const snap = JSON.stringify(collectSong());
     if (undoable && !state.readOnly) pushUndo(label);
     fn();
@@ -1682,6 +1686,7 @@
     if (activity) logActivity(label);
     const mine = [...changed, ...added].filter((id) => engine.track(id));
     for (const id of mine) touchLock(id);
+    bumpApproved(changed, beforeClips);
     if (state.readOnly) { for (const id of [...mine, ...removed]) state.trackDirty.add(id); flushTracksSoon(); return true; }   // not 'unsaved': it goes to whoever has the song
     markDirty();
     return true;
@@ -2151,6 +2156,7 @@
     const ro = () => !canTouch(t);
     return [
       ...lockItems(t),
+      { label: `Part stage${(partStageOf(t) || {}).stage ? `: ${CB.stageInfo(partStageOf(t).stage).label}` : ''}`, sub: partStageItems(t) },
       { label: state.armedTrack === t.id ? 'Disarm' : 'Arm for recording', action: () => { state.armedTrack = state.armedTrack === t.id ? null : t.id; renderTracks(); }, disabled: ro() || t.instrument === 'drumkit' },
       ...(t.instrument === 'audio' && t.clips.length && isVocalTrack(t) ? [{ label: '🎤 Lyrics from this track (speech-to-text)', action: () => transcribeTrack(t), disabled: !!asrBusy }] : []),
       ...(harmonicTrack(t) || bassTrack(t) ? [
@@ -2262,6 +2268,47 @@
     if (!t) return [{ title: 'Master' }, { label: engine.master.limiter ? 'Limiter off' : 'Limiter on', action: () => { change(() => engine.setMaster({ limiter: !engine.master.limiter }), { label: `master limiter ${engine.master.limiter ? 'off' : 'on'}` }); renderMixer(); }, disabled: ro() }, { label: 'Reset master fader', action: () => { change(() => engine.setMaster({ gainDb: 0 })); renderMixer(); }, disabled: ro() }, { label: 'Room reverb', sub: [['small', 0.8], ['medium', 1.8], ['big', 3.2], ['huge', 5]].map(([l, d]) => ({ label: l, checked: Math.abs(engine.master.reverb.decay - d) < 0.05, action: () => { change(() => engine.setMaster({ reverb: { decay: d } })); renderFx(); } })), disabled: ro() }];
     return [{ title: t.name }, { label: 'Reset fader (0 dB)', action: () => { change(() => engine.updateTrack(t.id, { gainDb: 0 }), { label: `reset ${t.name} fader` }); renderAll(); }, disabled: ro() }, { label: 'Center pan', action: () => { change(() => engine.updateTrack(t.id, { pan: 0 }), { label: `center ${t.name} pan` }); renderAll(); }, disabled: ro() }, 'sep', ...trackItems(t)];
   }
+  // ---- part stages: where each track is at (idea → … → approved). Anyone in the band can set one — no lock, no take over:
+  // it is a collab entry like a note, so a bandmate's change is mailed to whoever has the song open and merged in.
+  const partStageOf = (t) => (t && state.song ? CB.partStage(state.song, t.id) : null);
+  function setPartStageUI(t, { stage, redo } = {}) {
+    if (!state.song || !t) return false;
+    const info = stage ? CB.stageInfo(stage) : null;
+    const label = stage !== undefined ? `${t.name} part → ${info ? info.label : 'no stage'}` : redo ? `${t.name} part needs a redo: ${String(redo).slice(0, 60)}` : `${t.name} part redo cleared`;
+    const ok = cchange(() => { CB.setPartStage(state.song, t.id, { stage, redo, by: me() }); }, { label, undoable: !state.readOnly });
+    if (!ok) return false;
+    renderAll();
+    if (!state.readOnly) save().catch(() => {});
+    if (stage === 'approved') { const b = document.querySelector(`.track[data-id="${t.id}"] .pstage`); if (b) { FX.pop(b, 1.4); const r = b.getBoundingClientRect(); FX.xpBurst && FX.xpBurst(r.left + r.width / 2, r.top, '✅'); } }
+    return true;
+  }
+  function partStageItems(t) {
+    const cur = partStageOf(t);
+    return [
+      { title: `${t.name} — where is this part at? (anyone in the band can set it)` },
+      ...CB.PART_STAGES.map((x) => ({ label: `${x.icon} ${x.label}`, hint: x.tip, checked: !!(cur && cur.stage === x.k), action: () => setPartStageUI(t, { stage: x.k }) })),
+      { label: 'no stage', action: () => setPartStageUI(t, { stage: null }), disabled: !(cur && cur.stage) },
+      'sep',
+      cur && cur.redo
+        ? { label: `🔁 Redo done — clear the flag`, hint: `${cur.redo.by}: ${cur.redo.text}`, action: () => setPartStageUI(t, { redo: null }) }
+        : { label: '🔁 Needs a redo…', hint: 'flag it with a note, the stage stays put', action: async () => { const n = await promptName('What needs redoing?', ''); if (n) setPartStageUI(t, { redo: n }); } },
+    ];
+  }
+  function partStageChip(t) {
+    const cur = partStageOf(t); const info = cur && cur.stage ? CB.stageInfo(cur.stage) : null;
+    const b = el('button', `pstage${info ? ` st-${info.k}` : ' none'}${cur && cur.redo ? ' redo' : ''}`, `${info ? `${info.icon} ${info.label}` : '○ stage'}${cur && cur.redo ? ' 🔁' : ''}`);
+    b.title = `${info ? `Stage: ${info.label} — ${info.tip}.` : 'No stage yet.'}${cur && cur.redo ? ` Needs a redo (${cur.redo.by}): ${cur.redo.text}.` : ''}${cur && cur.by ? ` Set by ${cur.by} ${ago(cur.at)}.` : ''} Click to change — anyone in the band can, no unlocking needed.`;
+    b.addEventListener('click', (e) => { e.stopPropagation(); menuAt(b, partStageItems(t)); });
+    b.addEventListener('mousedown', (e) => e.stopPropagation());
+    return b;
+  }
+  // changing the takes on an approved part sends it back to review (fader/FX moves don't)
+  const clipsFp = (t) => { try { return JSON.stringify(t.clips || []); } catch (_) { return ''; } };
+  function bumpApproved(ids, beforeClips) {
+    const hit = ids.map((id) => engine.track(id)).filter((t) => t && beforeClips.get(t.id) !== clipsFp(t) && (partStageOf(t) || {}).stage === 'approved');
+    if (!hit.length) return;
+    setTimeout(() => { for (const t of hit) setPartStageUI(t, { stage: 'review' }); status(`${hit.map((t) => t.name).join(', ')} changed after approval — back to Ready for review.`, 6000); }, 0);
+  }
   function setStage(k) { change(() => { if (k) state.song.stage = k; else delete state.song.stage; }, { label: k ? `stage → ${k}` : 'stage cleared' }); renderAll(); save(); }
   // Rename the open song: save, close (frees the lock in the old folder), rename folder + song.json, reopen. Only the
   // song holder, with nobody else in it.
@@ -2287,7 +2334,7 @@
   }
   function songMenu(sInfo) {
     const open = sInfo.folder === state.folder;
-    return [{ title: sInfo.name }, { label: open ? (state.readOnly ? 'Take over / edit' : 'Already open') : 'Open', action: () => (open ? (state.readOnly ? takeOver() : null) : openSong(sInfo.folder)), disabled: open && !state.readOnly }, { label: 'Close', action: () => closeSong(), disabled: !open }, { label: 'Show folder', action: () => bp.shell.openSongFolder(sInfo.folder) }, { label: 'Hand off to a DAW…', action: () => exportDaw({}), disabled: !open }, { label: 'React to the song', sub: open ? reactionItems('song', sInfo.name) : null, disabled: !open || ro() }, { label: 'Note at playhead (whole song)…', action: () => addNote(null, engine.playhead), disabled: !open }, { label: 'Bounce mix', action: () => bounce('mix'), disabled: !open }, 'sep', { label: `Key${open && state.song && state.song.key ? `: ${state.song.key}` : ''}`, sub: [{ label: 'Detect from the tracks', hint: 'guitar, bass, keys, vocals', action: () => detectSongKey().catch(fail) }, 'sep', { title: 'Set the label only — nothing moves (to move the music: Transpose song)' }, ...window.BPTemplates.KEYS.map((k) => ({ label: k || 'no key', checked: open && state.song && (state.song.key || '') === k, action: () => setSongKey(k) }))], disabled: !open || ro() }, { label: 'Stage', sub: [...Object.entries(STAGES).map(([k, v]) => ({ label: v, checked: sInfo.stage === k, action: () => setStage(k) })), { label: 'no stage', action: () => setStage(null) }], disabled: !open || ro() }, { label: 'Transpose song', hint: 'moves the recordings, MIDI and chords', sub: open ? transposeItems(null) : [], disabled: !open || ro() }, { label: 'Import audio files as tracks…', hint: 'or drag them in', action: () => window.pickAudioFiles(0), disabled: !open || ro() }, { label: 'Restructure song…', action: () => openRestructure().catch(fail), disabled: !open || ro() }, { label: 'Save as band template…', action: () => saveAsTemplate(sInfo.folder).catch(fail) }, { label: 'New song…', action: () => newSongWizard().catch(fail) }, 'sep', { label: 'Delete song…', danger: true, action: () => deleteSong(sInfo).catch(fail), disabled: !!(sInfo.presence && sInfo.presence.length) || !!(sInfo.lock && !sInfo.lock.stale && !sInfo.lockMine), hint: sInfo.presence && sInfo.presence.length ? `${sInfo.presence.map((p) => p.user).join(', ')} has it open` : '' }, { label: 'Deleted songs…', action: () => deletedSongs().catch(fail) }];
+    return [{ title: sInfo.name }, { label: open ? (state.readOnly ? 'Take over / edit' : 'Already open') : 'Open', action: () => (open ? (state.readOnly ? takeOver() : null) : openSong(sInfo.folder)), disabled: open && !state.readOnly }, { label: 'Close', action: () => closeSong(), disabled: !open }, { label: 'Rename the song…', hint: !open ? 'open it first' : state.readOnly ? `${holderName() || 'a bandmate'} has it open` : 'folder too; XP and goals carry over', action: () => renameSong().catch(fail), disabled: !open || state.readOnly }, { label: 'Show folder', action: () => bp.shell.openSongFolder(sInfo.folder) }, { label: 'Hand off to a DAW…', action: () => exportDaw({}), disabled: !open }, { label: 'React to the song', sub: open ? reactionItems('song', sInfo.name) : null, disabled: !open || ro() }, { label: 'Note at playhead (whole song)…', action: () => addNote(null, engine.playhead), disabled: !open }, { label: 'Bounce mix', action: () => bounce('mix'), disabled: !open }, 'sep', { label: `Key${open && state.song && state.song.key ? `: ${state.song.key}` : ''}`, sub: [{ label: 'Detect from the tracks', hint: 'guitar, bass, keys, vocals', action: () => detectSongKey().catch(fail) }, 'sep', { title: 'Set the label only — nothing moves (to move the music: Transpose song)' }, ...window.BPTemplates.KEYS.map((k) => ({ label: k || 'no key', checked: open && state.song && (state.song.key || '') === k, action: () => setSongKey(k) }))], disabled: !open || ro() }, { label: 'Stage', sub: [...Object.entries(STAGES).map(([k, v]) => ({ label: v, checked: sInfo.stage === k, action: () => setStage(k) })), { label: 'no stage', action: () => setStage(null) }], disabled: !open || ro() }, { label: 'Transpose song', hint: 'moves the recordings, MIDI and chords', sub: open ? transposeItems(null) : [], disabled: !open || ro() }, { label: 'Import audio files as tracks…', hint: 'or drag them in', action: () => window.pickAudioFiles(0), disabled: !open || ro() }, { label: 'Restructure song…', action: () => openRestructure().catch(fail), disabled: !open || ro() }, { label: 'Save as band template…', action: () => saveAsTemplate(sInfo.folder).catch(fail) }, { label: 'New song…', action: () => newSongWizard().catch(fail) }, 'sep', { label: 'Delete song…', danger: true, action: () => deleteSong(sInfo).catch(fail), disabled: !!(sInfo.presence && sInfo.presence.length) || !!(sInfo.lock && !sInfo.lock.stale && !sInfo.lockMine), hint: sInfo.presence && sInfo.presence.length ? `${sInfo.presence.map((p) => p.user).join(', ')} has it open` : '' }, { label: 'Deleted songs…', action: () => deletedSongs().catch(fail) }];
   }
   // Delete = the song folder moves to _deleted on the band Drive (for everyone). Deleted songs… brings one back.
   async function deleteSong(sInfo) {
@@ -5479,7 +5526,7 @@
       const nm = el('span', 'tname', t.name); nm.title = 'Track name — double-click to rename it. Names like Bass, Vox or Kick help, because Auto mix and the quick fixes guess what the track is from its name.';
       const ty = el('span', 'ttype', (t.instrument === 'drumkit' ? 'drum machine' : t.instrument.startsWith('synth:') ? t.instrument.slice(6) : t.type) + (t.preset ? ` · ${presetLabel(t)}` : '')); ty.title = 'What kind of track this is (guitar, vocals, drum machine…) and the sound preset on it (amp, vocal chain…). Change the preset in Track FX on the right.';
       nm.addEventListener('dblclick', async (e) => { e.stopPropagation(); if (state.readOnly) return; const n = await promptName('Track name', t.name); if (n) { change(() => engine.updateTrack(t.id, { name: n }), { label: `rename track to ${n}` }); fixTrackTypes({ quiet: false }); renderAll(); } });
-      nameRow.append(sw, nm);
+      nameRow.append(sw, nm, partStageChip(t));
       const btns = el('div', 'btns');
       // track lock: 🔒 locked (click to unlock it for you) · 🔓 yours · 🔒 Sam (someone else has it)
       const hb = heldBy(t.id), mine = mineT(t.id);
@@ -7579,6 +7626,8 @@
       case 'workspace': { if (args.ws) setWorkspace(String(args.ws)); return { ws: state.ws, practice: kara.open }; }
       case 'chartAll': return chartAllSongs({ interactive: false });
       case 'tabTrack': { writable(); const t = engine.track(args.trackId); if (!t) throw new Error('no such track'); await tabTrack(t, { force: true }); const tb = tabFor(t.id); if (!tb) throw new Error('no notes heard'); return { ...tb, text: tabsText(0) }; }
+      case 'partStage': { need(); const t = engine.track(args.trackId) || engine.tracks.find((x) => args.track && x.name.toLowerCase() === String(args.track).toLowerCase()); if (!t) throw new Error('trackId or track (name) required'); const o = {}; if (args.stage !== undefined) { if (args.stage && !CB.STAGE_KEYS.includes(args.stage)) throw new Error(`stage must be ${CB.STAGE_KEYS.join(' | ')} | null`); o.stage = args.stage || null; } if (args.redo !== undefined) o.redo = args.redo || null; if (!Object.keys(o).length) throw new Error('stage or redo required'); if (!setPartStageUI(t, o)) throw new Error('could not set the stage'); const e = partStageOf(t) || {}; return { trackId: t.id, stage: e.stage || null, redo: e.redo || null }; }
+      case 'partStages': { need(); return { stages: engine.tracks.map((t) => { const e = partStageOf(t) || {}; return { trackId: t.id, track: t.name, stage: e.stage || null, redo: e.redo || null, by: e.by || null, at: e.at || null }; }), rollup: CB.stageRollup(state.song) }; }
       case 'tabs': { need(); return { tabs: liveTabs(), text: tabsText(0) }; }
       case 'chordsDetect': { writable(); const ts = Array.isArray(args.trackIds) ? args.trackIds.map((id) => engine.track(id)).filter(Boolean) : null; const n = await chordsFromTracks(ts, { replaceDrafts: args.replaceDrafts !== false, wipe: args.wipe === true }); return { added: n || 0, chords: liveChords().map((c) => ({ time: c.time, chord: c.chord, det: !!c.det })) }; }
       case 'autoMix': { writable(); const r = await autoMix(); return r ? { changes: r.lines, tracks: engine.tracks.map((t) => ({ id: t.id, name: t.name, gainDb: t.gainDb, pan: t.pan, fx: t.fx })) } : null; }
