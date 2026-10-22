@@ -11,6 +11,7 @@
   const CB = window.BPCollab;
 
   const engine = new Engine();
+  const FX = window.BPFx;
   const state = {
     trackH: 84,   // track row height in px (a bandmate's ask: fit more on screen) — thin / regular / thick noodles
     settings: null,
@@ -66,6 +67,8 @@
   // ---------- settings ----------
   async function loadSettings() {
     state.settings = await bp.settings.get();
+    // audio held as float up to this many MB (default: a fifth of the machine's RAM, 256–1024 MB); the rest streams as 16-bit
+    if (engine.buffers.floatBudget !== undefined) engine.buffers.floatBudget = 1e6 * (Number.isFinite(Number(state.settings.audioFloatMB)) ? Number(state.settings.audioFloatMB) : Math.max(256, Math.min(768, Math.round((navigator.deviceMemory || 4) * 1024 * 0.2))));
     $('#who').textContent = state.settings.displayName || 'no name set — click ⚙';
     $('#folder-line').textContent = state.settings.sharedFolder || 'No shared folder yet — open Settings';
     $('#folder-line').title = state.settings.sharedFolder || '';
@@ -369,15 +372,16 @@
   function renderXpChip() {
     const c = $('#xp-chip'); if (!c) return; const m = myQuest(); if (!m) { c.hidden = true; return; }
     c.hidden = false; c.querySelector('.xp-lvl').innerHTML = ''; { const i = el('i', `gi ${charOf(m)[2]}`); c.querySelector('.xp-lvl').append(i, document.createTextNode(` Lv ${m.level.n}`)); } c.querySelector('.xp-title').textContent = m.level.title;
-    c.querySelector('.xp-bar i').style.width = `${(100 * m.level.frac).toFixed(0)}%`; c.querySelector('.xp-num').textContent = `${m.xp} XP`;
+    c.querySelector('.xp-bar i').style.width = `${(100 * m.level.frac).toFixed(0)}%`; FX.countTo(c.querySelector('.xp-num'), m.xp, { fmt: (v) => `${v} XP` });
     c.title = `${m.name} — level ${m.level.n} ${m.level.title} · ${m.xp} XP${m.level.next ? ` · ${m.level.toNext} to ${m.level.next}` : ''} · ${m.achievements.length} achievement${m.achievements.length === 1 ? '' : 's'}\n${quest.board.name}: level ${quest.board.level.n} ${quest.board.level.title}`;
     const tb = $('#tb-band'); if (tb) tb.textContent = quest.board.boss && quest.board.boss.date && bossDays(quest.board.boss) >= 0 && bossDays(quest.board.boss) <= 7 ? `${bossDays(quest.board.boss)}d` : '';
   }
+  $('#transport').addEventListener('pointerdown', (e) => { const b = e.target.closest('button'); if (b) FX.ripple(e.clientX, e.clientY, b.id === 'btn-rec' ? 'rgba(224,75,75,.8)' : 'rgba(255,255,255,.5)', 36); }, { passive: true });
   $('#xp-chip').addEventListener('click', () => { if (true) setWorkspace('band'); else status(`${quest.board ? `${quest.board.name}: level ${quest.board.level.n} ${quest.board.level.title}` : ''} — open a song for the Band tab.`); });
   // "+25 XP · take recorded" when I do something that counts (optimistic: the real tally comes from the saved song)
   function questPop(label) {
     const w = Q.xpForLabel(label); if (!w || state.readOnly && !state.folder) return;
-    const p = el('div', 'xp-pop', `+${w.xp} XP`); p.append(el('small', null, w.what)); document.body.append(p); setTimeout(() => p.remove(), 1800);
+    FX.xpBurst({ xp: w.xp, what: w.what });
   }
   async function questWrite(patch) { if (!bp.quest) return; await bp.quest.write(patch); await loadQuest(); }
   const qKey = (s, rest) => `song:${s.qid}:${rest}`;
@@ -489,22 +493,91 @@
     if (hidden.length) { const li = el('li', 'muted small'); li.textContent = `${hidden.length} hidden`; M.attach(li, () => hidden.map((h) => ({ label: `Bring back ${h.meta.name || h.qid}`, action: () => questWrite({ [`song:${h.qid}:meta`]: { ...h.meta, hidden: false } }).catch(fail) }))); li.addEventListener('click', (e) => li.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: e.clientX, clientY: e.clientY }))); ul.append(li); }
     $('#qb-next').textContent = b.next ? `Then: ${b.next}` : 'Then: … (click to set the target after the boss battle)';
   }
-  function questPopRaw(xp, what) { const p = el('div', 'xp-pop', `+${xp} XP`); p.append(el('small', null, what)); document.body.append(p); setTimeout(() => p.remove(), 1800); }
+  function questPopRaw(xp, what) { FX.xpBurst({ xp, what }); }
   // ---- characters & level sprites ----
   const charOf = (m) => Q.CHARACTERS.find(([id]) => id === (m && m.character)) || Q.CHARACTERS.find(([id]) => id === roleGuess(m)) || Q.CHARACTERS[0];
   function roleGuess(m) { const r = String((m && m.role) || '').toLowerCase(); if (/bass/.test(r)) return 'lowend'; if (/drum/.test(r)) return 'thumper'; if (/vo(x|cal)|sing/.test(r)) return 'howler'; if (/key|piano|synth/.test(r)) return 'wizard'; if (/sax|horn|trumpet|brass/.test(r)) return 'horn'; if (/banjo|mandolin/.test(r)) return 'picker'; if (/guitar|gtr/.test(r)) return 'shredder'; return 'noodle'; }
   // everyone gets a look from the start (rolled from their name) until they build one; tiers pick the animation
-  const LPC = window.BPLPC; LPC.load().then(() => { if (state.ws === 'band') renderBandPane(); }).catch((e) => console.warn('lpc', e));
+  const LPC = window.BPLPC; LPC.load().then(() => { if (state.ws === 'band') renderBandPane(); renderStage(); if (state.folder) renderTracks(); }).catch((e) => console.warn('lpc', e));
   const lookOf = (m) => (LPC.ready() ? LPC.sanitize(m && m.look ? m.look : LPC.defaultLook(m && m.name)) : null);
   const animOf = (t) => Q.TIER_ANIM[t - 1] || 'idle';
   // a canvas that draws frame 0 now, animates while hovered, and (live) while it is on screen; a 'big' hero plays `anims` nonstop
   function lpcCanvas(look, { anim = 'idle', scale = 1, live = false, anims = null, hover = true } = {}) {
     const c = document.createElement('canvas'); c.className = 'lpc'; c.width = c.height = 64 * scale; if (!look) return c;
-    LPC.render(c, look, { anim, scale }).catch(() => {}); let stop = null; const go = () => { if (!stop) stop = LPC.animate(c, look, { anim, scale, anims }); }; const halt = () => { if (stop) { stop(); stop = null; LPC.render(c, look, { anim, scale }).catch(() => {}); } };
+    LPC.render(c, look, { anim, scale }).catch(() => {}); let stop = null; const go = () => { if (!stop) stop = LPC.animate(c, look, { anim, scale, anims, fps: Number(c.dataset.fps) || 8 }); }; const halt = () => { if (stop) { stop(); stop = null; LPC.render(c, look, { anim, scale }).catch(() => {}); } };
     if (anims) { go(); return c; }
     if (hover) { c.addEventListener('mouseenter', go); c.addEventListener('mouseleave', () => { if (!c.dataset.vis) halt(); }); }
     if (live && 'IntersectionObserver' in window) { const io = new IntersectionObserver((es) => { for (const e of es) { if (e.isIntersecting) { c.dataset.vis = '1'; go(); } else { delete c.dataset.vis; halt(); } if (!c.isConnected) io.disconnect(); } }); io.observe(c); }
     return c;
+  }
+
+  // ---- the band on every screen ----
+  // Everyone's character shows where they are and what they are doing right now: the song head (who has this song
+  // open), the sidebar strip (the whole band — rocking out, listening, waiting, or away), the song list (who is in each
+  // song), the track heads (whose take that is) and the empty screen (the band hanging out). Animations come from the
+  // LPC sheets: recording / playing = strumming and jumping, listening = idle, waiting = emote, away = greyed and still.
+  const STAGE_ANIM = { rec: { anims: ['slash'], fps: 12 }, playing: { anims: ['slash', 'jump'], fps: 10 }, practicing: { anims: ['emote', 'idle'], fps: 8 }, waiting: { anims: ['emote'], fps: 6 }, listening: { anims: ['idle'], fps: 5 }, looking: { anims: ['idle'], fps: 4 }, here: { anims: ['idle'], fps: 4 }, away: null };
+  const STAGE_LABEL = { rec: '● rec', playing: '🎧', practicing: '🎙', waiting: '⏳', listening: '🎧', looking: '👀', here: '', away: '' };
+  const stageCache = new Map();   // `${box}|${name}|${mode}` → element (so a re-render never restarts a running animation)
+  let stageReady = false;         // flipped once the whole module has run (kara / quest are declared further down)
+  function bandMembers() {
+    const ms = quest && quest.board ? quest.board.members.slice() : [];
+    const names = new Set(ms.map((m) => m.name));
+    for (const sg of state.songs || []) for (const p of sg.presence || []) if (p.user && !names.has(p.user)) { names.add(p.user); ms.push({ name: p.user, guest: true }); }
+    if (me() && !names.has(me())) ms.unshift({ name: me(), isMe: true });
+    return ms;
+  }
+  // what a member is doing: my own state comes from the transport, everyone else's from the presence files
+  function whoDoing(name) {
+    if (name === me()) {
+      if (engine.recording) return { mode: 'rec', folder: state.folder };
+      if (engine.playing) return { mode: kara.open ? 'practicing' : 'playing', folder: state.folder };
+      if (state.folder) return { mode: state.waiting ? 'waiting' : 'listening', folder: state.folder };
+      return { mode: 'here', folder: null };
+    }
+    for (const sg of state.songs || []) for (const p of sg.presence || []) if (p.user === name) return { mode: p.mode === 'recording' ? 'rec' : p.mode === 'waiting' ? 'waiting' : p.mode === 'practicing' ? 'practicing' : p.playing ? 'playing' : 'looking', folder: sg.folder, song: sg.name, host: p.host };
+    return { mode: 'away', folder: null };
+  }
+  function stageWho(box, m, doing, { title = true } = {}) {
+    const key = `${box}|${m.name}|${doing.mode}`; let w = stageCache.get(key);
+    if (w && !w.isConnected) { stageCache.delete(key); w = null; }   // its animation stopped when it left the page: build it fresh
+    if (!w) {
+      w = el('span', `stage-who ${doing.mode}${m.isMe ? ' me' : ''}${doing.mode !== 'away' ? ' here' : ''}`); w.dataset.name = m.name;
+      const lk = lookOf(m); const spec = STAGE_ANIM[doing.mode];
+      if (lk) { const c = spec ? lpcCanvas(lk, { scale: 1, anims: spec.anims, hover: false }) : lpcCanvas(lk, { scale: 1, hover: false }); if (spec && spec.fps !== 8) c.dataset.fps = spec.fps; w.append(c); }
+      else w.append(el('i', `gi ${charOf(m)[2]}`));
+      const lab = STAGE_LABEL[doing.mode]; if (lab) w.append(el('span', 'mode', lab));
+      stageCache.set(key, w);
+    }
+    if (title) w.title = `${m.name}${m.isMe ? ' (you)' : ''} — ${doing.mode === 'rec' ? 'recording' : doing.mode === 'playing' ? 'playing along' : doing.mode === 'practicing' ? 'rehearsing' : doing.mode === 'waiting' ? 'waiting to edit' : doing.mode === 'listening' ? 'listening' : doing.mode === 'looking' ? 'looking around' : doing.mode === 'here' ? 'in the band room' : 'not around right now'}${doing.song ? ` · ${doing.song}` : ''}${doing.host ? ` · on ${doing.host}` : ''}`;
+    return w;
+  }
+  function renderStage() {
+    if (!LPC.ready() || !stageReady) return;
+    const members = bandMembers();
+    // song head: everyone with this song open
+    const st = $('#stage'); if (st) { const here = []; if (state.folder) for (const m of members) { const d = whoDoing(m.name); if (d.folder === state.folder) here.push([m, d]); } st.replaceChildren(...here.map(([m, d]) => stageWho('head', m, d))); st.hidden = !here.length; }
+    // sidebar: the whole band
+    const strip = $('#band-strip'); if (strip) {
+      strip.replaceChildren(...members.map((m) => { const d = whoDoing(m.name); const w = stageWho('strip', m, d); let nm = w.querySelector('.nm'); if (!nm) { nm = el('span', 'nm'); w.append(nm); } nm.textContent = m.name; w.onclick = () => { if (d.folder && d.folder !== state.folder) openSong(d.folder).catch(fail); else setWorkspace('band'); }; return w; }));
+      strip.hidden = members.length < 2 && !state.songs.length;
+    }
+    // the empty screen: the band hanging out
+    const crowd = $('#no-song .stage-crowd'); if (crowd && !$('#no-song').hidden) crowd.replaceChildren(...members.map((m) => stageWho('crowd', m, whoDoing(m.name))));
+  }
+  // bar 1: everyone on stage hops (compositor-only transform, synced to the beat the engine reports)
+  function stageBeat() { for (const w of document.querySelectorAll('#stage .stage-who.here, #band-strip .stage-who.rec, #band-strip .stage-who.playing')) { if (w.animate) w.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-5px)', offset: .4 }, { transform: 'translateY(0)' }], { duration: 220, easing: 'ease-out' }); } }
+  // a tiny portrait of whoever recorded the last take on a track (cached per person)
+  const faceCache = new Map();
+  function trackFace(t) {
+    if (!LPC.ready() || !t.clips.length) return null;
+    const last = t.clips.slice().sort((a, b) => String(b.takenAt || '').localeCompare(String(a.takenAt || '')))[0]; const who = last && last.takenBy; if (!who) return null;
+    const m = bandMembers().find((x) => x.name === who) || { name: who }; const lk = lookOf(m); if (!lk) return null;
+    const box = el('span', 'face'); box.title = `${who} recorded the last take here`;
+    let c = faceCache.get(who);
+    if (!c) { c = document.createElement('canvas'); c.className = 'lpc'; c.width = c.height = 64; LPC.render(c, lk, { anim: 'idle', scale: 1 }).catch(() => {}); faceCache.set(who, c); }
+    const cv = document.createElement('canvas'); cv.className = 'lpc'; cv.width = cv.height = 64; const draw = () => { try { cv.getContext('2d').drawImage(c, 0, 0); } catch (_) {} }; draw(); setTimeout(draw, 400);   /* the cached portrait may still be loading its sheets */
+    box.append(cv); return box;
   }
   function charSprite(m, { tier = null, big = false, title = true, anim = null, live = false, look = null } = {}) {
     const ch = charOf(m); const lv = m && m.level ? m.level : { tier: 1, n: 1, title: Q.TIERS[0] }; const t = tier || lv.tier || 1; const lk = look || lookOf(m);
@@ -667,7 +740,7 @@
       if (s.stage) { const c = el('span', `chip-s stage stage-${s.stage}`, STAGES[s.stage] || s.stage); c.title = 'Stage: how far along the song is — idea, writing, demo or done. Right-click the song to change it; the filter above the list sorts by it.'; chips.append(c); }
       if (s.needsMine) { const c = el('span', 'chip-s ping', `for you ${s.needsMine}`); c.title = `${s.needsMine} "needs" item${s.needsMine === 1 ? '' : 's'} assigned to you`; chips.append(c); }
       if (s.needsOpen) { const tot = s.needsOpen + (s.needsDone || 0); const c = el('span', 'chip-s needs', `needs ${s.needsOpen}${s.needsDone ? ` · ${Math.round(100 * s.needsDone / tot)}% done` : ''}`); c.title = (s.needs || []).join('\n'); chips.append(c); }
-      for (const p of s.presence || []) { if (s.lock && !s.lock.stale && p.user === s.lock.user && p.mode !== 'listening') continue; const c = el('span', 'chip-s here', `${p.user} ${p.mode === 'waiting' ? '⏳ waiting to edit' : p.mode === 'recording' ? '● rec' : p.mode === 'practicing' ? '🎙 rehearsing' : p.playing ? '🎧 listening' : 'looking'}`); c.title = `${p.user} has this song open on ${p.host}`; chips.append(c); }
+      for (const p of s.presence || []) { if (s.lock && !s.lock.stale && p.user === s.lock.user && p.mode !== 'listening') continue; if (LPC.ready() && stageReady) { const m = bandMembers().find((x) => x.name === p.user) || { name: p.user }; chips.append(stageWho('list', m, whoDoing(p.user), { title: false })); } const c = el('span', 'chip-s here', `${p.user} ${p.mode === 'waiting' ? '⏳ waiting to edit' : p.mode === 'recording' ? '● rec' : p.mode === 'practicing' ? '🎙 rehearsing' : p.playing ? '🎧 listening' : 'looking'}`); c.title = `${p.user} has this song open on ${p.host}`; chips.append(c); }
       if (chips.children.length) li.appendChild(chips);
       { const qs = songQuest(s.folder); if (qs) { const bar = el('div', 'song-xp'); const f = el('i'); f.style.width = `${qs.max ? (100 * qs.xp / qs.max).toFixed(0) : 0}%`; bar.append(f); bar.title = `Quest: ${qs.xp} / ${qs.max} XP · ${qs.goals.filter((g) => g.done).map((g) => g.label).join(', ') || 'no goals yet'} · ${qs.prog.map((p) => `${p.member} ${p.pct}%${p.written ? ' ✓' : ''}`).join(' · ')}`; li.appendChild(bar); } }
       li.addEventListener('click', () => { if (s.folder === state.folder && state.readOnly && !(s.lock && !s.lock.stale && !s.lockMine)) takeOver().catch(fail); else openSong(s.folder).catch(fail); });
@@ -675,6 +748,7 @@
       ul.appendChild(li);
     }
     if (!state.songs.length) ul.appendChild(el('li', 'muted', state.settings.sharedFolder ? 'No songs yet — hit + and start noodling.' : ''));
+    renderStage();
   }
   function timeAgo(iso) { const d = (Date.now() - new Date(iso).getTime()) / 1000; if (d < 60) return 'just now'; if (d < 3600) return `${Math.floor(d / 60)}m ago`; if (d < 86400) return `${Math.floor(d / 3600)}h ago`; return `${Math.floor(d / 86400)}d ago`; }
 
@@ -1240,11 +1314,15 @@
     const seen = new Set();
     for (const t of song.tracks || []) for (const c of t.clips || []) { const a = audioId(c); if (c.kind !== 'midi' && !engine.buffers.has(a) && !seen.has(a)) { seen.add(a); need.push(a); } }
     let done = 0; if (onProgress) onProgress(0, need.length);
-    const results = await Promise.all(need.map(async (a) => {
-      try { const ab = await bp.audio.read(folder, a); engine.buffers.set(a, await window.BPWav.decodeWav(engine.ctx, ab)); state.missingClips.delete(a); return true; }
-      catch (err) { state.missingClips.add(a); return false; }
+    // a few at a time: each take is read, decoded (float) and summarised before the next file is even opened
+    const results = new Array(need.length); let cursor = 0;
+    const worker = async () => { while (cursor < need.length) { const k = cursor++; const a = need[k];
+      try { const ab = await bp.audio.read(folder, a); const buf = await window.BPWav.decodeWav(engine.ctx, ab); engine.buffers.set(a, buf); engine.buffers.get(a).peaks(); state.missingClips.delete(a); results[k] = true; }
+      catch (err) { state.missingClips.add(a); results[k] = false; }
       finally { done++; if (onProgress) onProgress(done, need.length); }
-    }));
+      await new Promise((r) => setTimeout(r, 0));   // let the bar and the window breathe between takes
+    } };
+    await Promise.all(Array.from({ length: Math.min(3, Math.max(1, (navigator.hardwareConcurrency || 2) - 1)) }, worker));
     const referenced = new Set((song.tracks || []).flatMap((t) => (t.clips || []).filter((c) => c.kind !== 'midi').map((c) => audioId(c))));
     for (const id of [...state.missingClips]) if (!referenced.has(id)) state.missingClips.delete(id);
     if (results.some((r) => !r)) status(`${state.missingClips.size} take(s) not synced yet — ${cloudName()} is probably still downloading them. They will appear when they arrive.`, 8000);
@@ -1725,6 +1803,18 @@
     if (state.pendingExternal && state.pendingExternal.deferred && !state.dirty && !state.pendingTakes.size && !engine.playing && !engine.recording && !finishing) { state.pendingExternal = null; reloadFromDisk().catch(fail); }
   }
   engine.on((ev, data) => { if (ev === 'transport' && !data.playing && !data.recording) setTimeout(applyDeferredReload, 0); });
+  // the motion layer follows the transport: body.playing / body.recording, neon around the recording track, beat pulses
+  engine.on((ev, data) => {
+    if (ev !== 'transport') return;
+    document.body.classList.toggle('playing', !!data.playing); document.body.classList.toggle('recording', !!data.recording);
+    const pb = $('#btn-play'); if (pb) pb.classList.toggle('active', !!data.playing && !data.recording);
+    const rb = $('#btn-rec'); if (rb) rb.classList.toggle('fx-pulse-rec', !!data.recording);
+    if (data.recording) neonFollow(); else FX.neon.stop();
+    if (!data.playing) lastBeatKey = '';
+    renderStage();
+  });
+  function neonFollow() { if (!engine.recording || engine.recording.midi) return; const row = tracksEl.querySelector(`.track[data-id="${engine.recording.trackId}"]`); if (!row) return; if (FX.neon.cv && FX.neon.host === arrange) FX.neon.retarget(row); else FX.neon.start(arrange, row); }
+  let lastBeatKey = '';
   bp.song.onLockStatus(({ folder, lock, mine }) => {
     if (folder !== state.folder) return;
     if (mine) state.lock = lock;
@@ -1989,6 +2079,7 @@
           { title: 'Show the chart moved for a capo / another key (nothing is re-tuned)' },
           ...[0, -1, -2, -3, -4, -5, 1, 2, 3].map((k) => ({ label: k === 0 ? 'As written' : k < 0 ? `Capo ${-k} (chords shown ${k})` : `Up ${k} half step${k === 1 ? '' : 's'}`, action: () => showChartShifted(k) })),
           'sep', { label: 'Chords from this track (listen to the takes)', action: () => chordsFromTracks([t]).catch(fail), disabled: ro() },
+          { label: `Tab from this track (${bassTrack(t) ? 'bass' : 'guitar'}: every note and chord shape)`, hint: 'reads the takes', action: () => tabTrack(t).catch(fail), disabled: ro() || tabBusy },
           { label: 'Play-along highway (Practice → play along)', action: () => { setWorkspace('practice'); setTimeout(() => { const al = $('#k-along'); if (al) { al.value = bassTrack(t) ? 'bass' : 'chords'; al.dispatchEvent(new Event('change')); } }, 300); } }] },
         { label: '🔁 Transpose the whole song (re-tunes the recordings too)', sub: transposeItems(null), disabled: state.readOnly }] : []),
       { label: t.mute ? 'Un-mute track' : 'Mute track', action: () => toggleMS(t, 'mute') },
@@ -3220,6 +3311,53 @@
   // ---------- chord chart / lyric sheet ----------
   // By section: the chords bar by bar, then the lyric lines with the chord they start on. Transposable for practice.
   function showChartShifted(k) { setWorkspace('write'); showTab('chart'); renderChart(); const sel = $('#chart-transpose'); if (sel) { sel.value = String(k); sel.dispatchEvent(new Event('change')); } status(k ? `Chart shown ${k > 0 ? '+' : ''}${k} — the recordings are untouched. Change it with the transpose box in the Chords tab.` : 'Chart as written.', 6000); }
+
+  // ---------- tabs from the takes (tab.js) ----------
+  // Reads every live take on a guitar / bass track and writes the notes and chord voicings that were played as a tab
+  // (string / fret events). Kept on the song as a `tabs` entry per track (merges like notes and chords do); shown in
+  // the Chords tab under the chart, and in Practice as a play-along lane.
+  const TB = window.BPTab; let tabBusy = false;
+  const liveTabs = () => CB.live(CB.list(state.song, 'tabs'));
+  const tabFor = (trackId) => liveTabs().filter((x) => x.trackId === trackId).sort((a, b) => String(b.at).localeCompare(String(a.at)))[0] || null;
+  async function tabTrack(t) {
+    if (!state.folder || !t || tabBusy) return;
+    const clips = t.clips.filter((c) => c.kind !== 'midi' && !engine.clipMuted(c) && engine.buffers.get(audioId(c)));
+    if (!clips.length) { status('No takes to read on that track yet.'); return; }
+    const instrument = bassTrack(t) ? 'bass' : 'guitar';
+    tabBusy = true; const t0 = performance.now(); status(`Reading ${t.name} for a ${instrument} tab…`, 0);
+    try {
+      const events = []; let tuning = 0, n = 0;
+      for (const c of clips) {
+        const buf = engine.buffers.get(audioId(c)); const sr = buf.sampleRate; const i0 = Math.floor((c.trimStart || 0) * sr), i1 = Math.min(buf.length, i0 + Math.floor((engine.clipLength(c) || 0) * sr));
+        if (i1 - i0 < sr * 0.1) continue;
+        const m = mono(window.BPWav.audioBufferToChannels(buf).map((ch) => ch.subarray(i0, i1)));
+        const r = await new Promise((res) => setTimeout(() => res(TB.transcribe(m, sr, { instrument })), 0));   // let the status paint first
+        for (const e of r.events) events.push({ ...e, t: Math.round((e.t + c.start) * 1000) / 1000 });
+        tuning += r.tuningCents; n++;
+        await new Promise((res) => setTimeout(res, 0));
+      }
+      events.sort((a, b) => a.t - b.t);
+      if (!events.length) { status(`Couldn't hear notes on ${t.name} — is it a ${instrument} take?`, 8000); return; }
+      const entry = { id: newId(), trackId: t.id, track: t.name, instrument, tuningCents: n ? Math.round(tuning / n) : 0, events, by: me(), at: nowIso() };
+      cchange(() => { for (const x of CB.list(state.song, 'tabs')) if (x.trackId === t.id && !x.deleted) { x.deleted = true; x.deletedBy = me(); x.deletedAt = nowIso(); } (state.song.tabs = state.song.tabs || []).push(entry); }, { label: `tab ${t.name}` });
+      questPop(`tab ${t.name}`);
+      const chords = events.filter((e) => !e.mono).length;
+      status(`${t.name}: ${events.length} events read (${chords} chord${chords === 1 ? '' : 's'}, ${events.length - chords} single notes${entry.tuningCents ? `, tuned ${entry.tuningCents > 0 ? '+' : ''}${entry.tuningCents}¢` : ''}) in ${((performance.now() - t0) / 1000).toFixed(1)} s — Chords tab has the tab; Practice can play it along.`, 12000);
+      setWorkspace('write'); showTab('chart'); renderChart();
+    } finally { tabBusy = false; }
+  }
+  // text for every tabbed track: chord names over the strings, bars from the song's beat
+  function tabsText(semis = 0) {
+    const out = [];
+    for (const tb of liveTabs()) {
+      const tr = engine.track(tb.trackId); const tn = tb.instrument === 'bass' ? TB.BASS : TB.GUITAR;
+      const ev = semis ? tb.events.map((e) => ({ ...e, notes: e.notes.map((m) => m + semis), frets: null })).map((e) => { const fr = TB.voicing(e.notes, tn) || e.frets; return { ...e, frets: fr, name: e.name ? MU.transposeChord(e.name, semis) : e.name }; }).filter((e) => e.frets) : tb.events;
+      out.push(`[TAB — ${tr ? tr.name : tb.track} (${tb.instrument})${tb.tuningCents ? ` · recorded ${tb.tuningCents > 0 ? '+' : ''}${tb.tuningCents}¢ off A440` : ''}${semis ? ` · shown ${semis > 0 ? '+' : ''}${semis}` : ''}]`);
+      out.push(TB.tabText(ev, { tuning: tn, beatLen: engine.beatLen(), charsPerBeat: 4, beatsPerBar: engine.timeSig[0], lineBeats: engine.timeSig[0] * 4 }));
+      out.push('');
+    }
+    return out.join('\n');
+  }
   function chartText(semis = 0) {
     const song = collectSong(); const b = barLen(); const flat = MU.isFlatKey(semis ? MU.transposeKey(state.song.key || 'C', semis) : (state.song.key || ''));
     const tp = (c) => (semis ? MU.transposeChord(c, semis, flat) : c);
@@ -3241,13 +3379,15 @@
     if (outside.length) { out.push('[LYRICS OUTSIDE THE LABELLED PARTS]'); for (const l of outside) { const c = chordAtT(l.time); out.push(`  ${posLabel(l.time)}: ${c ? `[${tp(c.chord)}] ` : ''}${l.text}`); } out.push(''); }
     const loose = lyrics.filter((x) => typeof x.time !== 'number'); if (loose.length) { out.push('[LYRICS NOT PLACED YET]'); for (const l of loose) out.push(`  ${l.text}`); out.push(''); }
     const needs = liveNeeds().filter((n) => !n.done); if (needs.length) { out.push('[STILL NEEDS]'); for (const n of needs) out.push(`  - ${n.text}${n.who ? ` (@${n.who})` : ''}`); }
+    const tabs = tabsText(semis); if (tabs) { out.push('', tabs); }
     return out.join('\n');
   }
   function renderChart() {
     if (!state.folder) return; const sel = $('#chart-transpose');
     if (!sel.options.length) for (let k = -6; k <= 6; k++) { const o = el('option', null, k ? `transpose ${k > 0 ? '+' : ''}${k}` : 'as written'); o.value = String(k); if (!k) o.selected = true; sel.append(o); }
     const txt = chartText(Number(sel.value) || 0); const v = $('#chart-view'); v.innerHTML = '';
-    for (const line of txt.split('\n')) { const d = el('div', /^\[/.test(line) ? 'sec' : /^\|/.test(line) ? 'ch' : null, line || ' '); v.append(d); }
+    for (const line of txt.split('\n')) { const d = el('div', /^\[/.test(line) ? 'sec' : /^\|/.test(line) ? 'ch' : /^[A-G]#? ?\|/.test(line) ? 'tabline' : null, line || ' '); v.append(d); }
+    { const b = $('#btn-tab-track'); if (b) { const cands = engine.tracks.filter((t) => t.instrument === 'audio' && t.clips.some((c) => c.kind !== 'midi') && (harmonicTrack(t) || bassTrack(t))); b.hidden = !cands.length; b.disabled = tabBusy || state.readOnly; } }
   }
   $('#chart-transpose').addEventListener('change', renderChart);
   $('#btn-chart-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(chartText(Number($('#chart-transpose').value) || 0)); status('Chart copied — paste it in the group chat.'); } catch (err) { fail(err); } });
@@ -3284,6 +3424,7 @@
   function setWorkspace(ws, { tab = true } = {}) {
     if (ws === 'practice') { openKaraoke().catch(fail); return; }
     if (!WS.includes(ws)) ws = 'write';
+    if (ws !== state.ws) { const m = $('#main'); m.classList.remove('fx-swap'); void m.offsetWidth; m.classList.add('fx-swap'); }
     try { if (kara.open) closeKaraoke(); } catch (_) { /* before practice mode exists (startup) */ }
     const prev = state.ws; state.ws = ws;
     for (const w of WS) document.body.classList.toggle(`ws-${w}`, w === ws);
@@ -4034,6 +4175,7 @@
   }
   $('#btn-automix').addEventListener('click', () => autoMix().catch(fail));
   $('#btn-chords-detect').addEventListener('click', () => chordsFromTracks().catch(fail));
+  $('#btn-tab-track').addEventListener('click', () => { const cands = engine.tracks.filter((t) => t.instrument === 'audio' && t.clips.some((c) => c.kind !== 'midi') && (harmonicTrack(t) || bassTrack(t))); if (!cands.length) return; if (cands.length === 1) { tabTrack(cands[0]).catch(fail); return; } { const r = $('#btn-tab-track').getBoundingClientRect(); M.show(r.left, r.bottom, [{ title: 'Tab which track?' }, ...cands.map((t) => ({ label: `${t.name} (${bassTrack(t) ? 'bass' : 'guitar'})`, action: () => tabTrack(t).catch(fail) }))]); } });
   $('#btn-automaster').addEventListener('click', () => autoMaster().catch(fail));
 
   // ---------- tighten to the grid (tighten.js) ----------
@@ -4294,6 +4436,7 @@
   }
   function karaFrame() {
     kara.raf = 0; if (!kara.open || !state.song) return;
+    karaTabOptions();
     const t = karaTime(); const ls = karaLines(); const a = KA.at(ls, t); const view = karaView();
     const sc = CB.sectionAt(state.song, t);
     $('#k-part').textContent = sc ? sc.name.toUpperCase() : '';
@@ -4358,6 +4501,12 @@
       if (key !== hw.key) { hw.key = key; hw.events = HW.events({ mode: 'chords', chords, from: 0, to: karaEnd(), capo }); }
       return hw.events;
     }
+    if (/^tab:/.test(mode)) {
+      const tb = tabFor(mode.slice(4)); if (!tb) { $('#k-hw-msg').textContent = 'That tab is gone — right-click the track → Tab from this track.'; return []; }
+      const tn = tb.instrument === 'bass' ? TB.BASS : TB.GUITAR; const key = `tab|${k}|${tb.id}`;
+      if (key !== hw.key) { hw.key = key; const ev = k ? tb.events.map((e) => { const notes = e.notes.map((m) => m + k); const frets = TB.voicing(notes, tn) || e.frets; return { ...e, notes, frets, name: e.name ? MU.transposeChord(e.name, k) : e.name }; }) : tb.events; hw.events = TB.laneEvents(ev, { from: 0, to: karaEnd() }); hw.mode = tb.instrument; $('#k-hw-msg').textContent = `${tb.track} — tab read off the takes`; }
+      return hw.events;
+    }
     if (mode === 'bass') {
       const notes = hw.bassNotes; const key = `bass|${k}|${hw.bassKey}`;
       if (!notes) { hwBassNotes().then(() => { hw.key = ''; }).catch(() => {}); $('#k-hw-msg').textContent = hw.loading ? 'Reading the bass line off the bass takes…' : engine.tracks.some((x) => window.BPAutoMix.role(x) === 'bass') ? '' : 'No bass track in this song.'; return []; }
@@ -4383,6 +4532,15 @@
     HW.draw(ctx, { w: W, h: H, now: t, events, lookahead: 4, lanes, labels: lanes === 4 ? HW.BASS.labels || ['E', 'A', 'D', 'G'] : lanes === 6 ? HW.GUITAR.labels || ['E', 'A', 'D', 'G', 'B', 'e'] : null });
   }
   $('#k-along').addEventListener('change', (e) => { hw.key = ''; try { localStorage.setItem('bp.kAlong', e.target.value); } catch (_) {} e.target.blur(); });
+  // one "tab: <track>" choice per tabbed track in the play-along picker
+  let tabOptKey = '';
+  function karaTabOptions() {
+    const sel = $('#k-along'); if (!sel) return; const tabs = state.song ? liveTabs() : []; const key = tabs.map((x) => `${x.trackId}:${x.track}:${x.instrument}`).join('|');
+    if (key === tabOptKey) return; tabOptKey = key;
+    for (const o of [...sel.options]) if (/^tab:/.test(o.value)) o.remove();
+    for (const x of tabs) { const o = new Option(`🎸 ${x.track} tab (${x.instrument})`, `tab:${x.trackId}`); sel.append(o); }
+    if (/^tab:/.test(sel.value) && !tabs.some((x) => `tab:${x.trackId}` === sel.value)) sel.value = '';
+  }
   // who you hear: vocals (guide / off) + tracks you've taken out (by name, so it carries through the setlist) or one soloed
   function karaApplyMix() {
     const vox = $('#k-vox').value; const out = new Set();
@@ -4680,7 +4838,7 @@
   async function saveIdeaAudio(arrayBuffer, title) {
     if (ro()) throw new Error('Read-only — take over to add ideas.');
     await engine.init();
-    let buf; try { buf = await engine.ctx.decodeAudioData(arrayBuffer.slice(0)); } catch (err) { throw new Error(`Could not read that audio (${err.message || 'unsupported format'}). WAV, MP3, M4A/AAC, OGG and FLAC work.`); }
+    let buf; try { buf = await engine.ctx.decodeAudioData(arrayBuffer); } catch (err) { throw new Error(`Could not read that audio (${err.message || 'unsupported format'}). WAV, MP3, M4A/AAC, OGG and FLAC work.`); }
     if (buf.duration > 20 * 60) throw new Error('That file is over 20 minutes — trim it first.');
     const chans = window.BPWav.audioBufferToChannels(buf).slice(0, 2);
     const audioId = newId(); const name = String(title || 'sketch').replace(/\.[^.]+$/, '').slice(0, 60) || 'sketch';
@@ -4933,9 +5091,9 @@
     renderSnapChip(); renderUnlockBtn();
     const keepTop = arrange.scrollTop; requestAnimationFrame(() => { if (Math.abs(arrange.scrollTop - keepTop) > 1) arrange.scrollTop = Math.min(keepTop, arrange.scrollHeight); });   /* re-render must not jump the track list to the top */
     tracksEl.innerHTML = '';
-    const w = timelineWidth();
+    const w = timelineWidth(); const gridLanes = [];
     for (const t of engine.tracks) {
-      const row = el('div', 'track'); row.dataset.id = t.id; if (t.id === state.selectedTrack) row.classList.add('selected');
+      const row = el('div', 'track'); row.dataset.id = t.id; if (t.id === state.selectedTrack) row.classList.add('selected'); if (state.armedTrack === t.id) row.classList.add('armed');
       const head = el('div', 'track-head');
       const nameRow = el('div', 'name-row');
       const sw = el('span', 'swatch'); sw.style.background = t.color; sw.title = 'Track colour: click to pick another one. It only helps you tell tracks apart on the timeline — it changes nothing in the sound.';
@@ -4952,9 +5110,9 @@
       lk.addEventListener('click', (e) => { e.stopPropagation(); if (mine) lockTrack(t.id).catch(fail); else if (!hb) unlockTrack(t.id).catch(fail); else status(lk.dataset.tip || lk.title, 6000); });
       if (!mine) row.classList.add('locked');
       const arm = el('button', 'arm' + (state.armedTrack === t.id ? ' active' : ''), '●'); arm.title = 'Arm: record onto this track next. Hit R (or ● up top) and this is where the take goes. Only one track at a time.';
-      arm.addEventListener('click', (e) => { e.stopPropagation(); if (!mine) { if (hb) status(lk.dataset.tip || lk.title, 6000); else lockNudge(t.id); return; } state.armedTrack = state.armedTrack === t.id ? null : t.id; renderTracks(); });
+      arm.addEventListener('click', (e) => { e.stopPropagation(); if (!mine) { if (hb) status(lk.dataset.tip || lk.title, 6000); else lockNudge(t.id); return; } state.armedTrack = state.armedTrack === t.id ? null : t.id; renderTracks(); const nb = tracksEl.querySelector(`.track[data-id="${t.id}"] .arm`); if (nb) { FX.pop(nb, 1.3); if (state.armedTrack === t.id) FX.ripple(e.clientX, e.clientY, 'rgba(224,75,75,.8)'); } });
       // mute / solo on a track that isn't yours: just for your ears (not saved)
-      const ms = (k) => (e) => { e.stopPropagation(); toggleMS(t, k); };
+      const ms = (k) => (e) => { e.stopPropagation(); toggleMS(t, k); const nb = tracksEl.querySelector(`.track[data-id="${t.id}"] .${k}`); if (nb) FX.pop(nb, 1.25); };
       const mute = el('button', 'mute' + (t.mute ? ' active' : ''), 'M'); mute.title = 'Mute: silence this track (it stays in the song). On someone else\'s track it\'s just for your ears.'; mute.addEventListener('click', ms('mute'));
       const solo = el('button', 'solo' + (t.solo ? ' active' : ''), 'S'); solo.title = 'Solo: hear only this track (and any other soloed ones). Handy for checking one part.'; solo.addEventListener('click', ms('solo'));
       const del = el('button', null, '✕'); del.title = `Delete this track from the song. The recordings stay on disk; ${MOD}+Z brings it back.`;
@@ -4997,9 +5155,9 @@
       const rows = layoutClips(t.clips); const nRows = Math.max(1, ...t.clips.map((c) => rows.get(c.id) + 1));
       const base = state.trackH || 84; const rowH = nRows > 1 ? Math.max(16, Math.round((base - 22) / 2)) : base - 13; const trackH = nRows > 1 ? 6 + nRows * (rowH + 3) + 4 : base;
       row.style.height = `${trackH}px`; row.style.minHeight = `${trackH}px`;
-      const grid = document.createElement('canvas'); grid.className = 'grid'; lane.appendChild(grid); requestAnimationFrame(() => drawGrid(grid, w));
-      lane.addEventListener('mousedown', (e) => { if (e.target === lane || e.target === grid) { const was = state.selectedTrack; state.selectedTrack = t.id; state.selectedClip = null; engine.seek(snap(Math.max(0, e.offsetX / state.pxPerSec))); markSelection(); positionPlayhead(); if (was !== t.id) renderFx(); } });   /* no re-render: the lane must survive so double-click (draw notes) fires */
-      if (String(t.instrument).startsWith('synth:')) { lane.addEventListener('dblclick', (e) => { if (e.target !== lane && e.target !== grid) return; openNoteEditor(t, null, Math.max(0, e.offsetX / state.pxPerSec)).catch(fail); }); lane.title = 'double-click to draw notes here (piano roll + riff generator)'; }
+      lane.classList.add('gridded'); gridLanes.push(lane);
+      lane.addEventListener('mousedown', (e) => { if (e.target === lane) { const was = state.selectedTrack; state.selectedTrack = t.id; state.selectedClip = null; engine.seek(snap(Math.max(0, e.offsetX / state.pxPerSec))); markSelection(); positionPlayhead(); if (was !== t.id) renderFx(); } });   /* no re-render: the lane must survive so double-click (draw notes) fires */
+      if (String(t.instrument).startsWith('synth:')) { lane.addEventListener('dblclick', (e) => { if (e.target !== lane) return; openNoteEditor(t, null, Math.max(0, e.offsetX / state.pxPerSec)).catch(fail); }); lane.title = 'double-click to draw notes here (piano roll + riff generator)'; }
       if (t.instrument === 'drumkit' && t.drum) { const dl = el('div', 'clip drumlane'); const x0 = barSec(t.drum.offsetBars || 0); const len = t.drum.bars ? barSec((t.drum.offsetBars || 0) + t.drum.bars) - x0 : Math.max(engine.contentLength(), engine.recording ? engine.playhead : 0, barSec(4)); if (!t.drum.bars) dl.dataset.follow = '1'; dl.style.left = `${x0 * state.pxPerSec}px`; dl.style.width = `${Math.max(4, len * state.pxPerSec)}px`; dl.style.background = hexA(t.color, .25); dl.style.borderColor = t.color; dl.appendChild(el('div', 'label', `${t.drum.kit} · ${t.drum.custom ? 'custom pattern' : t.drum.pattern}${t.drum.bars ? '' : ' · follows song length'}`)); dl.addEventListener('mousedown', (e) => { e.stopPropagation(); selectTrack(t.id); }); lane.appendChild(dl); }
       for (const c of t.clips) { const ce = makeClipEl(t, c); if (nRows > 1) { ce.classList.add('stacked'); ce.style.top = `${6 + rows.get(c.id) * (rowH + 3)}px`; ce.style.height = `${rowH}px`; } lane.appendChild(ce); }
       if (engine.recording && engine.recording.trackId === t.id) { const rc = el('div', 'clip recording'); rc.style.left = `${engine.recording.startPos * state.pxPerSec}px`; rc.style.width = `${Math.max(2, (engine.playhead - engine.recording.startPos) * state.pxPerSec)}px`; rc.dataset.recording = '1'; if (nRows > 1) { rc.classList.add('stacked'); rc.style.top = `${6 + nRows * (rowH + 3)}px`; rc.style.height = `${rowH}px`; row.style.height = row.style.minHeight = `${trackH + rowH + 3}px`; } rc.appendChild(el('div', 'label', 'recording…')); lane.appendChild(rc); }
@@ -5007,6 +5165,9 @@
       row.append(head, lane);
       tracksEl.appendChild(row);
     }
+    drawGrid(gridLanes, w);
+    if (engine.recording) neonFollow();
+    if (stageReady) for (const row of tracksEl.querySelectorAll('.track')) { const t = engine.track(row.dataset.id); const f = t && trackFace(t); if (f) { const nr = row.querySelector('.name-row'); if (nr) nr.append(f); } }
     ruler.width = w; ruler.style.width = `${w}px`;
     for (const x of $('#ruler-row').querySelectorAll('.note-pin')) x.remove();
     for (const m of liveNotes()) if (!m.trackId) $('#ruler-row').append(...notePins(m));
@@ -5015,9 +5176,11 @@
     drawRuler();
   }
 
+  const landed = new Map();   // clip id → when it arrived (new takes "land" with a little bounce)
+  function landClip(c, { flash = true } = {}) { if (!c) return; landed.set(c.id, performance.now()); if (flash) { FX.edgeFlash('rgba(242,181,52,.45)', 450); FX.sparks(FX.origin({ x: innerWidth / 2, y: innerHeight / 2 }).x, FX.origin({ x: innerWidth / 2, y: innerHeight / 2 }).y, 12); } }
   function makeClipEl(t, c) {
     const d = el('div', 'clip'); const len = engine.clipLength(c) || c.duration || 1;
-    d.dataset.id = c.id;
+    d.dataset.id = c.id; if (landed.has(c.id)) { if (performance.now() - landed.get(c.id) < 1500) d.classList.add('landed'); else landed.delete(c.id); }
     d.style.left = `${c.start * state.pxPerSec}px`; d.style.width = `${Math.max(4, len * state.pxPerSec)}px`; d.style.background = hexA(t.color, .35); d.style.borderColor = t.color;
     if (c.id === state.selectedClip) d.classList.add('selected');
     if (state.pitch && state.pitch.has(c.id)) { const pe = state.pitch.get(c.id); for (const r of pe.results) { if (r.flag === 'ok' || r.flag === 'short' || r.flag === 'wobbly') continue; const mk = el('span', `pitch-mark ${r.flag}`); mk.style.left = `${(r.t0 - pe.start) * state.pxPerSec}px`; mk.style.width = `${Math.max(3, (r.t1 - r.t0) * state.pxPerSec)}px`; mk.title = `${PC.noteLabel(r.target)} ${r.off > 0 ? '+' : ''}${Math.round(r.off)} cents — ${r.why || r.flag}`; d.append(mk); } }
@@ -5176,24 +5339,31 @@
     }
   }
   // Bar/beat grid behind the clips, derived from bpm + time signature.
-  function drawGrid(cv, w) {
-    const h = cv.parentElement ? cv.parentElement.clientHeight : 84; cv.width = w; cv.height = h; cv.style.width = `${w}px`; cv.style.height = `${h}px`;
-    const g = cv.getContext('2d'); g.clearRect(0, 0, w, h);
-    const pps = state.pxPerSec, map = meter(), gsong = gridStep();
-    for (const sg of map.segs) {   // each part draws its own beats / bars (own tempo, own meter)
-      if (sg.t0 * pps > w) break;
-      const beat = MT.beatLenOf(sg.bpm) * pps, nb = MT.normTs(sg.ts)[0], acc = MT.accents(sg.ts), bar = beat * nb; if (beat < 3) continue;
-      const x0 = sg.t0 * pps, x1 = Math.min(w, Number.isFinite(sg.t1) ? sg.t1 * pps : w);
-      const gs = localStep(sg.t0 + 1e-6, gsong).g * pps;
-      if (gs < beat - 1e-6 && gs >= 5) { g.fillStyle = 'rgba(255,255,255,0.05)'; for (let x = x0; x < x1; x += gs) g.fillRect(Math.round(x), 0, 1, h); }
-      for (let x = x0, i = 0; x < x1 - 0.5; x += beat, i++) {
-        const k = i % nb, isBar = k === 0;
-        if (!isBar && beat < 10) continue;
-        g.fillStyle = isBar ? 'rgba(255,255,255,0.30)' : acc[k] ? 'rgba(255,255,255,0.17)' : 'rgba(255,255,255,0.10)';
-        g.fillRect(Math.round(x), 0, isBar ? 2 : 1, h);
-        if (isBar && bar >= 48) { g.fillStyle = 'rgba(255,255,255,0.28)'; g.font = '9px sans-serif'; g.fillText(String(Math.floor(sg.bar0 + 1e-6) + i / nb + 1), Math.round(x) + 3, h - 3); }
+  // The beat / bar grid is drawn once per render into a strip one pixel tall and repeated down every lane as a CSS
+  // background — one small image instead of a full-height canvas per track (60 tracks × 2 MB was most of the RAM).
+  let gridCv = null, gridKey = '';
+  function drawGrid(lanes, w) {
+    const pps = state.pxPerSec, map = meter(), gsong = gridStep(); const h = 1;
+    const key = `${w}|${pps}|${JSON.stringify(map.segs.map((sg) => [sg.t0, sg.bpm, sg.ts]))}|${gsong}`;
+    if (key !== gridKey) {
+      gridKey = key; if (!gridCv) gridCv = document.createElement('canvas'); const cv = gridCv; cv.width = Math.max(1, Math.min(w, 32000)); cv.height = h;
+      const g = cv.getContext('2d'); g.clearRect(0, 0, w, h);
+      for (const sg of map.segs) {   // each part draws its own beats / bars (own tempo, own meter)
+        if (sg.t0 * pps > w) break;
+        const beat = MT.beatLenOf(sg.bpm) * pps, nb = MT.normTs(sg.ts)[0], acc = MT.accents(sg.ts); if (beat < 3) continue;
+        const x0 = sg.t0 * pps, x1 = Math.min(w, Number.isFinite(sg.t1) ? sg.t1 * pps : w);
+        const gs = localStep(sg.t0 + 1e-6, gsong).g * pps;
+        if (gs < beat - 1e-6 && gs >= 5) { g.fillStyle = 'rgba(255,255,255,0.05)'; for (let x = x0; x < x1; x += gs) g.fillRect(Math.round(x), 0, 1, h); }
+        for (let x = x0, i = 0; x < x1 - 0.5; x += beat, i++) {
+          const k = i % nb, isBar = k === 0;
+          if (!isBar && beat < 10) continue;
+          g.fillStyle = isBar ? 'rgba(255,255,255,0.30)' : acc[k] ? 'rgba(255,255,255,0.17)' : 'rgba(255,255,255,0.10)';
+          g.fillRect(Math.round(x), 0, isBar ? 2 : 1, h);
+        }
       }
+      tracksEl.style.setProperty('--grid', `url(${cv.toDataURL()})`);
     }
+    for (const lane of lanes) lane.classList.add('gridded');
   }
   // ---- one snap grid for the whole arrangement: follows the zoom (bars → 1/4 → 1/8 → 1/16 → 1/32 as you zoom in),
   // or a fixed value picked from the "snap" chip under + track. Hold Alt while dragging for no snap.
@@ -5243,27 +5413,53 @@
     // sung syllables under their notes (melody clips), when there is room to read them
     if (notes.some((n) => n.l) && w / notes.length > 14) { g.font = '10px system-ui, sans-serif'; g.fillStyle = 'rgba(255,255,255,0.75)'; let lastX = -1e9; for (const n of notes) { if (!n.l) continue; const x = (n.t - c.trimStart) / len * w; if (x < lastX + 4 || x < 0 || x > w) continue; g.fillText(n.l, x, h - 3); lastX = x + g.measureText(n.l).width; } }
   }
+  // Waveforms draw from the take's peak summary (audiostore.js), never from the samples, and only for the part of the
+  // take that is on screen: the canvas is at most a viewport wide and slides along inside the clip as you scroll
+  // (redrawVisibleWaves). A 3-minute take on a 60-track song costs ~0.4 MB of canvas instead of 2 MB each.
+  const WAVE_MARGIN = 400;   // px drawn beyond the viewport on each side, so small scrolls need no redraw
   function drawWave(cv, buf, c) {
-    const w = cv.clientWidth || 1, h = cv.clientHeight || 1; cv.width = w; cv.height = h;
+    const d = cv.parentElement; const clipW = d ? d.clientWidth : cv.clientWidth; const h = (d ? d.clientHeight : cv.clientHeight) || 1;
+    const vw = arrange.clientWidth || 1200; const clipLeft = d ? parseFloat(d.style.left) || 0 : 0;
+    // window of the clip that is in (or near) view, in clip px
+    const x0 = Math.max(0, Math.floor(arrange.scrollLeft - clipLeft - WAVE_MARGIN)), x1 = Math.min(clipW, Math.ceil(arrange.scrollLeft - clipLeft + vw + WAVE_MARGIN));
+    const w = Math.max(1, x1 - x0);
+    cv.width = w; cv.height = h; cv.style.width = `${w}px`; cv.style.height = `${h}px`; cv.style.left = `${x0}px`; cv.dataset.x0 = x0; cv.dataset.x1 = x1; cv.dataset.clipW = clipW;
     const g = cv.getContext('2d'); g.clearRect(0, 0, w, h);
     if (!buf) { g.fillStyle = '#ffffff22'; g.fillRect(0, h / 2 - 1, w, 2); return; }
-    const data = buf.getChannelData(0); const sr = buf.sampleRate;
-    const s0 = Math.floor(c.trimStart * sr), s1 = Math.min(data.length, Math.floor((buf.duration - c.trimEnd) * sr));
-    const spp = Math.max(1, (s1 - s0) / w); const gain = dbToGain(c.gainDb);
+    if (x1 <= x0) return;
+    const pk = buf.peaks ? buf.peaks() : null; const sr = buf.sampleRate; const gain = dbToGain(c.gainDb);
+    const s0 = Math.floor(c.trimStart * sr), s1 = Math.min(buf.length, Math.floor((buf.duration - c.trimEnd) * sr));
+    const spp = Math.max(1, (s1 - s0) / Math.max(1, clipW));
     // Two-tone like a real DAW: translucent peak envelope with a solid RMS core, so dense audio reads as a waveform, not a slab.
-    const cols = [];
-    for (let x = 0; x < w; x++) {
-      const a = Math.floor(s0 + x * spp), b = Math.min(s1, Math.floor(s0 + (x + 1) * spp)); let mn = 1, mx = -1, sq = 0, n = 0;
-      const step = Math.max(1, Math.floor(spp / 64));
-      for (let i = a; i < b; i += step) { const v = data[i] * gain; if (v < mn) mn = v; if (v > mx) mx = v; sq += v * v; n++; }
-      cols.push(mx < mn ? null : [mn, mx, n ? Math.sqrt(sq / n) : 0]);
-    }
     g.fillStyle = 'rgba(255,255,255,0.45)';
-    for (let x = 0; x < w; x++) { const c0 = cols[x]; if (!c0) continue; g.fillRect(x, (1 - c0[1]) * h / 2, 1, Math.max(1, (c0[1] - c0[0]) * h / 2)); }
+    const cols = new Float32Array(w * 3); let any = false;
+    for (let x = 0; x < w; x++) {
+      const a = Math.floor(s0 + (x0 + x) * spp), b = Math.min(s1, Math.floor(s0 + (x0 + x + 1) * spp)); let mn = 1, mx = -1, sq = 0, n = 0;
+      if (pk) { const ba = Math.floor(a / pk.bin), bb = Math.max(ba + 1, Math.ceil(b / pk.bin)); for (let i = ba; i < bb && i < pk.min.length; i++) { const lo = pk.min[i] / 127, hi = pk.max[i] / 127, r = pk.rms[i] / 255; if (lo < mn) mn = lo; if (hi > mx) mx = hi; sq += r * r; n++; } }
+      else { const data = buf.getChannelData(0); const step = Math.max(1, Math.floor(spp / 64)); for (let i = a; i < b; i += step) { const v = data[i]; if (v < mn) mn = v; if (v > mx) mx = v; sq += v * v; n++; } }
+      if (mx < mn) continue; any = true; cols[x * 3] = mn * gain; cols[x * 3 + 1] = mx * gain; cols[x * 3 + 2] = (n ? Math.sqrt(sq / n) : 0) * gain;
+    }
+    if (!any) return;
+    for (let x = 0; x < w; x++) { const lo = cols[x * 3], hi = cols[x * 3 + 1]; if (hi < lo) continue; g.fillRect(x, (1 - hi) * h / 2, 1, Math.max(1, (hi - lo) * h / 2)); }
     g.fillStyle = 'rgba(255,255,255,0.95)';
-    for (let x = 0; x < w; x++) { const c0 = cols[x]; if (!c0) continue; const r = c0[2]; g.fillRect(x, (1 - r) * h / 2, 1, Math.max(1, r * h)); }
+    for (let x = 0; x < w; x++) { const r = cols[x * 3 + 2]; if (!r) continue; g.fillRect(x, (1 - r) * h / 2, 1, Math.max(1, r * h)); }
     g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(0, h / 2, w, 1);
   }
+  // Horizontal scroll: redraw only the clips whose drawn window no longer covers the viewport.
+  let wavesRaf = 0;
+  function redrawVisibleWaves() {
+    if (wavesRaf) return; wavesRaf = requestAnimationFrame(() => {
+      wavesRaf = 0; const sl = arrange.scrollLeft, vw = arrange.clientWidth;
+      for (const d of tracksEl.querySelectorAll('.clip:not(.midi):not(.drumlane)')) {
+        const cv = d.querySelector(':scope > canvas'); if (!cv) continue; const left = parseFloat(d.style.left) || 0, cw = d.clientWidth;
+        const vis0 = Math.max(0, sl - left), vis1 = Math.min(cw, sl + vw - left); if (vis1 <= vis0) continue;   // off screen
+        const x0 = Number(cv.dataset.x0 || 0), x1 = Number(cv.dataset.x1 || 0);
+        if (vis0 >= x0 && vis1 <= x1 && Number(cv.dataset.clipW) === cw) continue;   // still covered
+        const c = clipById(d.dataset.id); if (c) drawWave(cv, engine.buffers.get(audioId(c)), c);
+      }
+    });
+  }
+  function clipById(id) { for (const t of engine.tracks) for (const c of t.clips) if (c.id === id) return c; return null; }
 
   function drawRuler() {
     const w = ruler.width, h = ruler.height = 26; const g = ruler.getContext('2d');
@@ -5341,9 +5537,10 @@
     $('#time').textContent = `${m}:${s.toFixed(2).padStart(5, '0')}`;
     const pp = MT.posAt(meter(), Math.max(0, ph) + 1e-4);
     $('#bars').textContent = `${pp.bar}.${pp.beat}`;
+    if (engine.playing) { const k = `${pp.bar}.${pp.beat}`; if (k !== lastBeatKey) { const first = pp.beat === 1; lastBeatKey = k; FX.beat([$('#bars'), first ? $('#btn-play') : null, first ? $('#btn-rec') : null], first); if (first) stageBeat(); } }
     updateNowLine();
   }
-  arrange.addEventListener('scroll', () => { positionPlayhead(); drawRuler(); });
+  arrange.addEventListener('scroll', () => { positionPlayhead(); drawRuler(); redrawVisibleWaves(); });
 
   // "+ track" asks what you're recording and sets up type, a sensible default preset, source and arming.
   const TRACK_KINDS = {
@@ -5822,6 +6019,8 @@
   $('#notes').addEventListener('input', () => { if (state.readOnly || state.ab) return; if (!notesUndoTaken) { notesUndoTaken = true; const v = $('#notes').value; $('#notes').value = state.song.notes || ''; pushUndo('notes edit'); $('#notes').value = v; } state.song.notes = $('#notes').value; markDirty(); });
 
   // ---------- import ----------
+  const audioWrites = new Set();   // take files still being encoded / written by the main process
+  window.cobanderAudioWrites = () => Promise.all([...audioWrites]);
   async function importClip({ trackId, arrayBuffer, name, start }) {
     if (tempoBusy) throw new Error('Still re-speeding the takes for the new tempo — try again in a moment.');
     if (!state.folder) throw new Error('no song open');
@@ -5829,25 +6028,33 @@
     if (engine.recording) throw new Error('stop recording first');
     if (trackId) { const tt = engine.track(trackId); if (tt && tt.instrument !== 'audio') trackId = null; }   // audio dropped on a drum-machine / synth lane gets its own track
     await engine.init();
+    const T = { t0: performance.now() }; const lap = (k) => { T[k] = Math.round(performance.now() - T.t0); };   // stage timings (cobanderDebug.lastImport)
     let buf;
-    try { buf = await engine.ctx.decodeAudioData(arrayBuffer.slice(0)); } catch (err) { throw new Error(`Could not decode "${name}": ${err.message || 'unsupported format'}`); }
+    try { buf = await engine.ctx.decodeAudioData(arrayBuffer); } catch (err) { throw new Error(`Could not decode "${name}": ${err.message || 'unsupported format'}`); }
     if (buf.sampleRate !== engine.ctx.sampleRate) {
       const off = new OfflineAudioContext(buf.numberOfChannels, Math.ceil(buf.duration * engine.ctx.sampleRate), engine.ctx.sampleRate);
       const src = off.createBufferSource(); src.buffer = buf; src.connect(off.destination); src.start(0); buf = await off.startRendering();
     }
+    lap('decode');
     const base = String(name || 'import').replace(/\.[^.]+$/, '').slice(0, 60);
     const chans = window.BPWav.audioBufferToChannels(buf).slice(0, 2);
     if (buf.numberOfChannels > 2) { const b2 = engine.ctx.createBuffer(2, buf.length, buf.sampleRate); chans.forEach((c, i) => b2.copyToChannel(c, i)); buf = b2; }
     const clip = { id: window.BPUtil.newId(), name: base, start: clamp(start, 0, 1e6, 0), gainDb: 0, trimStart: 0, trimEnd: 0, duration: buf.duration, channels: chans.length, takenBy: state.settings.identity.user, takenAt: new Date().toISOString(), mute: false };
-    await bp.audio.write(state.folder, clip.id, window.BPWav.encodeWav(chans, buf.sampleRate, 24), { label: takeLabel(engine.track(trackId) || { name: base }, clip) });
-    engine.buffers.set(clip.id, buf);
+    const wav = window.BPWav.encodeWav(chans, buf.sampleRate, 24); lap('encode');
+    // The FLAC encode + write runs in the main process; the take is usable here right away, so only wait when a
+    // couple of writes are already queued (keeps a 60-file drop from piling 60 WAVs up in RAM).
+    while (audioWrites.size >= 2) await Promise.race([...audioWrites]);
+    const wp = bp.audio.write(state.folder, clip.id, wav, { label: takeLabel(engine.track(trackId) || { name: base }, clip) }).catch((err) => { fail(new Error(`Could not save "${base}": ${err.message || err}`)); state.missingClips.add(clip.id); }).finally(() => audioWrites.delete(wp));
+    audioWrites.add(wp); lap('write');
+    engine.buffers.set(clip.id, buf); engine.buffers.get(clip.id).peaks(); lap('store');
     let t = engine.track(trackId);
     pushUndo('import audio'); logActivity(`imported ${base}`);
     if (!t) t = engine.addTrack(base);
-    t.clips.push(clip);
+    t.clips.push(clip); landClip(clip, { flash: false });
     state.selectedTrack = t.id; state.selectedClip = clip.id;
-    renderAll();
-    await saveWithClip(t.id, clip, t.name);
+    renderAll(); lap('render');
+    await saveWithClip(t.id, clip, t.name); lap('save');
+    state.lastImport = T;
     return { trackId: t.id, clip };
   }
   window.addEventListener('dragover', (e) => { e.preventDefault(); });
@@ -6275,7 +6482,7 @@
       }
     }
     pushUndo('record take'); logActivity(`recorded ${r.clip.name}${t ? ` on ${t.name}` : ''}${punch ? ` (punch ${fmtBar(punch.a)}–${fmtBar(punch.b)})` : ''}`);
-    if (t) t.clips.push(r.clip);
+    if (t) { t.clips.push(r.clip); landClip(r.clip); }
     if (t && punch) { const res = window.BPComp.comp(t.clips, r.clip.id, r.clip.start, clipEnd(r.clip), { len: (x) => engine.clipLength(x) || x.duration, full: fullLen, newId: window.BPUtil.newId, audioId }); t.clips.splice(0, t.clips.length, ...res.clips); }
     if (!state.readOnly) state.dirty = true; renderAll();
     if (r.clip.kind === 'midi') { crashGuardEnd(guard); status(`Recorded ${r.clip.notes.length} notes.`); try { await saveWithClip(r.trackId, r.clip, t && t.name); } catch (err) { fail(err); } maybeAutoKey(); return; }
@@ -6326,7 +6533,7 @@
     }
     if ([...state.pendingTakes.values()].some((p) => r.takes.some((k) => k.clip === p.clip))) { crashGuardHold(guard); for (const k of r.takes) { const p = state.pendingTakes.get(k.clip.id); if (p) p.crash = guard && guard.id; } } else crashGuardEnd(guard);
     pushUndo('loop record'); logActivity(`recorded ${r.takes.length} loop passes on ${t.name}`);
-    for (const k of r.takes) t.clips.push(k.clip);
+    for (const k of r.takes) { t.clips.push(k.clip); landClip(k.clip, { flash: k === r.takes[0] }); }
     for (const c of t.clips) if (!r.takes.some((k) => k.clip === c) && !c.mute && c.start < hero.start + hero.duration && c.start + (engine.clipLength(c) || c.duration) > hero.start) c.mute = true;   // earlier takes under the loop go quiet
     state.selectedClip = hero.id; if (!state.readOnly) state.dirty = true; renderAll();
     try { await saveWithClip(t.id, r.takes.map((k) => k.clip), t.name); } catch (err) { fail(err); }
@@ -6891,7 +7098,7 @@
       case 'duplicateClip': { writable(); const f = findClip(args.clipId); if (!f) throw new Error('clip not found'); duplicateClip(f.t, f.c); return { clipId: state.selectedClip }; }
       case 'exportDaw': need(); return exportDaw({ what: args.what || 'all', name: args.name || null, allowMissing: !!args.allowMissing });
       case 'bounce': need(); return { files: await bounce(args.what === 'stems' ? 'stems' : 'mix', args.name, { allowMissing: !!args.allowMissing }) };
-      case 'importClip': { writable(); if (!args.path) throw new Error('path required'); const ab = await bp.audio.readFile(args.path); return importClip({ trackId: args.trackId, arrayBuffer: ab, name: args.name || String(args.path).split(/[\\/]/).pop(), start: args.start }); }
+      case 'importClip': { writable(); if (!args.path) throw new Error('path required'); const ab = await bp.audio.readFile(args.path); const r = await importClip({ trackId: args.trackId, arrayBuffer: ab, name: args.name || String(args.path).split(/[\\/]/).pop(), start: args.start }); await window.cobanderAudioWrites(); return r; }   /* the API answers once the take file is on disk (scripts list the folder right after) */
       case 'presets': { const PR = window.BPPresets; const type = args.type; return { types: PR.TYPES, presets: type ? (PR.PRESETS[type] || []).map((p) => ({ name: p.name, blurb: p.blurb, fx: p.fx })) : Object.fromEntries(Object.entries(PR.PRESETS).map(([k, v]) => [k, v.map((p) => ({ name: p.name, blurb: p.blurb }))])), instruments: PR.INSTRUMENTS, drumKits: PR.DRUM_KITS, drumPatterns: Object.keys(PR.DRUM_PATTERNS), ampModels: window.BPEngine.AMP_MODELS, cabs: window.BPEngine.CABS }; }
       case 'applyPreset': { writable(); const t = tid(args); if (args.type && !window.BPPresets.TYPES.includes(args.type)) throw new Error(`unknown type ${args.type}`); const r = applyPreset(t.id, args.preset, args.type); return { trackId: r.id, type: r.type, preset: r.preset, fx: r.fx }; }
       case 'drums': { writable(); const t = tid(args); if (t.instrument !== 'drumkit' && !args.enable) throw new Error('track is not a drum machine; pass "enable":true to make it one'); const drum = { ...(t.drum || window.BPEngine.DEFAULT_DRUM()) }; for (const k of ['kit', 'pattern', 'custom', 'swing', 'bars', 'offsetBars', 'gainDb']) if (args[k] !== undefined) drum[k] = args[k]; if (args.pattern !== undefined && args.custom === undefined) drum.custom = null; if (drum.pattern && !window.BPPresets.DRUM_PATTERNS[drum.pattern] && !drum.custom) throw new Error(`unknown pattern "${drum.pattern}"`); if (!window.BPSynth.KITS[drum.kit]) throw new Error(`unknown kit "${drum.kit}"`); pushUndo('assistant: drums'); engine.updateTrack(t.id, { instrument: 'drumkit', type: 'drums', drum }); markDirty(); renderAll(); return { trackId: t.id, drum: engine.track(t.id).drum }; }
@@ -6966,6 +7173,8 @@
       }
       case 'workspace': { if (args.ws) setWorkspace(String(args.ws)); return { ws: state.ws, practice: kara.open }; }
       case 'chartAll': return chartAllSongs({ interactive: false });
+      case 'tabTrack': { writable(); const t = engine.track(args.trackId); if (!t) throw new Error('no such track'); await tabTrack(t); const tb = tabFor(t.id); if (!tb) throw new Error('no notes heard'); return { ...tb, text: tabsText(0) }; }
+      case 'tabs': { need(); return { tabs: liveTabs(), text: tabsText(0) }; }
       case 'chordsDetect': { writable(); const ts = Array.isArray(args.trackIds) ? args.trackIds.map((id) => engine.track(id)).filter(Boolean) : null; const n = await chordsFromTracks(ts, { replaceDrafts: args.replaceDrafts !== false }); return { added: n || 0, chords: liveChords().map((c) => ({ time: c.time, chord: c.chord, det: !!c.det })) }; }
       case 'autoMix': { writable(); const r = await autoMix(); return r ? { changes: r.lines, tracks: engine.tracks.map((t) => ({ id: t.id, name: t.name, gainDb: t.gainDb, pan: t.pan, fx: t.fx })) } : null; }
       case 'autoMaster': { writable(); const r = await autoMaster({ target: args.target != null ? Number(args.target) : -14 }); return r ? { gainDb: engine.master.gainDb, limiter: engine.master.limiter, expectedLufs: r.expectedLufs } : null; }
@@ -7143,6 +7352,7 @@
     }
   });
 
+  stageReady = true; try { renderStage(); } catch (_) {}
   window.cobanderDebug = { engine, state, collectSong, kara: () => kara, timingReport: (id) => timingReport(engine.track(id), null), closeSong, addNote, insertSongPart, songPartList, renderAll: () => renderAll(), editTrack: (id, patch) => change(() => engine.updateTrack(id, patch), { label: `edit ${(engine.track(id) || {}).name}` }), mineT, heldBy, unlockAll, lockAll, rollAt: (i) => { const G = rollGeom(); const z = G && G.g.notes[i]; if (!z) return null; const r = RC.cv().getBoundingClientRect(); return { x: r.left + (G.xOf(z.t) + Math.max(G.xOf(z.t) + 3, G.xOf(z.t + z.d))) / 2, y: r.top + G.yOf(z.n) + G.rowH / 2, rowH: G.rowH, grid: G.grid, pxPerSec: (G.w - G.gut) / G.W, left: r.left, top: r.top, gut: G.gut, topPad: G.top }; } };
   // ---------- boot ----------
   (async () => {

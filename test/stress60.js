@@ -9,6 +9,8 @@ function wav(seed) { const n = SECS * SR, b = Buffer.alloc(44 + n * 2); b.write(
 const port = 47321, token = 'stress';
 function req(method, p, body, timeout = 600000) { return new Promise((resolve, reject) => { const r = http.request({ host: '127.0.0.1', port, method, path: p, timeout, headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' } }, (res) => { let d = ''; res.on('data', (c) => (d += c)); res.on('end', () => { let j = null; try { j = JSON.parse(d); } catch (_) {} res.statusCode >= 400 ? reject(new Error(`${p} ${res.statusCode} ${d.slice(0, 200)}`)) : resolve(j); }); }); r.on('error', reject); r.on('timeout', () => r.destroy(new Error('timeout ' + p))); if (body !== undefined) r.write(JSON.stringify(body)); r.end(); }); }
 const ev = (js) => req('POST', '/debug/eval', { js }).then((r) => r.result);
+// RSS + shmem of every electron process spawned for this run (MB), so memory per take can be read off the import loop
+function memMB(pid) { let rss = 0, shm = 0, n = 0; const kids = new Set([pid]); try { for (const d of fs.readdirSync('/proc')) { if (!/^\d+$/.test(d)) continue; try { const st = fs.readFileSync(`/proc/${d}/stat`, 'utf8'); const pp = Number(st.slice(st.lastIndexOf(')') + 2).split(' ')[1]); if (kids.has(pp)) kids.add(Number(d)); } catch (_) {} } for (const k of kids) { try { const m = fs.readFileSync(`/proc/${k}/status`, 'utf8'); const g = (k2) => Number((new RegExp(k2 + ':\\s+(\\d+)').exec(m) || [0, 0])[1]) / 1024; rss += g('RssAnon'); shm += g('RssShmem'); n++; } catch (_) {} } } catch (_) {} return { rss: Math.round(rss), shm: Math.round(shm), n }; }
 (async () => {
   await fsp.rm(WORK, { recursive: true, force: true }); const shared = path.join(WORK, 'shared'), cfg = path.join(WORK, 'cfg'), src = path.join(WORK, 'src'); await fsp.mkdir(shared, { recursive: true }); await fsp.mkdir(src, { recursive: true });
   const ud = path.join(cfg, 'Cobander'); await fsp.mkdir(ud, { recursive: true });
@@ -18,8 +20,9 @@ const ev = (js) => req('POST', '/debug/eval', { js }).then((r) => r.result);
   try {
     for (let i = 0; i < 120; i++) { try { await req('GET', '/state'); break; } catch (_) { await sleep(500); } }
     await req('POST', '/song/create', { name: 'Sixty', bpm: 120 }); await sleep(1500);
-    t = Date.now(); for (let i = 0; i < N; i++) { const s = Date.now(); await req('POST', '/clip/import', { path: path.join(src, `t${i}.wav`), start: 0, name: `take ${i + 1}` }); if (i % 10 === 9) console.log(`  imported ${i + 1} (last ${Date.now() - s} ms)`); }
-    console.log(`import ${N}: ${Date.now() - t} ms`);
+    t = Date.now(); for (let i = 0; i < N; i++) { const s = Date.now(); await req('POST', '/clip/import', { path: path.join(src, `t${i}.wav`), start: 0, name: `take ${i + 1}` }); if (i % 10 === 9 || process.env.MEM) { const m = memMB(proc.pid); console.log(`  imported ${i + 1} (last ${Date.now() - s} ms) anon ${m.rss} MB shmem ${m.shm} MB (${m.n} procs)`); } }
+    console.log(`import ${N}: ${Date.now() - t} ms`); t = Date.now(); await ev('window.cobanderAudioWrites ? window.cobanderAudioWrites().then(() => true) : true'); console.log(`  (take files finished writing ${Date.now() - t} ms later)`);
+    if (process.env.PROBE) console.log('probe:', JSON.stringify(await ev(`(() => { const D = window.cobanderDebug; const cvs = [...document.querySelectorAll('canvas')]; let px = 0; for (const c of cvs) px += c.width * c.height; let samp = 0, nb = 0; for (const b of D.engine.buffers.values()) { nb++; samp += b.length * b.numberOfChannels; } return { canvases: cvs.length, canvasMB: Math.round(px * 4 / 1e6), buffers: nb, bufferMB: Math.round(samp * 4 / 1e6), lastImport: D.state.lastImport, undo: D.state.undo.length, undoMB: Math.round(D.state.undo.reduce((a, u) => a + (u.json ? u.json.length : 0), 0) / 1e6 * 10) / 10, dom: document.querySelectorAll('*').length, heap: performance.memory && Math.round(performance.memory.usedJSHeapSize / 1e6), total: performance.memory && Math.round(performance.memory.totalJSHeapSize / 1e6) }; })()`)));
     await req('POST', '/song/save', { force: true }); const st = await req('GET', '/state'); console.log('tracks in song:', st.song && (st.song.tracks || []).length, JSON.stringify(st).slice(0, 200));
     const mem0 = await ev('performance.memory ? Math.round(performance.memory.usedJSHeapSize/1e6) : null');
     await req('POST', '/song/close'); await sleep(1500);
@@ -34,7 +37,7 @@ const ev = (js) => req('POST', '/debug/eval', { js }).then((r) => r.result);
     await req('POST', '/transport', { action: 'seek', time: 10 }); await ev(`window.__lt = []; true`);
     const p0 = Date.now(); await req('POST', '/transport', { action: 'play' }); await sleep(10000); const s1 = await req('GET', '/state'); const wall = (Date.now() - p0) / 1000;
     await req('POST', '/transport', { action: 'stop' });
-    const pos = s1.transport ? s1.transport.time : s1.time; const l = await ev('window.__lt');
+    const pos = s1.transport ? (s1.transport.playhead ?? s1.transport.time) : s1.time; const l = await ev('window.__lt');
     console.log(`play 10 s wall → song time ${pos} (started at 10; expect ~${(10 + wall).toFixed(1)}); longest freeze while playing ${Math.max(0, ...l.map((x) => x[1]))} ms`);
     console.log('transport state sample:', JSON.stringify(s1.transport || {}).slice(0, 300));
     const errs = await ev('(window.__errs || []).slice(0, 5)'); console.log('renderer errors:', JSON.stringify(errs));

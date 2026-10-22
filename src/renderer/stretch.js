@@ -75,7 +75,7 @@
   async function varispeed(buf, rate) {
     const len = Math.max(1, Math.ceil(buf.length / rate));
     const off = new OfflineAudioContext(buf.numberOfChannels, len, buf.sampleRate);
-    const src = off.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate; src.connect(off.destination); src.start(0);
+    const src = off.createBufferSource(); src.buffer = buf.toAudioBuffer ? buf.toAudioBuffer(off) : buf;   // a store entry (16-bit take) or a real AudioBuffer src.playbackRate.value = rate; src.connect(off.destination); src.start(0);
     return off.startRendering();
   }
   async function conform(buf, { ratio = 1, semis = 0 } = {}) {

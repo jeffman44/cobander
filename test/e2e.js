@@ -57,7 +57,7 @@ class App {
   constructor(name, port, shared) { this.name = name; this.port = port; this.shared = shared; this.token = `tok-${name}`; this.cfg = path.join(WORK, `cfg-${name}`); }
   async start() {
     const ud = path.join(this.cfg, 'Cobander'); await fsp.mkdir(ud, { recursive: true });
-    await fsp.writeFile(path.join(ud, 'settings.json'), JSON.stringify({ sharedFolder: this.shared, displayName: this.name, apiPort: this.port, apiToken: this.token, phonePort: this.port + 10, apiInbox: path.join(this.cfg, 'inbox'), fanfare: false, ...(this.name === 'Jeff' ? { autoUnlockTracks: true } : {}) }));
+    await fsp.writeFile(path.join(ud, 'settings.json'), JSON.stringify({ sharedFolder: this.shared, displayName: this.name, apiPort: this.port, apiToken: this.token, phonePort: this.port + 10, apiInbox: path.join(this.cfg, 'inbox'), fanfare: false, ...(process.env.BP_FLOAT_MB !== undefined ? { audioFloatMB: Number(process.env.BP_FLOAT_MB) } : {}), ...(this.name === 'Jeff' ? { autoUnlockTracks: true } : {}) }));
     this.log = fs.createWriteStream(path.join(WORK, `${this.name}.log`));
     this.proc = spawn(ELECTRON, [ROOT, '--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'], { env: { ...process.env, XDG_CONFIG_HOME: this.cfg, BP_DEBUG: '1', COBANDER_TAKEOUT_PUB: TK.pub }, stdio: ['ignore', 'pipe', 'pipe'] });
     this.proc.stdout.pipe(this.log); this.proc.stderr.pipe(this.log);
@@ -989,7 +989,7 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/quest', { task: { song: 'Link Song', id: q2.tasks[0].id, done: true } });
       q2 = (await jeff.get('/quest')).songs.find((s) => s.folder === 'Link Song'); assert.equal(q2.xp, xp0 + 25);
       await jeff.evalJs(`(async () => { await window.cobanderDebug.addNote(null, 1, 'more cowbell'); return true; })()`); await sleep(200);
-      assert.equal(await jeff.evalJs(`!!document.querySelector('.xp-pop')`), true, '+XP pop on a note');
+      assert.equal(await jeff.evalJs(`!!document.querySelector('.fx-xp')`), true, '+XP pop on a note');
       await jeff.post('/quest', { boss: { title: 'Halloween practice', date: '2026-10-31', songs: ['Link Song'] }, next: 'house show in January' });
       assert.match(await jeff.evalJs(`document.querySelector('#qb-boss').textContent`), /Halloween practice/);
       assert.ok(fs.readdirSync(path.join(shared, '_quest')).includes('Jeff.json'), 'Jeff writes only his own file');
@@ -1190,6 +1190,21 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.deepEqual(cd.chords.map((c) => c.chord), ['G', 'D', 'Em', 'C'], JSON.stringify(cd.chords));
       assert.ok(cd.chords.every((c) => c.det), 'drafts are marked');
       const again = await jeff.post('/chords/detect', {}); assert.equal(again.chords.length, 4, 're-running replaces drafts, no doubles');
+      // a tab off the same guitar take: every strum becomes a chord voicing (string / fret), named, on the song and in the chart
+      const tb = await jeff.post('/tab', { trackId: tr('Gtr').id });
+      assert.equal(tb.instrument, 'guitar'); assert.ok(tb.events.length >= 12 && tb.events.length <= 18, `events ${tb.events.length}`);
+      const byBar = [0, 1, 2, 3].map((b) => tb.events.filter((e) => e.t >= b * 2 - 0.1 && e.t < b * 2 + 1.9).map((e) => e.name));
+      ['G', 'D', 'Em', 'C'].forEach((n, b) => assert.ok(byBar[b].filter((x) => x === n).length >= 2, `bar ${b}: ${JSON.stringify(byBar[b])}`));
+      assert.ok(tb.events.every((e) => e.frets.length === 6 && e.frets.some((f) => f >= 0)), 'six strings, something fretted');
+      assert.match(tb.text, /\[TAB — Gtr \(guitar\)/); assert.match(tb.text, /^e \|/m);
+      const tabs = await jeff.get('/tabs'); assert.equal(tabs.tabs.length, 1);
+      const tb2 = await jeff.post('/tab', { trackId: tr('Gtr').id }); assert.equal((await jeff.get('/tabs')).tabs.length, 1, 're-tabbing replaces'); assert.notEqual(tb2.id, tb.id);
+      await jeff.evalJs(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', code: 'KeyK', bubbles: true })); true`); await sleep(500);
+      assert.equal(await jeff.evalJs(`(() => { const o = [...document.querySelector('#k-along').options]; return o.some((x) => x.value === 'tab:' + ${JSON.stringify(tr('Gtr').id)}); })()`), true, 'practice offers the tab to play along');
+      await jeff.evalJs(`(() => { const s = document.querySelector('#k-along'); s.value = 'tab:' + ${JSON.stringify(tr('Gtr').id)}; s.dispatchEvent(new Event('change')); return true; })()`); await sleep(600);
+      assert.match(await jeff.evalJs(`document.querySelector('#k-hw-msg').textContent`), /Gtr — tab/); await jeff.shot('practice-tab');
+      await jeff.evalJs(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); true`); await sleep(300);
+      assert.match(await jeff.evalJs(`document.querySelector('#chart-view').textContent`), /TAB — Gtr/);
       // Auto mix + master + A/B
       await jeff.post('/workspace', { ws: 'mix' });
       const am = await jeff.post('/mix/auto', {}); assert.ok(am && am.changes.length >= 2, JSON.stringify(am));

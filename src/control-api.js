@@ -33,6 +33,8 @@ const ROUTES = [
   ['POST', '/part/share', '{section: id|name} bounce one part (+ a bar of ring-out) with its chart into bounces/<song> - <part> <stamp>/'],
   ['POST', '/comp', '{clipId, from, to} comp: that take is the only one heard on its track between from and to (s); others play as before outside'],
   ['POST', '/workspace', '{ws: "write"|"record"|"mix"|"practice"|"band"} switch the workspace'],
+  ['POST', '/tab', '{trackId} read every live take on a guitar / bass track and write its tab (notes + chord voicings as string/fret events) onto the song → {id, instrument, tuningCents, events[], text}'],
+  ['GET', '/tabs', 'the tabs on the open song → [{id, trackId, track, instrument, tuningCents, events[]}] (+ text: the chart\'s tab section)'],
   ['POST', '/chords/detect', '{trackIds?, replaceDrafts?:true} chords heard from the guitar / keys / bass takes → drafted into the chord lane where there are none (det:true)'],
   ['POST', '/mix/auto', 'Auto mix: per-track levels, HPF / EQ cleanup, comp, pan, reverb sends from solo renders (undoable; POST /mix/ab flips before/after)'],
   ['POST', '/master/auto', '{target?:-14} Auto master: master gain to a LUFS target, limiter on'],

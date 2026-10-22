@@ -95,7 +95,7 @@ input[type=number] { width: 64px; }
 .clip { position: absolute; top: 6px; height: calc(var(--track-h) - 13px); border-radius: 4px; overflow: hidden; cursor: grab; border: 1px solid rgba(255,255,255,.25); }
 .clip.selected { outline: 2px solid #fff; }
 .clip .label { position: absolute; left: 4px; top: 2px; font-size: 10px; color: #fff; text-shadow: 0 1px 2px #000; pointer-events: none; }
-.clip canvas { width: 100%; height: 100%; display: block; }
+.clip > canvas { position: absolute; top: 0; left: 0; height: 100%; display: block; }
 .clip.recording { background: rgba(224,75,75,.4); border-color: var(--rec); }
 #playhead { position: absolute; top: 0; height: 100%; width: 1px; background: #fff; pointer-events: none; z-index: 3; }
 #ask-text { white-space: pre-wrap; }
@@ -158,7 +158,7 @@ button.danger { background: var(--rec); border-color: var(--rec); color: #fff; }
 dialog p { margin: 0; white-space: pre-line; }
 
 .track-head .ttype { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lane canvas.grid { position: absolute; left: 0; top: 0; pointer-events: none; }
+.lane.gridded { background-image: var(--grid); background-repeat: repeat-y; background-position: 0 0; }
 .lane { background: none; }
 .clip.midi canvas { background: rgba(0,0,0,.15); }
 .clip.drumlane { cursor: default; opacity: .9; border-style: dotted; }
@@ -910,3 +910,89 @@ dialog#charpick { max-width: 1100px; width: min(1100px, 96vw); max-height: 96vh;
 #takeout .row { align-items: center; gap: 10px; }
 #s-takeout-key { margin-left: 2px; }
 #k-vol { width: 90px; height: 14px; margin-left: 4px; accent-color: var(--xp); }
+
+/* ===== motion layer (fx.js) — additive, compositor-only, never in the way of a click ===== */
+@media (prefers-reduced-motion: no-preference) {
+  button { transition: transform .12s ease-out, background-color .12s, border-color .12s, box-shadow .12s; }
+  button:active { transform: scale(.95); transition: none; }   /* press feedback is instant; the release eases */
+  button:not(:disabled):hover { box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+  .chip-fx, .chip-s, .badge, .tab-badge { transition: background-color .15s, color .15s, transform .12s; }
+  .ctxmenu { animation: fx-menu-in .09s ease-out; transform-origin: top left; }
+  @keyframes fx-menu-in { from { opacity: 0; transform: scale(.96) translateY(-3px); } to { opacity: 1; transform: none; } }
+  dialog[open] { animation: fx-dialog-in .16s cubic-bezier(.2,1.2,.4,1); }
+  dialog[open]::backdrop { animation: fx-fade-in .16s ease-out; }
+  @keyframes fx-dialog-in { from { opacity: 0; transform: scale(.94) translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes fx-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  .toast { animation: fx-toast-in .22s cubic-bezier(.2,1.2,.4,1); }
+  @keyframes fx-toast-in { from { opacity: 0; transform: translateX(24px) scale(.96); } to { opacity: 1; transform: none; } }
+  #main.fx-swap > * { animation: fx-ws-in .17s ease-out; }
+  @keyframes fx-ws-in { from { opacity: .35; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+  .side-tab:not([hidden]) { animation: fx-fade-in .14s ease-out; }
+  #song-list li, .track-head, .strip { transition: background-color .15s; }
+  #song-list li:hover { transform: translateX(2px); transition: transform .12s ease-out, background-color .15s; }
+  .xp-bar i, .song-xp i, .qb-xp i { transition: width .6s cubic-bezier(.2,.9,.3,1); }
+  .clip { transition: box-shadow .15s, opacity .2s; }
+  .clip.landed { animation: fx-land .55s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes fx-land { 0% { transform: scaleY(.3); opacity: 0; } 55% { transform: scaleY(1.08); opacity: 1; } 100% { transform: none; } }
+  #playhead { transition: none; }
+  body.playing #playhead { width: 2px; background: #fff; box-shadow: 0 0 6px 1px rgba(255,255,255,.9), 0 0 18px 4px rgba(91,141,239,.6); }
+  body.playing #playhead::after { content: ''; position: absolute; right: 2px; top: 0; bottom: 0; width: 46px; background: linear-gradient(90deg, transparent, rgba(91,141,239,.16)); }
+  body.recording #playhead { box-shadow: 0 0 6px 1px rgba(255,255,255,.9), 0 0 18px 5px rgba(224,75,75,.75); }
+  body.recording #playhead::after { background: linear-gradient(90deg, transparent, rgba(224,75,75,.2)); }
+  .track.armed .track-head { box-shadow: inset 3px 0 0 var(--rec); }
+  .track.armed::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 22px rgba(224,75,75,.35), 0 0 12px rgba(224,75,75,.25); animation: fx-armed 1.6s ease-in-out infinite; }
+  @keyframes fx-armed { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+  .track { position: relative; }
+  .track-head button.arm.active { box-shadow: 0 0 8px rgba(224,75,75,.8); animation: fx-arm-pulse 1.2s ease-in-out infinite; }
+  @keyframes fx-arm-pulse { 0%, 100% { box-shadow: 0 0 6px rgba(224,75,75,.6); } 50% { box-shadow: 0 0 14px 2px rgba(224,75,75,.95); } }
+  .clip.recording { box-shadow: 0 0 12px 2px rgba(255,61,240,.55), inset 0 0 18px rgba(25,241,255,.25); animation: fx-rec-clip .9s ease-in-out infinite; border-color: #ff3df0 !important; }
+  @keyframes fx-rec-clip { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
+  #btn-play.active, #btn-rec.active { animation: none; }
+  .fx-pulse-rec { animation: fx-rec-btn .8s ease-in-out infinite; }
+  @keyframes fx-rec-btn { 0%, 100% { box-shadow: 0 0 4px rgba(224,75,75,.5); } 50% { box-shadow: 0 0 16px 3px rgba(224,75,75,.9); } }
+  .meter i { transition: width .06s linear, height .06s linear; }
+  .tlock { transition: transform .15s; }
+  .track.locked .track-head .tlock.theirs { animation: fx-lock-wiggle 2.4s ease-in-out infinite; }
+  @keyframes fx-lock-wiggle { 0%, 90%, 100% { transform: rotate(0); } 93% { transform: rotate(-12deg); } 96% { transform: rotate(10deg); } }
+  #xp-chip { transition: box-shadow .2s; }
+  #xp-chip.fx-hit { box-shadow: 0 0 0 2px var(--xp), 0 0 22px 4px rgba(229,176,75,.55); }
+  .lpc { image-rendering: pixelated; }
+  .stage-who { transition: filter .25s, opacity .25s, transform .2s; }
+  .stage-who.rec .lpc { filter: drop-shadow(0 0 6px rgba(255,61,240,.9)) drop-shadow(0 0 14px rgba(224,75,75,.7)); }
+  .stage-who.playing .lpc { filter: drop-shadow(0 0 6px rgba(91,141,239,.9)); }
+  .stage-who.away { filter: grayscale(1) brightness(.55); opacity: .7; }
+  .stage-who:hover { transform: translateY(-3px); }
+}
+.fx-xp { position: fixed; z-index: 9500; pointer-events: none; display: flex; flex-direction: column; align-items: center; color: var(--xp); font-weight: 900; font-size: 30px; line-height: 1; text-shadow: 0 0 12px rgba(229,176,75,.9), 0 2px 0 #000, 0 0 30px rgba(242,181,52,.6); will-change: transform, opacity; letter-spacing: -.5px; }
+.fx-xp .fx-xp-w { font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000; margin-top: 2px; letter-spacing: 0; white-space: nowrap; }
+.fx-xp-halo { position: fixed; z-index: 9499; pointer-events: none; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, rgba(242,181,52,.75), rgba(242,181,52,0) 70%); will-change: transform, opacity; }
+.fx-sparks { position: fixed; z-index: 9501; pointer-events: none; width: 0; height: 0; }
+.fx-spark { position: absolute; left: 0; top: 0; border-radius: 2px; will-change: transform, opacity; box-shadow: 0 0 6px currentColor; }
+.fx-ripple { position: fixed; z-index: 9498; pointer-events: none; border: 2px solid; border-radius: 50%; will-change: transform, opacity; }
+.fx-edge { position: fixed; inset: 0; z-index: 9490; pointer-events: none; }
+.fx-sheen { position: absolute; top: 0; bottom: 0; left: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); pointer-events: none; }
+.xp-bar { position: relative; overflow: hidden; }
+.fx-neon { position: absolute; z-index: 6; pointer-events: none; }
+.xp-pop { display: none; }   /* replaced by the flying +XP (fx.js xpBurst) */
+
+/* ===== the band on every screen (avatars) ===== */
+#stage { display: flex; align-items: flex-end; gap: 2px; margin-left: 4px; min-height: 36px; }
+.stage-who { position: relative; width: 36px; height: 44px; overflow: hidden; cursor: default; flex: none; }
+.stage-who .lpc { position: absolute; left: -14px; top: -12px; width: 64px; height: 64px; }
+.stage-who .mode { position: absolute; right: 0; bottom: 0; font-size: 10px; line-height: 1; background: rgba(0,0,0,.6); border-radius: 6px; padding: 1px 3px; color: #fff; }
+.stage-who.rec .mode { background: var(--rec); }
+.stage-who.me::after { content: ''; position: absolute; left: 4px; right: 4px; bottom: 1px; height: 2px; border-radius: 2px; background: var(--accent); }
+#band-strip { display: flex; align-items: flex-end; gap: 4px; padding: 4px 8px 2px; border-top: 1px solid var(--line); min-height: 50px; overflow-x: auto; overflow-y: hidden; background: linear-gradient(180deg, transparent, rgba(0,0,0,.25)); }
+#band-strip .stage-who { width: 40px; height: 48px; cursor: pointer; }
+#band-strip .stage-who .lpc { left: -12px; top: -10px; }
+#band-strip .stage-who .nm { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; font-size: 9px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(0,0,0,.45); }
+#band-strip .stage-who.rec .nm { color: #fff; background: var(--rec); }
+#band-strip .stage-who.here .nm { color: #fff; }
+#song-list .chips .stage-who { width: 26px; height: 30px; display: inline-block; vertical-align: middle; }
+#song-list .chips .stage-who .lpc { left: -19px; top: -16px; }
+.track-head .face { width: 22px; height: 22px; border-radius: 50%; overflow: hidden; position: relative; flex: none; background: var(--bg); border: 1px solid var(--line); }
+.track-head .face .lpc { position: absolute; left: -21px; top: -9px; width: 64px; height: 64px; }
+#no-song .stage-crowd { display: flex; justify-content: center; align-items: flex-end; gap: 10px; margin-top: 18px; min-height: 100px; }
+#no-song .stage-crowd .stage-who { width: 64px; height: 80px; } #no-song .stage-crowd .stage-who .lpc { left: 0; top: 0; width: 64px; height: 64px; transform: scale(1.25); transform-origin: top center; }
+
+#chart-view .tabline { font-family: ui-monospace, Menlo, Consolas, monospace; white-space: pre; letter-spacing: .5px; color: #dfe6ff; }

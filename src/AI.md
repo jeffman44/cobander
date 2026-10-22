@@ -217,6 +217,7 @@ Pro Tools). `what` = all | reaper | midi | stems. Use this whenever someone want
 ### 0.13 / 0.14 tools (all undoable, all in GET /doc's route list)
 - Takes are stored as **FLAC** (`<label> - <id>.flac`; older takes may still be `.wav`). `POST /audio/compact` converts WAVs and clears audio nothing references for ≥ 7 days.
 - `POST /lyrics/transcribe` (Whisper, on this computer) pins words where they're sung; typed lines are re-pinned, never duplicated.
+- `POST /tab {trackId}` reads every live take on a guitar / bass track and writes a `tabs` entry on the song: `{id, trackId, track, instrument, tuningCents, events: [{t, d, notes[midi], frets[per string, -1 = not played], name?, mono, filled?}]}` (one per track; re-running replaces). `GET /tabs` lists them plus the chart's tab text.
 - `POST /chords/detect` drafts chords from guitar / keys / bass takes (chord objects get `det: true` until someone edits them; typed chords are never replaced).
 - `POST /mix/auto`, `POST /master/auto {target}`, `POST /mix/ab` — Auto mix (solo-render loudness per role → gain, HPF, EQ, comp, pan, sends), Auto master (LUFS target, limiter), A/B flip.
 - `POST /clip/tighten {clipId, grid, strength, undo}` — onset-based tightening into a new take file; `clip.tt.src` keeps the original. MIDI: strength quantize.

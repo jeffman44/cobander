@@ -1,5 +1,12 @@
 # Cobander changelog
 
+## 0.16.0
+- Big songs: a 60-track, 3-minute song now imports, opens, plays and mixes on an 8 GB laptop (it used to run out of memory around 25–30 takes). Takes are held in half the memory once a song outgrows a budget, and play in short pieces built as they come due; the timeline draws from a once-per-take summary instead of the samples, and the beat grid is one small image instead of a canvas per track. Idle effects are out of the audio graph, so 60 tracks play in real time. Opening a big song reads a few takes at a time instead of all at once; importing a take no longer waits for the file to finish encoding.
+- Tabs from the takes: right-click a guitar or bass track → "Tab from this track" (or Chords tab → Tab a track). Cobander listens to the takes and writes every note and strummed chord it hears as a real tab — the actual string / fret voicing, chord names over it, bars from the song's beat — under the chart, in the printable chart, and as a play-along lane in Practice. It measures how far off A440 the recording is and reads the notes with that in mind. Guitar chords come back as the shape you'd hold (E as 0-2-2-1-0-0, not a chord name).
+- Everything moves: XP flies from where you clicked to your level chip and bursts there; the track you're recording on is ringed in flowing neon lightning and the take you're cutting pulses; the armed track glows; the playhead glows and leaves a trail; bar 1 nudges the transport; new takes land with a bounce; buttons, menus, dialogs, toasts and workspace switches ease in — all without ever waiting on a click (press feedback is instant, nothing is delayed by an animation).
+- The band is on every screen: everyone with the song open stands in the song header (strumming while they record or play, idling while they listen, waiting with a shrug); the whole band lines the bottom of the sidebar — rocking out, listening, or greyed out when away — click someone to go where they are; the song list shows who is in each song; each track head carries a portrait of whoever recorded its last take; the empty screen is the band hanging out.
+- Control API: POST /tab {trackId}, GET /tabs.
+
 ## 0.15.11
 - Buy Roadie ($25) and VIP ($60) buttons under ⚙, on the Band page and in the free-song dialog — they open the license page on cobander.com, where you type the band name and bandmates before checkout.
 - "Send noods" is the tip jar now (any amount, Venmo or Ko-fi). Licenses are licenses.

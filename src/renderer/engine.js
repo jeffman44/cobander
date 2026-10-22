@@ -178,29 +178,50 @@
     const dlyNode = ctx.createDelay(4.0); dlyNode.delayTime.value = 0.25; const dlyFb = ctx.createGain(); dlyFb.gain.value = 0; const dlyWet = ctx.createGain(); dlyWet.gain.value = 0; const dlyTone = ctx.createBiquadFilter(); dlyTone.type = 'lowpass'; dlyTone.frequency.value = 4000;
     const analyser = ctx.createAnalyser ? ctx.createAnalyser() : null;
     // amp path: input → pre → shaper → tone stack → (cab | bypass) → level → ampOut ; dry path: input → ampDry → ampOut
-    const src0 = gate ? (input.connect(gate), gate) : input;
+    const src0 = input;   // the gate worklet is wired in by applyTrackParams only while it is on
     src0.connect(ampPre); ampPre.connect(shaper); shaper.connect(ampBass); ampBass.connect(ampMid); ampMid.connect(ampTreble); ampTreble.connect(ampPres);
     ampPres.connect(cab); cab.connect(cabWet); cabWet.connect(ampLevel); ampPres.connect(cabBypass); cabBypass.connect(ampLevel); ampLevel.connect(ampOut);
     src0.connect(ampDry); ampDry.connect(ampOut);
-    ampOut.connect(hpf); hpf.connect(lpf); lpf.connect(low); low.connect(mid); mid.connect(high); high.connect(comp); comp.connect(makeup); makeup.connect(fader);
-    // delay as an insert after the compressor: makeup → delay → tone → wet → fader ; feedback loop
-    makeup.connect(dlyNode); dlyNode.connect(dlyTone); dlyTone.connect(dlyWet); dlyWet.connect(fader); dlyTone.connect(dlyFb); dlyFb.connect(dlyNode);
+    // post-amp stages (low-cut, low-pass, EQ, compressor, delay insert) are only in the graph while they are on — see
+    // rewirePost: 60 tracks of always-on filters would be more than the audio thread can do in real time
+    dlyNode.connect(dlyTone); dlyTone.connect(dlyWet); dlyWet.connect(fader); dlyTone.connect(dlyFb); dlyFb.connect(dlyNode);
     fader.connect(panner);
     panner.connect(masterIn);
     panner.connect(send);
     if (reverbIn) send.connect(reverbIn);
     if (analyser) { analyser.fftSize = 2048; panner.connect(analyser); }
-    const chain = { input, gate, ampPre, shaper, ampBass, ampMid, ampTreble, ampPres, cab, cabBypass, cabWet, ampLevel, ampDry, ampOut, hpf, lpf, low, mid, high, comp, makeup, dlyNode, dlyFb, dlyWet, dlyTone, fader, panner, send, analyser, sources: [], cabName: null, curveKey: null };
+    const chain = { gateIn: false, postKey: null, input, gate, ampPre, shaper, ampBass, ampMid, ampTreble, ampPres, cab, cabBypass, cabWet, ampLevel, ampDry, ampOut, hpf, lpf, low, mid, high, comp, makeup, dlyNode, dlyFb, dlyWet, dlyTone, fader, panner, send, analyser, sources: [], cabName: null, curveKey: null };
     applyTrackParams(ctx, chain, track, false);
     return chain;
+  }
+  // ampOut → [hpf] → [lpf] → [low → mid → high] → [comp → makeup] → fader, with the delay insert hanging off the last stage.
+  function rewirePost(chain, fx) {
+    const key = `${fx.hpf.on ? 1 : 0}${fx.lpf && fx.lpf.on ? 1 : 0}${fx.eq.on ? 1 : 0}${fx.comp.on ? 1 : 0}${fx.delay.on ? 1 : 0}`;
+    if (chain.postKey === key) return;
+    chain.postKey = key;
+    for (const n of [chain.ampOut, chain.hpf, chain.lpf, chain.low, chain.mid, chain.high, chain.comp, chain.makeup]) { try { n.disconnect(); } catch (_) {} }
+    let prev = chain.ampOut;
+    const through = (n) => { prev.connect(n); prev = n; };
+    if (fx.hpf.on) through(chain.hpf);
+    if (fx.lpf && fx.lpf.on) through(chain.lpf);
+    if (fx.eq.on) { through(chain.low); through(chain.mid); through(chain.high); }
+    if (fx.comp.on) { through(chain.comp); through(chain.makeup); }
+    prev.connect(chain.fader);
+    if (fx.delay.on) prev.connect(chain.dlyNode);
   }
 
   function applyTrackParams(ctx, chain, track, audible, bpm = 120) {
     const fx = track.fx;
     const t = ctx.currentTime;
+    if (chain.postKey !== null && t > 0) { clearTimeout(chain._rewire); chain._rewire = setTimeout(() => rewirePost(chain, track.fx), 60); const on = (k) => !!(fx[k] && fx[k].on); if (on('hpf') || on('lpf') || on('eq') || on('comp') || on('delay')) rewirePost(chain, fx); }
+    else rewirePost(chain, fx);
     // offline contexts start at t=0: set values directly so the first 50 ms of a bounce are right
     const set = (param, v) => { param.cancelScheduledValues(t); if (t === 0) { param.setValueAtTime(v, 0); } else param.setTargetAtTime(v, t, 0.01); };
-    if (chain.gate) { chain.gate.parameters.get('on').setValueAtTime(fx.gate.on ? 1 : 0, t); chain.gate.parameters.get('threshold').setValueAtTime(fx.gate.threshold, t); }
+    if (chain.gate) {
+      chain.gate.parameters.get('on').setValueAtTime(fx.gate.on ? 1 : 0, t); chain.gate.parameters.get('threshold').setValueAtTime(fx.gate.threshold, t);
+      // a gate that is off is taken out of the graph: 60 idle worklets would otherwise eat the audio thread
+      const want = !!fx.gate.on; if (chain.gateIn !== want) { chain.gateIn = want; const q = (f) => { try { f(); } catch (_) {} }; if (want) { q(() => chain.input.disconnect(chain.ampPre)); q(() => chain.input.disconnect(chain.ampDry)); q(() => chain.input.connect(chain.gate)); q(() => chain.gate.connect(chain.ampPre)); q(() => chain.gate.connect(chain.ampDry)); } else { q(() => chain.input.disconnect(chain.gate)); q(() => chain.gate.disconnect()); q(() => chain.input.connect(chain.ampPre)); q(() => chain.input.connect(chain.ampDry)); } }
+    }
     // amp
     const a = fx.amp;
     if (a.on) {
@@ -217,7 +238,8 @@
       set(chain.ampLevel.gain, dbToGain(a.level + comp));
       set(chain.ampDry.gain, 0);
     } else {
-      set(chain.ampDry.gain, 1); chain.ampLevel.gain.cancelScheduledValues(t); chain.ampLevel.gain.setValueAtTime(0, t);
+      // amp off: silence the amp path at its input too, so the shaper (2× oversampled), tone stack and cab skip processing
+      set(chain.ampDry.gain, 1); set(chain.ampPre.gain, 0); chain.ampLevel.gain.cancelScheduledValues(t); chain.ampLevel.gain.setValueAtTime(0, t);
     }
     // delay: when sync, `time` is in beats (0.5 = eighth, 0.75 = dotted eighth, 1 = quarter); else seconds
     const d = fx.delay;
@@ -243,10 +265,38 @@
     set(chain.send.gain, audible ? fx.reverbSend : 0);
   }
 
+  // A take held as 16-bit PCM is played in chunks: a short AudioBuffer per CHUNK seconds, built just before it is due and
+  // dropped once it has played, so playing 60 takes never needs 60 full-length float buffers. Chunk boundaries fall on
+  // whole frames of the take (the context rounds every start time to a frame), so the seams are sample-exact.
+  const CHUNK = 4;                 // seconds per chunk
+  const LOOKAHEAD = 6;             // live: chunks starting within this many seconds are scheduled (tick runs every 16 ms)
+  class ChunkStream {
+    // plays entry frames [offset, offset+dur) (seconds) starting at context time `when`, into node `dest`
+    constructor(ctx, entry, dest, when, offset, dur) {
+      this.ctx = ctx; this.e = entry; this.dest = dest; this.when = when; this.sr = entry.sampleRate;
+      this.f0 = Math.round(offset * this.sr); this.f1 = Math.min(entry.length, Math.round((offset + dur) * this.sr));
+      this.per = Math.round(CHUNK * this.sr); this.next = 0; this.n = Math.max(0, Math.ceil((this.f1 - this.f0) / this.per));
+      this.live = new Set(); this.stopped = false; this._ended = this.n === 0;
+    }
+    // schedule every chunk that starts before context time `until`
+    feed(until) {
+      while (!this.stopped && this.next < this.n && this.when + (this.next * this.per) / this.sr < until) {
+        const k = this.next++; const a = this.f0 + k * this.per, b = Math.min(this.f1, a + this.per);
+        const buf = this.ctx.createBuffer(this.e.numberOfChannels, b - a, this.sr);
+        for (let c = 0; c < this.e.numberOfChannels; c++) buf.copyToChannel(this.e.slice(c, a, b), c);
+        const src = this.ctx.createBufferSource(); src.buffer = buf; src.connect(this.dest);
+        src.onended = () => { src.disconnect(); this.live.delete(src); if (this.next >= this.n && !this.live.size) this._ended = true; };
+        this.live.add(src); src.start(this.when + (k * this.per) / this.sr);
+      }
+    }
+    stop(at) { this.stopped = true; for (const s of this.live) { try { if (at === undefined) s.stop(); else s.stop(at); } catch (_) {} } if (at === undefined) { this.live.clear(); this._ended = true; } }
+  }
+
   class Engine {
     constructor() {
       this.ctx = null;
-      this.buffers = new Map();     // clipId -> AudioBuffer
+      this.buffers = new (global.BPAudioStore ? global.BPAudioStore.AudioStore : Map)();     // audioId -> Entry (AudioBuffer-like; see audiostore.js)
+      this._streams = new Set();    // live ChunkStreams fed from tick()
       this.tracks = [];
       this.master = DEFAULT_MASTER();
       this.audition = null;
@@ -568,10 +618,8 @@
           const len = this.clipLength(c);
           const clipEnd = c.start + len;
           if (clipEnd <= fromPos || c.start >= until) continue;
-          const src = ctx.createBufferSource();
-          src.buffer = buf;
           const g = ctx.createGain(); g.gain.value = dbToGain(c.gainDb);
-          src.connect(g); g.connect(ch.input);
+          g.connect(ch.input);
           let offset = c.trimStart, when = atCtxTime + (c.start - fromPos), dur = len;
           if (c.start < fromPos) { offset += fromPos - c.start; when = atCtxTime; dur = clipEnd - fromPos; }
           if (Number.isFinite(until)) dur = Math.min(dur, until - Math.max(c.start, fromPos));
@@ -586,10 +634,38 @@
             g.gain.setValueAtTime(Math.max(0.0001, env(pts[0])), when);
             for (const tt of pts.slice(1)) g.gain.linearRampToValueAtTime(Math.max(0.0001, env(tt)), when + (tt - posIn));
           }
+          if (buf.int16 || !buf.ab) {   // 16-bit take: chunks built as they come due (live: tick(); offline: suspend points)
+            const st = new ChunkStream(ctx, buf, g, when, offset, dur);
+            if (ctx === this.ctx) { this._streams.add(st); st.feed(ctx.currentTime + LOOKAHEAD); }
+            else { if (!ctx._bpStreams) ctx._bpStreams = []; ctx._bpStreams.push(st); }
+            track(ch, st);
+            continue;
+          }
+          const src = ctx.createBufferSource();
+          src.buffer = buf.ab || buf;
+          src.connect(g);
           src.onended = () => { src._ended = true; };
           src.start(when, offset, dur);
           track(ch, src);
         }
+      }
+    }
+    // live playback: build the chunks that come due soon; forget streams that are done
+    _feedStreams() {
+      if (!this._streams.size || !this.ctx) return;
+      const until = this.ctx.currentTime + LOOKAHEAD;
+      for (const st of this._streams) { if (st.stopped || st._ended) { this._streams.delete(st); continue; } st.feed(until); }
+    }
+    // offline render: chunks are built at suspension points every CHUNK seconds, so a render never holds every take in float
+    _primeOffline(off) {
+      const streams = off._bpStreams || []; if (!streams.length) return;
+      const total = off.length / off.sampleRate;
+      const feed = (until) => { for (const st of streams) st.feed(until); };
+      feed(CHUNK * 1.5);
+      const q = 128 / off.sampleRate;
+      for (let t = CHUNK; t < total - q; t += CHUNK) {
+        const at = Math.floor(t / q) * q;
+        off.suspend(at).then(() => { try { feed(at + CHUNK * 1.5); } catch (_) {} return off.resume(); }).catch(() => {});
       }
     }
 
@@ -607,6 +683,7 @@
     _stopInternal() {
       this.playing = false;
       for (const ch of this.chains.values()) { for (const s of ch.sources) { try { s.stop(); } catch (_) {} } ch.sources = []; }
+      this._streams.clear();
       this.stopClick();
       this.silenceClicks();
       this._nextPass = null;
@@ -658,6 +735,7 @@
       const end = this.contentLength();
       if (!this.recording && !this.loop.enabled && end > 0 && pos > end + 0.5) { this._stopInternal(); this.playhead = 0; this.emit('transport', this.transportState()); return; }
       this._extendGenerated();
+      this._feedStreams();
       this.emit('tick', this.playhead);
       this._raf = setTimeout(() => this.tick(), 16);
     }
@@ -1079,6 +1157,7 @@
         chains.set(t.id, ch);
       }
       this._scheduleInto(off, (id) => chains.get(id), from, 0, length, () => {});
+      this._primeOffline(off);
       const rendered = await off.startRendering();
       const keep = exact ? rendered.length : trailingKeep(rendered, Math.ceil(dur * sr));   // exact: identical length for every stem (DAW hand-off)
       const chans = [];
@@ -1107,7 +1186,7 @@
       const bands = [['sub', 20, 60], ['low', 60, 250], ['lowMid', 250, 1000], ['mid', 1000, 4000], ['high', 4000, 10000], ['air', 10000, 20000]];
       const lanes = bands.length + nc;
       const off = new OfflineAudioContext(lanes, n, sr);
-      const src = off.createBufferSource(); src.buffer = buf;
+      const src = off.createBufferSource(); src.buffer = buf.toAudioBuffer ? buf.toAudioBuffer(off) : buf;
       const mono = off.createGain(); mono.channelCount = 1; mono.channelCountMode = 'explicit'; mono.channelInterpretation = 'speakers';
       src.connect(mono);
       const merger = off.createChannelMerger(lanes); merger.channelCount = 1; merger.channelCountMode = 'explicit';

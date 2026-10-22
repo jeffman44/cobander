@@ -20,7 +20,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const COLLECTIONS = ['markers', 'reactions', 'sections', 'chords', 'lyrics', 'needs', 'votes', 'ideas', 'versions', 'activity'];
+  const COLLECTIONS = ['markers', 'reactions', 'sections', 'chords', 'lyrics', 'needs', 'votes', 'ideas', 'versions', 'activity', 'tabs'];
   const NESTED = { markers: 'replies' };   // entry arrays inside entries, merged the same way
   const ACTIVITY_CAP = 400;
   const SECTION_NAMES = ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Post-chorus', 'Bridge', 'Solo', 'Breakdown', 'Hook', 'Build', 'Drop', 'Outro'];

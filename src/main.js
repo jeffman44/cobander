@@ -576,6 +576,8 @@ async function startApi() {
     'POST /comp': ({ body }) => askRenderer('comp', body || {}),
     'POST /workspace': ({ body }) => askRenderer('workspace', body || {}),
     'POST /chords/detect': ({ body }) => askRenderer('chordsDetect', body || {}, 600000),
+    'POST /tab': ({ body }) => askRenderer('tabTrack', body || {}, 600000),
+    'GET /tabs': () => askRenderer('tabs', {}),
     'POST /mix/auto': () => askRenderer('autoMix', {}, 900000),
     'POST /master/auto': ({ body }) => askRenderer('autoMaster', body || {}, 600000),
     'POST /mix/ab': () => askRenderer('mixAB', {}),

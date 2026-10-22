@@ -275,6 +275,7 @@
     if (/^repl/i.test(s)) return { xp: WORTH.replies[0], what: WORTH.replies[1] };
     if (/^note at/i.test(s)) return { xp: WORTH.notes[0], what: WORTH.notes[1] };
     if (/^chords bars/i.test(s)) return { xp: 4 * WORTH.chords[0], what: 'chords laid in' };
+    if (/^tab /i.test(s)) return { xp: 4 * WORTH.chords[0], what: 'tab read off the takes' };
     if (/^chord /i.test(s)) return { xp: WORTH.chords[0], what: WORTH.chords[1] };
     if (/speech-to-text/i.test(s)) { const n = Number((/(\d+) lines?\)/.exec(s) || [])[1]) || 1; return { xp: n * WORTH.heard[0], what: n > 1 ? `${n} lyric lines heard` : WORTH.heard[1] }; }
     if (/^pin lyric|^lyrics placed|lyric/i.test(s)) return { xp: WORTH.lyrics[0], what: WORTH.lyrics[1] };

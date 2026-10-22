@@ -75,6 +75,7 @@
       <ul id="song-list"></ul>
       <div id="band-feed-head" class="side-head small" title="Everything the band did, across every song — live · click to minimize / expand"><span><span id="band-feed-caret">▾</span> <i class="om om-pan"></i> Band feed <span id="band-feed-new" class="bf-new" hidden></span></span><span id="band-feed-live" class="muted">live</span></div>
       <ul id="band-feed" class="small"></ul>
+      <div id="band-strip" title="The band — click someone to go where they are" hidden></div>
     </aside>
     <div class="vsplit" data-target="#sidebar" data-key="bp.sideW" data-min="160" data-max="520" data-side="left" title="drag to resize · double-click to reset"></div>
 
@@ -83,6 +84,7 @@
         <img class="art-wait" src="art/waiting.jpg" alt="" width="1200" height="800">
         <h2>Pick a song on the left, or make a new one.</h2>
         <p class="muted">Everything lives in the band's shared folder. Hit <b>R</b> to record onto the armed track, <b>Space</b> to play.</p>
+        <div class="stage-crowd" title="The band — who's around right now"></div>
       </div>
       <section id="band-page" hidden>
         <div class="bp-col bp-main">
@@ -114,6 +116,7 @@
       <div id="song" hidden>
         <div id="song-head">
           <div id="song-title"></div>
+          <div id="stage" title="Who has this song open right now" hidden></div>
           <div id="song-reactions"></div>
           <div id="presence-line" class="badge presence" hidden></div>
           <div id="lock-badge" class="badge"></div>
@@ -199,7 +202,7 @@
               <ul id="part-list" class="small"></ul>
             </div>
             <div class="side-tab" data-tab="chart" hidden>
-              <div class="tab-tools"><button id="btn-chords-detect" title="From the recordings: Cobander listens to the guitar / keys / bass takes and writes a draft of the chords — only where nobody has typed chords yet"><i class="om om-guitar"></i> From the recordings</button><button id="btn-chart-copy" title="Copy the chord chart and lyrics as plain text, to paste in the group chat">Copy text</button><button id="btn-chart-save" title="Save a printable chord chart into the song folder (opens in any browser)">Save printable</button><select id="chart-transpose" title="Transpose: show the chords moved up or down, to play the song in another key or with a capo"></select></div>
+              <div class="tab-tools"><button id="btn-chords-detect" title="From the recordings: Cobander listens to the guitar / keys / bass takes and writes a draft of the chords — only where nobody has typed chords yet"><i class="om om-guitar"></i> From the recordings</button><button id="btn-tab-track" hidden title="Tab from the takes: Cobander listens to a guitar or bass track and writes every note and chord shape it hears as a tab (string / fret), under the chart. Right-click a track for the same thing."><i class="om om-guitar"></i> Tab a track</button><button id="btn-chart-copy" title="Copy the chord chart and lyrics as plain text, to paste in the group chat">Copy text</button><button id="btn-chart-save" title="Save a printable chord chart into the song folder (opens in any browser)">Save printable</button><select id="chart-transpose" title="Transpose: show the chords moved up or down, to play the song in another key or with a capo"></select></div>
               <pre id="chart-view" class="small"></pre>
             </div>
             <div class="side-tab" data-tab="versions" hidden>
@@ -524,6 +527,7 @@
 <script src="tighten.js"></script>
 <script src="timing.js"></script>
 <script src="highway.js"></script>
+<script src="tab.js"></script>
 <script src="lpc.js"></script>
 <script src="pitchcheck.js"></script>
 <script src="changes.js"></script>
@@ -531,6 +535,8 @@
 <script src="tuner.js"></script>
 <script src="asr.js"></script>
 <script src="karaoke.js"></script>
+<script src="fx.js"></script>
+<script src="audiostore.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
 </body>

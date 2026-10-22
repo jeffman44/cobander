@@ -18,17 +18,17 @@
     v.setUint16(32, blockAlign, true); v.setUint16(34, bitDepth, true);
     str(36, 'data'); v.setUint32(40, dataBytes, true);
     let o = 44;
-    const max24 = 8388607, max16 = 32767;
+    const max24 = 8388607, max16 = 32767; const u8 = new Uint8Array(buf);
     for (let i = 0; i < frames; i++) {
       for (let c = 0; c < numCh; c++) {
         let x = channels[c][i];
         if (x > 1) x = 1; else if (x < -1) x = -1;
         if (bitDepth === 24) {
           const s = Math.round(x * max24);
-          v.setUint8(o, s & 0xff); v.setUint8(o + 1, (s >> 8) & 0xff); v.setUint8(o + 2, (s >> 16) & 0xff);
+          u8[o] = s & 0xff; u8[o + 1] = (s >> 8) & 0xff; u8[o + 2] = (s >> 16) & 0xff;
           o += 3;
         } else {
-          v.setInt16(o, Math.round(x * max16), true); o += 2;
+          const s = Math.round(x * max16); u8[o] = s & 0xff; u8[o + 1] = (s >> 8) & 0xff; o += 2;
         }
       }
     }
@@ -37,7 +37,9 @@
 
   // Native decode handles 16/24/32-bit PCM and float WAV. Returns AudioBuffer.
   async function decodeWav(ctx, arrayBuffer) {
-    return ctx.decodeAudioData(arrayBuffer.slice(0));
+    // decodeAudioData takes ownership of the bytes (detaches them) — no copy; callers never reuse the buffer afterwards
+    if (arrayBuffer.byteLength === 0) throw new Error('empty audio file');
+    return ctx.decodeAudioData(arrayBuffer);
   }
 
   function audioBufferToChannels(buffer) {
