@@ -73,6 +73,7 @@
     $('#folder-line').textContent = state.settings.sharedFolder || 'No shared folder yet — open Settings';
     $('#folder-line').title = state.settings.sharedFolder || '';
     engine.offsetManual = state.settings.recordOffsetMs != null; if (engine.offsetManual) engine.recordOffsetMs = state.settings.recordOffsetMs;
+    engine.inputChannels = ['auto', 'left', 'right', 'stereo'].includes(state.settings.inputChannels) ? state.settings.inputChannels : 'auto';
     if (state.settings.clickDb != null) engine.click.gainDb = state.settings.clickDb;
     engine.monitorFx = state.settings.monitorFx !== false;
     if (state.settings.clickOutputId && engine.ctx && engine.clickOutputId !== state.settings.clickOutputId) engine.setClickOutput(state.settings.clickOutputId).catch(() => {});
@@ -81,6 +82,7 @@
 
   async function fillInputs() {
     const sel = $('#s-input'); sel.innerHTML = '';
+    { const c = $('#s-chans'); if (c) c.value = ['auto', 'left', 'right', 'stereo'].includes(state.settings.inputChannels) ? state.settings.inputChannels : 'auto'; }
     { const o = el('option', null, 'System default input'); o.value = ''; sel.appendChild(o); }   // placeholders always have value "" so their text is never saved as a device id
     try {
       const inputs = await engine.listInputs();
@@ -132,6 +134,7 @@
           displayName: $('#s-name').value.trim() || null,
           sharedFolder: $('#s-folder').value || null,
           inputDeviceId: $('#s-input').value || null,
+          inputChannels: $('#s-chans').value || 'auto',
           // untouched (or emptied) = automatic per output device; a number you typed = fixed
           recordOffsetMs: $('#s-offset').value === '' || (!engine.offsetManual && $('#s-offset').value === $('#s-offset').dataset.shown) ? null : clamp($('#s-offset').value, 0, 500, 0),
           clickDb: clamp($('#s-click').value, -40, 0, -12),
@@ -2044,6 +2047,7 @@
       { label: 'React to this take', sub: reactionItems(c.id, c.name) },
       { label: 'Note at playhead…', action: () => addNote(t.id, engine.playhead) },
       { label: 'Rename…', action: async () => { const n = await promptName('Take name', c.name); if (n) { change(() => { c.name = n; }, { label: `rename take to ${n}` }); renderAll(); } }, disabled: ro() },
+      ...(c.kind !== 'midi' && (engine.buffers.get(audioId(c)) || {}).numberOfChannels === 2 ? [{ label: 'Make mono', hint: 'this take is stereo', sub: [{ title: 'Keep which side? (a new file; the stereo one stays in the folder)' }, { label: 'Input 1 (left)', action: () => makeMono(t, c, 'left').catch(fail) }, { label: 'Input 2 (right)', action: () => makeMono(t, c, 'right').catch(fail) }, { label: 'Both mixed together', action: () => makeMono(t, c, 'sum').catch(fail) }], disabled: ro() }] : []),
       ...(c.kind !== 'midi' ? [{ label: 'Normalize (peak to −1 dB)', hint: 'sets the take level so its loudest moment is just under full', action: () => { const buf = engine.buffers.get(audioId(c)); if (!buf) { status('That take hasn\'t loaded yet.'); return; } let p = 0; for (let ch = 0; ch < buf.numberOfChannels; ch++) { const d0 = buf.getChannelData(ch); for (let i = 0; i < d0.length; i++) { const a = Math.abs(d0[i]); if (a > p) p = a; } } if (p < 1e-6) { status('Silent take.'); return; } const g = Math.round((-1 - 20 * Math.log10(p)) * 2) / 2; change(() => { c.gainDb = Math.max(-24, Math.min(24, g)); }, { label: `normalize ${c.name}` }); renderAll(); status(`${c.name}: level set to ${g > 0 ? '+' : ''}${g} dB (peak was ${(20 * Math.log10(p)).toFixed(1)} dBFS).`, 6000); }, disabled: ro() }] : []),
       { label: 'Reset gain / trims / fades', action: () => { change(() => { c.gainDb = 0; c.trimStart = 0; c.trimEnd = 0; c.fadeIn = 0; c.fadeOut = 0; }, { label: `reset ${c.name}` }); renderAll(); }, disabled: ro() },
       { label: 'Delete', hint: 'Del', danger: true, action: () => deleteClip(t, c, { confirm: false }), disabled: ro() },
@@ -6018,6 +6022,20 @@
   $('#notes').addEventListener('focus', () => { notesUndoTaken = false; });
   $('#notes').addEventListener('input', () => { if (state.readOnly || state.ab) return; if (!notesUndoTaken) { notesUndoTaken = true; const v = $('#notes').value; $('#notes').value = state.song.notes || ''; pushUndo('notes edit'); $('#notes').value = v; } state.song.notes = $('#notes').value; markDirty(); });
 
+  // A stereo take folded to one channel: written as a new (mono) file, the clip re-pointed to it. Undo puts the stereo
+  // file back; the stereo file is never deleted (takes are immutable; Lighten Drive can drop it once nothing uses it).
+  async function makeMono(t, c, which) {
+    if (state.readOnly) { status('Read-only — "Take over" (banner above) to edit.', 6000); return; }
+    const buf = engine.buffers.get(audioId(c)); if (!buf || buf.numberOfChannels < 2) { status('That take is already mono.'); return; }
+    const L = buf.getChannelData(0), R = buf.getChannelData(1); let m;
+    if (which === 'left') m = L; else if (which === 'right') m = R; else { m = new Float32Array(L.length); for (let i = 0; i < m.length; i++) m[i] = (L[i] + R[i]) * 0.5; }
+    status(`Writing ${c.name} as mono…`, 0);
+    const nid = newId(); await bp.audio.write(state.folder, nid, window.BPWav.encodeWav([m], buf.sampleRate, 24), { label: `${takeLabel(t, c)} - mono` });
+    const nb = engine.ctx.createBuffer(1, m.length, buf.sampleRate); nb.copyToChannel(m, 0); engine.buffers.set(nid, nb);
+    change(() => { c.src = nid; c.channels = 1; delete c.vs; delete c.ps; delete c.tt; }, { label: `${c.name} to mono` });
+    renderAll(); await saveWithClip(t.id, c, t.name);
+    status(`${c.name} is mono now (${which === 'sum' ? 'both inputs mixed' : which === 'left' ? 'input 1' : 'input 2'}). ${MOD}+Z brings the stereo file back.`, 8000);
+  }
   // ---------- import ----------
   const audioWrites = new Set();   // take files still being encoded / written by the main process
   window.cobanderAudioWrites = () => Promise.all([...audioWrites]);
@@ -7094,6 +7112,7 @@
         for (const t of engine.tracks) if (t.clips.length || t.instrument === 'drumkit') out.tracks[t.id] = { name: t.name, ...(await engine.analyzeTrack(t.id, range)) };
         return out;
       }
+      case 'monoClip': { writable(); const f = findClip(args.clipId); if (!f) throw new Error('clip not found'); await makeMono(f.t, f.c, ['left', 'right', 'sum'].includes(args.which) ? args.which : 'sum'); return { clip: { ...f.c } }; }
       case 'splitClip': { writable(); const f = findClip(args.clipId); if (!f) throw new Error('clip not found'); const r = splitClip(f.t, f.c, num(args.at, engine.playhead)); if (!r) throw new Error('split point must be inside the take'); return { left: f.c.id, right: r.id }; }
       case 'duplicateClip': { writable(); const f = findClip(args.clipId); if (!f) throw new Error('clip not found'); duplicateClip(f.t, f.c); return { clipId: state.selectedClip }; }
       case 'exportDaw': need(); return exportDaw({ what: args.what || 'all', name: args.name || null, allowMissing: !!args.allowMissing });
@@ -7135,6 +7154,7 @@
         if (args.inputDeviceId !== undefined) patch.inputDeviceId = args.inputDeviceId || null;
         if (args.outputDeviceId !== undefined) patch.outputDeviceId = args.outputDeviceId || null;
         if (args.monitorFx !== undefined) patch.monitorFx = !!args.monitorFx;
+        if (args.inputChannels !== undefined) { if (!['auto', 'left', 'right', 'stereo'].includes(args.inputChannels)) throw new Error('inputChannels: auto | left | right | stereo'); patch.inputChannels = args.inputChannels; }
         if (Object.keys(patch).length) {
           state.settings = await bp.settings.set(patch); await loadSettings();
           if (patch.recordOffsetMs === null) { engine.offsetManual = false; engine.recordOffsetMs = engine.autoOffsetMs(); }
@@ -7143,7 +7163,7 @@
           if (patch.inputDeviceId !== undefined && engine.stream) await engine.openInput(patch.inputDeviceId);
         }
         const inputs = await engine.listInputs().catch(() => []), outputs = await engine.listOutputs().catch(() => []);
-        return { recordOffsetMs: engine.recordOffsetMs, offsetManual: !!engine.offsetManual, autoOffsetMs: engine.autoOffsetMs(), inputDeviceId: state.settings.inputDeviceId || null, outputDeviceId: state.settings.outputDeviceId || null, monitorFx: engine.monitorFx, sampleRate: engine.ctx.sampleRate, baseLatency: engine.ctx.baseLatency, outputLatency: engine.ctx.outputLatency, inputs, outputs };
+        return { recordOffsetMs: engine.recordOffsetMs, offsetManual: !!engine.offsetManual, autoOffsetMs: engine.autoOffsetMs(), inputChannels: engine.inputChannels, inputDeviceId: state.settings.inputDeviceId || null, outputDeviceId: state.settings.outputDeviceId || null, monitorFx: engine.monitorFx, sampleRate: engine.ctx.sampleRate, baseLatency: engine.ctx.baseLatency, outputLatency: engine.ctx.outputLatency, inputs, outputs };
       }
       case 'measureLatency': {
         await engine.init(); await bp.mic.ensure(); if (!engine.stream) await engine.openInput(state.settings.inputDeviceId);

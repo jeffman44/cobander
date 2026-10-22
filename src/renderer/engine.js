@@ -128,6 +128,21 @@
   }
 
   // ---------- impulse response for the shared reverb ----------
+  // channels: Float32Array[] (1 or 2). Returns the channels a take keeps under the chosen rule.
+  function foldChannels(channels, rule = 'auto') {
+    if (channels.length < 2) return channels;
+    if (rule === 'left') return [channels[0]];
+    if (rule === 'right') return [channels[1]];
+    if (rule === 'stereo') return channels;
+    const pk = channels.map((b) => { let p = 0; for (let i = 0; i < b.length; i += 4) { const a = Math.abs(b[i]); if (a > p) p = a; } return p; });
+    const quiet = 10 ** (-60 / 20);   // −60 dBFS: a dead input's noise floor, not a quiet instrument
+    if (pk[0] > quiet && pk[1] <= quiet) return [channels[0]];
+    if (pk[1] > quiet && pk[0] <= quiet) return [channels[1]];
+    // the same thing on both sides (within 1% of the level): one copy is enough
+    let diff = 0; const L = channels[0], R = channels[1]; for (let i = 0; i < L.length; i += 4) { const d = Math.abs(L[i] - R[i]); if (d > diff) diff = d; }
+    if (diff <= 0.01 * Math.max(pk[0], pk[1])) return [channels[0]];
+    return channels;
+  }
   function makeImpulse(ctx, { decay = 1.8, preDelay = 0.02, damp = 6000 } = {}) {
     const sr = ctx.sampleRate;
     const len = Math.max(1, Math.floor(sr * (decay + preDelay)));
@@ -315,6 +330,7 @@
       this.recordOffsetMs = null;
       this.offsetManual = false;    // false = follow the current output device's latency (re-measured before every take)
       this.inputDeviceId = null;
+      this.inputChannels = 'auto';   // 'auto' | 'left' | 'right' | 'stereo'
       this.listeners = new Set();
       this._clickTimer = null;
       this._raf = null;
@@ -975,12 +991,9 @@
       if (drop < 0) { clipStart += -drop / sr; drop = 0; }   // capture started late: shift the clip instead of trimming
       if (drop >= total) return null;
       let channels = raw.map((b) => b.subarray(drop));
-      // A mono source on a stereo interface shows up as one live and one dead channel; store it mono.
-      if (channels.length === 2) {
-        const pk = channels.map((b) => { let p = 0; for (let i = 0; i < b.length; i += 4) { const a = Math.abs(b[i]); if (a > p) p = a; } return p; });
-        if (pk[0] > 1e-4 && pk[1] <= 1e-4) channels = [channels[0]];
-        else if (pk[1] > 1e-4 && pk[0] <= 1e-4) channels = [channels[1]];
-      }
+      // Which channels a take keeps (Settings → Record channels): left = input 1, right = input 2, stereo = both,
+      // auto = mono when one side is dead OR the two sides are the same signal (an interface mirroring a mono input).
+      channels = foldChannels(channels, this.inputChannels || 'auto');
       const makeTake = (chans, start) => {
         const buf = this.ctx.createBuffer(chans.length, chans[0].length, sr);
         for (let c = 0; c < chans.length; c++) buf.copyToChannel(chans[c], c);
@@ -1284,7 +1297,7 @@
     return Math.min(n, last);
   }
 
-  global.BPEngine = { Engine, DEFAULT_FX, DEFAULT_MASTER, DEFAULT_DRUM, AMP_MODELS, CABS, TRACK_TYPES, normalizeTrack, normalizeMaster, validTimeSig, dbToGain, gainToDb, num, clamp, audioId };
+  global.BPEngine = { Engine, foldChannels, DEFAULT_FX, DEFAULT_MASTER, DEFAULT_DRUM, AMP_MODELS, CABS, TRACK_TYPES, normalizeTrack, normalizeMaster, validTimeSig, dbToGain, gainToDb, num, clamp, audioId };
   global.BPUtil = global.BPUtil || {};
   global.BPUtil.newId = () => Array.from(crypto.getRandomValues(new Uint8Array(6))).map((b) => b.toString(16).padStart(2, '0')).join('');
 })(window);

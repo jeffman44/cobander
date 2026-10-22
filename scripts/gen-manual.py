@@ -313,6 +313,7 @@ write_page('record.html', 'Record', 'The Record workspace: inputs, monitoring, a
   <li><b>🎤 Lyrics from this take</b>: speech-to-text writes the words out, pinned where they're sung.</li>
   <li><b>🎸 Chords from this track</b>: drafts the chords from a guitar, keys or bass take.</li>
   <li><b>Normalize</b>: sets the take's level so its loudest moment is just under full.</li>
+  <li><b>Make mono</b> (stereo takes): keep input 1, input 2, or both mixed — a new mono file, undoable. To stop it happening in the first place, Settings → <b>Record channels</b>: auto folds to mono when the other input is dead or both sides match; or pin it to input 1 / input 2 / stereo.</li>
   <li><b>Deleted takes</b> (button in the tab, or ⋯ at the top): bring back a take that was deleted or lost when two people saved at once.</li>
 </ul>
 

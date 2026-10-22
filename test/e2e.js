@@ -1389,6 +1389,24 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       await jeff.post('/practice', { open: false }); await jeff.post('/song/close');
       await jeff.evalJs(`(() => { if (window.__scrubObs) window.__scrubObs.disconnect(); window.__scrubObs = null; return true; })()`);
     });
+    await step('0.16: a stereo take folds to mono (new file, undoable); record-channels setting', async () => {
+      await jeff.post('/song/open', { folder: 'QoL Song' });
+      const n = 48000, L = new Float32Array(n), R = new Float32Array(n); for (let i = 0; i < n; i++) { L[i] = 0.4 * Math.sin(i / 20); R[i] = 0.2 * Math.sin(i / 7); }
+      await fsp.writeFile(path.join(WORK, 'stereo.wav'), wavF([L, R]));
+      const st0 = await jeff.get('/state'); const gtr = st0.song.tracks.find((t) => t.instrument === 'audio');
+      const im = await jeff.post('/clip/import', { path: path.join(WORK, 'stereo.wav'), trackId: gtr.id, start: 8, name: 'wide' });
+      assert.equal(im.clip.channels, 2, 'imported as stereo');
+      const before = (await fsp.readdir(path.join(shared, 'QoL Song', 'audio'))).length;
+      const r = await jeff.post('/clip/mono', { clipId: im.clip.id, which: 'left' });
+      assert.equal(r.clip.channels, 1); assert.ok(r.clip.src && r.clip.src !== im.clip.id, 'points at a new file');
+      await until(async () => (await fsp.readdir(path.join(shared, 'QoL Song', 'audio'))).length === before + 1, 5000, 'mono file written');
+      const chans = await jeff.evalJs(`(() => { const D = window.cobanderDebug; const c = D.engine.tracks.flatMap((t) => t.clips).find((x) => x.id === ${JSON.stringify(im.clip.id)}); const b = D.engine.buffers.get(c.src); return [b.numberOfChannels, Math.round(Math.max(...Array.from(b.getChannelData(0).subarray(0, 2000)).map(Math.abs)) * 100) / 100]; })()`);
+      assert.deepEqual(chans, [1, 0.4], 'left channel kept');
+      await jeff.evalJs(`document.querySelector('#btn-undo').click()`); await sleep(700); const st1 = await jeff.get('/state'); const c1 = st1.song.tracks.flatMap((t) => t.clips).find((x) => x.id === im.clip.id); assert.equal(c1.channels, 2, 'undo brings the stereo take back'); assert.ok(!c1.src);
+      const au = await jeff.post('/audio', { inputChannels: 'right' }); assert.equal(au.inputChannels, 'right');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.engine.inputChannels`), 'right', 'setting reaches the engine');
+      await jeff.post('/audio', { inputChannels: 'auto' });
+    });
     await step('opening a song: the screen is usable when the loading bar goes (longest freeze after it is logged)', async () => {
       const songs = await jeff.get('/songs'); const pick = songs.map((x) => x.folder).find((f) => /Basement Anthem|Link Song|Tremors/.test(f)) || (songs[0] && songs[0].folder);
       if (!pick) return; await jeff.post('/song/close').catch(() => {});

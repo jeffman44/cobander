@@ -554,6 +554,7 @@ async function startApi() {
     'GET /analyze': ({ query }) => askRenderer('analyze', query, 180000),
     'POST /export': ({ body }) => askRenderer('exportDaw', body, 600000),
     'POST /clip/split': ({ body }) => askRenderer('splitClip', body),
+    'POST /clip/mono': ({ body }) => askRenderer('monoClip', body, 120000),
     'POST /clip/duplicate': ({ body }) => askRenderer('duplicateClip', body),
     'POST /bounce': ({ body }) => askRenderer('bounce', body, 1800000),
     'POST /clip/import': ({ body }) => askRenderer('importClip', body, 1800000),

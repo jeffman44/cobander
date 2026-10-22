@@ -1,5 +1,10 @@
 # Cobander changelog
 
+## 0.16.1
+- Mono takes stay mono: Settings → Record channels picks what a take keeps from a 2-input interface — auto (mono when the other input is dead or both sides carry the same signal), input 1 only, input 2 only, or stereo. Auto used to need the other input to be dead silent, so any noise on input 2 made the take stereo.
+- Right-click a stereo take → Make mono (input 1 / input 2 / both mixed): a new mono file, undoable; the stereo file stays in the folder.
+- Control API: POST /clip/mono.
+
 ## 0.16.0
 - Big songs: a 60-track, 3-minute song now imports, opens, plays and mixes on an 8 GB laptop (it used to run out of memory around 25–30 takes). Takes are held in half the memory once a song outgrows a budget, and play in short pieces built as they come due; the timeline draws from a once-per-take summary instead of the samples, and the beat grid is one small image instead of a canvas per track. Idle effects are out of the audio graph, so 60 tracks play in real time. Opening a big song reads a few takes at a time instead of all at once; importing a take no longer waits for the file to finish encoding.
 - Tabs from the takes: right-click a guitar or bass track → "Tab from this track" (or Chords tab → Tab a track). Cobander listens to the takes and writes every note and strummed chord it hears as a real tab — the actual string / fret voicing, chord names over it, bars from the song's beat — under the chart, in the printable chart, and as a play-along lane in Practice. It measures how far off A440 the recording is and reads the notes with that in mind. Guitar chords come back as the shape you'd hold (E as 0-2-2-1-0-0, not a chord name).
