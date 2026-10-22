@@ -1660,7 +1660,6 @@
   function guardedChange(fn, { undoable, label, activity }) {
     if (state.ab) { status('You are A/B-ing a tagged version — press A/B to come back before editing.', 6000); return false; }
     const before = new Map(engine.tracks.map((t) => [t.id, trackFp(t)])); const sw0 = songWideFp();
-    const beforeClips = new Map(engine.tracks.map((t) => [t.id, clipsFp(t)]));
     const snap = JSON.stringify(collectSong());
     if (undoable && !state.readOnly) pushUndo(label);
     fn();
@@ -1686,8 +1685,7 @@
     if (activity) logActivity(label);
     const mine = [...changed, ...added].filter((id) => engine.track(id));
     for (const id of mine) touchLock(id);
-    bumpApproved(changed, beforeClips);
-    if (state.readOnly) { for (const id of [...mine, ...removed]) state.trackDirty.add(id); flushTracksSoon(); return true; }   // not 'unsaved': it goes to whoever has the song
+    if (state.readOnly) { for (const id of [...mine, ...removed]) state.trackDirty.add(id); flushTracksSoon(); checkApproved(); return true; }   // not 'unsaved': it goes to whoever has the song
     markDirty();
     return true;
   }
@@ -1804,6 +1802,7 @@
 
   function markDirty() {
     if (syncLinks()) setTimeout(() => renderTracks(), 0);
+    checkApproved();
     state.editSeq = (state.editSeq || 0) + 1;
     state.dirty = true; updateBadges(); updateUndoButtons();
     if (state.readOnly) {   // can't save while a bandmate has it: keep a local backup so a crash doesn't lose it
@@ -2275,7 +2274,7 @@
     if (!state.song || !t) return false;
     const info = stage ? CB.stageInfo(stage) : null;
     const label = stage !== undefined ? `${t.name} part → ${info ? info.label : 'no stage'}` : redo ? `${t.name} part needs a redo: ${String(redo).slice(0, 60)}` : `${t.name} part redo cleared`;
-    const ok = cchange(() => { CB.setPartStage(state.song, t.id, { stage, redo, by: me() }); }, { label, undoable: !state.readOnly });
+    const ok = cchange(() => { const e = CB.setPartStage(state.song, t.id, { stage, redo, by: me() }); if (stage !== undefined) { if (stage === 'approved') e.fp = clipsFp(t); else delete e.fp; } }, { label, undoable: !state.readOnly });
     if (!ok) return false;
     renderAll();
     if (!state.readOnly) save().catch(() => {});
@@ -2302,12 +2301,16 @@
     b.addEventListener('mousedown', (e) => e.stopPropagation());
     return b;
   }
-  // changing the takes on an approved part sends it back to review (fader/FX moves don't)
-  const clipsFp = (t) => { try { return JSON.stringify(t.clips || []); } catch (_) { return ''; } };
-  function bumpApproved(ids, beforeClips) {
-    const hit = ids.map((id) => engine.track(id)).filter((t) => t && beforeClips.get(t.id) !== clipsFp(t) && (partStageOf(t) || {}).stage === 'approved');
+  // changing the takes on an approved part sends it back to review (fader/FX moves don't): the approval stores a
+  // fingerprint of the part's takes, and every edit (any path: record, import, drag, comp…) is checked against it
+  const clipsFp = (t) => { let h = 5381; const x = (() => { try { return JSON.stringify((t.clips || []).map((c) => [c.id, c.src, c.start, c.duration, c.trimStart, c.trimEnd, c.mute, c.gainDb])); } catch (_) { return ''; } })(); for (let i = 0; i < x.length; i++) h = ((h << 5) + h + x.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+  let bumpBusy = false;
+  function checkApproved() {
+    if (bumpBusy || !state.song || state.ab) return;
+    const hit = engine.tracks.filter((t) => { const e = partStageOf(t); return e && e.stage === 'approved' && e.fp && e.fp !== clipsFp(t); });
     if (!hit.length) return;
-    setTimeout(() => { for (const t of hit) setPartStageUI(t, { stage: 'review' }); status(`${hit.map((t) => t.name).join(', ')} changed after approval — back to Ready for review.`, 6000); }, 0);
+    bumpBusy = true;
+    setTimeout(() => { try { for (const t of hit) setPartStageUI(t, { stage: 'review' }); status(`${hit.map((t) => t.name).join(', ')} changed after approval — back to Ready for review.`, 6000); } finally { bumpBusy = false; } }, 0);
   }
   function setStage(k) { change(() => { if (k) state.song.stage = k; else delete state.song.stage; }, { label: k ? `stage → ${k}` : 'stage cleared' }); renderAll(); save(); }
   // Rename the open song: save, close (frees the lock in the old folder), rename folder + song.json, reopen. Only the
