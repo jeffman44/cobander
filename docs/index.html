@@ -78,7 +78,9 @@
   .does li span { color: var(--steel); font-size: 16px; }
 
   .dl-notes { margin: -6px 0 10px; max-width: 620px; }
-  .free-dl { margin: 4px 0 18px; }
+  .dish.free { cursor: default; grid-template-columns: 1fr auto auto; align-items: center; margin-bottom: 4px; } .dish.free:hover { background: none; padding-left: 0; padding-right: 0; }
+  .dish.free .dl-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; } .dish.free .btn { padding: 11px 16px; font-size: 15px; }
+  @media (max-width: 640px) { .dish.free { grid-template-columns: 1fr auto; } .dish.free .dl-row { grid-column: 1 / -1; justify-content: flex-start; } .dish.free .row { grid-row: 1; grid-column: 2; } }
   .soon { opacity: .55; pointer-events: none; cursor: default; }
   .soon-note { display: block; margin-top: 6px; font-weight: 700; }
   .carton .go { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -212,7 +214,7 @@
       <div class="stamp">NO SERVER<br>NO ACCOUNTS<br>NO SUBSCRIPTION</div>
       <h2>Licenses</h2>
       <p class="sub"><b>Groupie</b> is free — the whole app, every feature, every update, one song per band. To make more songs, get a <b>license</b>: a key that unlocks the whole band, once.</p>
-      <div class="cta free-dl"><a class="btn hot dl" href="https://takeout.cobander.com/download/win">Download for Windows</a><a class="btn hot dl" href="https://takeout.cobander.com/download/mac-arm64">Download for Mac</a></div>
+      <div class="dish free" id="groupie"><span class="name">Groupie<small>the whole app, every feature, every update. One song per band</small></span><span class="dl-row"><a class="btn hot dl" href="https://takeout.cobander.com/download/win">Download for Windows</a><a class="btn hot dl" href="https://takeout.cobander.com/download/mac-arm64">Download for Mac</a></span><span class="row"><span class="price">$0</span></span></div>
       <button class="dish pick" id="roadie" data-amt="25" data-tier="Roadie"><span class="name">Roadie<small>all the songs you want. One key for the whole band, yours for good</small></span><span class="row"><span class="price">$25</span></span></button>
       <button class="dish" id="vip" data-amt="60" data-tier="VIP"><span class="name">VIP<small>same key, plus your band on the VIP wall — here and in the app. Legends never die</small></span><span class="row"><span class="price">$60</span></span></button>
       <div class="go">
