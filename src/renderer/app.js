@@ -4811,7 +4811,7 @@
         const words = l.words && l.words.length ? l.words : [{ w: l.text || '', t: l.time, e: l.time + 2 }];
         const widths = words.map((w) => { meas.textContent = w.w; return meas.offsetWidth; }); const gap = 14; const total = widths.reduce((n, w) => n + w, 0) + gap * (words.length - 1);
         let x = -total / 2;
-        words.forEach((w, k) => { const n = el('div', 'k-cw'); n.textContent = w.w; const ch = (l.chords || []).filter((c) => c.wi === k); if (ch.length) { const c = el('span', 'k-chord', ch.map((x) => x.chord).join(' ')); n.prepend(c); } n.dataset.x = String(x + widths[k] / 2); n.dataset.t = String(w.t); n.dataset.e = String(w.e); n.dataset.line = String(i); crawl.nodes.set(`${i}:${k}`, n); plane.append(n); x += widths[k] + gap; });
+        words.forEach((w, k) => { const n = el('div', 'k-cw'); n.textContent = w.w; const ch = (l.chords || []).filter((c) => c.wi === k); if (ch.length) { const c = el('span', 'k-chord', ch.map((x) => x.chord).join(' ')); n.prepend(c); } n.dataset.x = String(x + widths[k] / 2); n.dataset.t = String(w.t); n.dataset.e = String(w.e); n.dataset.line = String(i); n.dataset.next = String(i + 1 < ls.length ? (ls[i + 1].words && ls[i + 1].words.length ? ls[i + 1].words[0].t : ls[i + 1].time) : Infinity); crawl.nodes.set(`${i}:${k}`, n); plane.append(n); x += widths[k] + gap; });
       });
       meas.remove();
     }
@@ -4821,7 +4821,7 @@
     const W = plane.clientWidth || 800, H = plane.clientHeight || 600; const lineY = H * 0.84, farY = H * 0.08, cx = W / 2;
     for (const [, n] of crawl.nodes) {
       const wt = Number(n.dataset.t), we = Number(n.dataset.e), wx = Number(n.dataset.x || 0); const dt = wt - t;
-      const gone = we + crawl.hold;   // leaves the line only after it has been sung AND held a beat
+      const nx = Number(n.dataset.next); const gone = Math.max(wt + 0.05, Math.min(we + crawl.hold, (Number.isFinite(nx) ? nx : Infinity) - 0.12));   // leaves the line after it has been sung and held a beat — and always before the next line's first word lands in the same slots
       if (dt > crawl.lookahead || gone < t - crawl.back) { n.style.display = 'none'; continue; }
       n.style.display = '';
       const now = dt <= 0 && t <= gone, sung = t > gone;
@@ -4830,7 +4830,7 @@
       const y = lineY - z * (lineY - farY) + drop * (H * 0.18 / crawl.back);
       const sc = 1 - 0.66 * z;
       n.className = 'k-cw' + (now ? ' now' : sung ? ' sung' : '');
-      n.style.transform = `translate(${(cx + wx * sc).toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%) scale(${sc.toFixed(3)})`;
+      n.style.transform = `translate(${(cx + wx * sc).toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%) scale(${sc.toFixed(3)})`;   /* anchored at the word's bottom: the text SITS on the line (a chord above it can't push it down) */
       n.style.opacity = sung ? String(Math.max(0, 1 - drop / crawl.back)) : String(0.35 + 0.65 * (1 - z));
     }
   }

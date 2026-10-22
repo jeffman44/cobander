@@ -897,9 +897,10 @@ dialog#charpick { max-width: 1100px; width: min(1100px, 96vw); max-height: 96vh;
 .char-grid .char-pick .char { width: 36px; height: 36px; } .char-grid .char-pick .char .gi { width: 22px; height: 22px; }
 
 /* crawl: one flyer per word */
-.k-cw { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; font-size: calc(30px * var(--ks)); font-weight: 700; line-height: 1.2; white-space: nowrap; will-change: transform, opacity; color: #e8e9ee; }
+.k-cw { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; font-size: calc(30px * var(--ks)); font-weight: 700; line-height: 1; padding-bottom: .12em; white-space: nowrap; will-change: transform, opacity; color: #e8e9ee; }
 .k-cw.meas { visibility: hidden; position: absolute; left: -9999px; }
-.k-cw.now { color: var(--xp); font-size: calc(36px * var(--ks)); text-shadow: 0 0 18px rgba(242,181,52,.6); }
+/* the word being sung only changes colour and glow — growing it would shove it into its neighbours (slots are measured at one size) */
+.k-cw.now { color: var(--xp); text-shadow: 0 0 18px rgba(242,181,52,.6); }
 .k-cw.sung { color: var(--muted); }
 .k-cw .k-chord { display: block; font-size: .5em; color: var(--accent); font-weight: 600; }
 

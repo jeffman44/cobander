@@ -7,6 +7,7 @@
 - The song list shows how many parts are approved ("✅ 5/8 parts") and how many are flagged for a redo; hover for the breakdown.
 - Rename the song is also on the song's right-click menu now (it was only under ⋯).
 - The level-up screen shows your own character again instead of a stand-in.
+- Practice, flying words: a word now lands sitting ON the line instead of the line cutting through it (a chord above a word used to push it below the line), the word being sung no longer grows into its neighbours, and the last line clears off before the next line's words land in the same spots.
 
 ## 0.17.1
 - You're you on every computer: pick who you are in the band (from the names on the band's license, or the band roster) and a display name to show on top. Locks follow the person, not the computer, so opening a song on the laptop that's still marked open on your home PC just takes it — and your own unlocked tracks from the other computer are yours, not "locked by" you. A bandmate is still blocked, as before.
