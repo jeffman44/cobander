@@ -194,7 +194,8 @@ write_page('write.html', 'Write', 'The Write workspace: parts, tracks, takes, ly
 <ul>
   <li><b>Add lines…</b>: paste or type the words, one line per row. They start unpinned.</li>
   <li><b>Pin next (P)</b>: play the song and press <kbd>P</kbd> as each line is sung. That is what Practice and the chart read from.</li>
-  <li><b>From the vocals</b>: Cobander listens to the vocal takes and types out the words, each line pinned where it's sung, word by word. It runs on your computer; the speech model downloads once (about 250 MB). Lines you already typed win; only words nobody typed are added. After a vocal take it offers to do this for you.</li>
+  <li><b>From the vocals</b>: Cobander listens to the vocal takes and types out the words, each line pinned where it's sung, word by word. It runs on your computer; the speech model downloads once (about 250 MB). Lines you already typed win; only words nobody typed are added. After a vocal take it offers to do this for you. Each word's start and end are set from the singing itself, so the words light up as you hear them.</li>
+  <li><b>⏱ Tighten timing</b>: re-sets the word timing of the lyrics already on the song from the vocal takes, without re-typing anything.</li>
 </ul>
 
 <h2>Chords</h2>
@@ -208,7 +209,15 @@ write_page('write.html', 'Write', 'The Write workspace: parts, tracks, takes, ly
 <ul>
   <li>Right-click a guitar or bass track → <b>Tab from this track</b> (or Chords tab → <b>Tab a track</b>). Cobander listens to the live takes and writes every note and strummed chord it hears as a real tab: the string / fret voicing (a strummed E comes back as 0-2-2-1-0-0), chord names over the strings, bars from the song's beat. It sits under the chart, goes into the printable chart and Copy text, and Practice can scroll it at you as a play-along lane.</li>
   <li>It measures how far off A440 the recording is and reads the notes with that in mind (the tab says, e.g. "recorded −12¢ off A440"). Transpose in the Chords tab moves the tab too.</li>
-  <li>What it hears is what it writes: a clean, reasonably tidy take tabs well; heavy distortion, a wall of reverb, or two guitars on one track confuse it. Re-run it after new takes — the newest tab for a track replaces the old one.</li>
+  <li>What it hears is what it writes: a clean, reasonably tidy take tabs well; heavy distortion, a wall of reverb, or two guitars on one track confuse it. Re-run it after new takes — the newest tab for a track replaces the old one. A tab someone edited is never replaced without asking.</li>
+</ul>
+<h2>Editing a tab</h2>
+<ul>
+  <li><b>✎ Edit tab</b> (Chords tab), <b>✎ tab</b> in Practice, or right-click a guitar / bass track → <b>Edit the tab…</b> (<b>Write a tab by hand…</b> on a track with no tab yet).</li>
+  <li>Click a string, or move with the arrow keys, and <b>type the fret</b>. Two digits quickly (1 then 2) make fret 12. <kbd>Delete</kbd> clears the note, <kbd>Shift</kbd>+<kbd>Delete</kbd> the whole column.</li>
+  <li><b>chord</b> box (or <kbd>C</kbd>): name the chord in that column. On an empty column, Cobander puts in a shape you can play for it — open chords, E- and A-shape barres, power chords.</li>
+  <li><kbd>Alt</kbd>+<kbd>←</kbd><kbd>→</kbd> moves a note a column; <kbd>Shift</kbd>+<kbd>←</kbd><kbd>→</kbd> jumps a bar; <kbd>Space</kbd> plays from the cursor and the red line follows; <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.</li>
+  <li><b>grid</b>: 1/4, 1/8, triplets or 1/16, laid over the song's own beats (tempo and time-signature changes included). If notes sit closer together than the grid, it says so — pick 1/16.</li>
 </ul>
 
 <h2>Notes, Needs, Ideas</h2>
@@ -347,7 +356,7 @@ write_page('mix.html', 'Mix', 'The Mix workspace: channel strips, faders, pan, s
 <h2>The layout</h2>
 <ul>
   <li>The timeline stays. Each track head becomes a mini channel strip: volume, pan, <b>LC</b> / <b>EQ</b> / <b>CMP</b> on-off buttons, <b>M</b> (mute) and <b>S</b> (solo), and <b>fix</b>.</li>
-  <li>The console below has a bigger strip for every track: a fader, pan, reverb send, a meter, and one-click FX (<b>LC</b> low-cut, <b>EQ</b>, <b>CMP</b> compressor, <b>AMP</b>, <b>DLY</b> delay).</li>
+  <li>The console below has a bigger strip for every track: a fader, pan, reverb send, a meter (two bars, left and right, on a stereo track and the master), and one-click FX (<b>LC</b> low-cut, <b>EQ</b>, <b>CMP</b> compressor, <b>AMP</b>, <b>DLY</b> delay).</li>
   <li>The master strip on the right is the last volume control for the whole song, with a loudness readout.</li>
   <li><b>Track FX</b> on the right shows every knob for the selected track. Hover any knob for what it does.</li>
 </ul>
@@ -466,9 +475,9 @@ write_page('practice.html', 'Practice', 'The Practice workspace: karaoke-style l
 <ul>
   <li><b>play along</b> shows a scrolling lane of what to play next, like a rhythm game:
     <ul>
-      <li><b>🎸 guitar chords</b>: chord shapes, capo-aware.</li>
+      <li><b>🎸 chord shapes</b>: the chord lane as grips, capo-aware.</li>
+      <li><b>🎸 Rhythm guitar / Lead guitar</b>: one choice per guitar track, so you pick the part you're learning. Lead vs rhythm comes from the track's name when it says so ("Lead", "Solo", "Rhythm"), otherwise from what was played: mostly chords is rhythm, mostly single notes is lead. The first time you pick one, Cobander reads its takes into a tab in the background; strings and frets scroll at you. <b>✎ tab</b> next to the picker opens the tab editor right where you are.</li>
       <li><b>🎸 bass line (tab)</b>: read off the bass takes.</li>
-      <li><b>🎸 &lt;track&gt; tab</b>: a tab you made from a track's takes (Chords tab → Tab a track), strings and frets scrolling at you.</li>
       <li><b>🎹 MIDI part (tab)</b>: a MIDI track's notes.</li>
     </ul>
   </li>
@@ -923,6 +932,7 @@ write_page('faq.html', 'Troubleshooting', 'Fixes for the usual Cobander problems
 <ul>
   <li>It runs on your computer. The first run downloads the model (about 250 MB). ⚙ → <b>Speech-to-text model</b> picks a faster or more accurate one.</li>
   <li>Lines you type yourself win: type them in the Lyrics tab first and let From the vocals pin them.</li>
+  <li>Words land a little early or late? <b>⏱ Tighten timing</b> (Lyrics tab) moves every word onto where the singing starts and stops on the vocal takes. If they're still off in Practice, the <b>sync</b> chip nudges the words sooner or later on this computer (Bluetooth headphones are the usual reason).</li>
 </ul>
 
 <h2>The band folder is getting big</h2>

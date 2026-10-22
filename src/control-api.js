@@ -61,6 +61,7 @@ const ROUTES = [
   ['POST', '/note', '{id|name, note, vel?, dur?} audition a note on a synth/drum track'],
   ['GET', '/midi/inputs', 'list MIDI inputs; POST {select:id|"any"|""} to choose'],
   ['POST', '/lyrics/transcribe', '{clipId? | trackId? (default: every vocal track), model?: base.en|small.en|medium.en, replace?: true (re-does what speech-to-text wrote before), wipe?: false (true = drop every existing lyric line first)} — speech-to-text: lyric lines pinned where they are sung, with word timings'],
+  ['POST', '/lyrics/retime', '{} — tighten timing: every timed lyric word gets its start / end moved onto the vocal takes (where the voice starts and stops). Returns {moved, lyrics}'],
   ['GET', '/audio', 'Audio devices and settings: inputs, outputs, chosen input/output, record latency offset (ms, manual or automatic), FX monitoring, inputChannels (auto | left | right | stereo: what a take keeps from a 2-input interface)'],
   ['POST', '/audio', '{recordOffsetMs?: number|null (null = automatic), inputDeviceId?, outputDeviceId?, monitorFx?} — change audio settings (saved)'],
   ['POST', '/latency/measure', '{apply?: true} — play clicks out the output, hear them on the input (the output must be routed into the input), return the round trip in ms; apply saves it as the record offset'],

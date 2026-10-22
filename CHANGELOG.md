@@ -1,5 +1,12 @@
 # Cobander changelog
 
+## 0.17.0
+- Guitar tabs to play along with, lead and rhythm: Practice → play along lists every guitar part — "Rhythm guitar (Gtr L)", "Lead guitar (Solo)" — and you pick the one you're practising. Lead vs rhythm comes from the track name when it says so, otherwise from what was played (mostly chords = rhythm, mostly single notes = lead). The first time you pick a part it's read off its takes in the background (Practice keeps running); re-recorded takes are read again by themselves unless someone edited the tab.
+- Tabs are editable: ✎ Edit tab (Chords tab, Practice, or right-click a guitar / bass track → Edit the tab…). Click a string and type a fret (0–24, two digits for 10+), Delete clears, Shift+Delete clears the column, type a chord name and an empty column gets a playable shape (open chords, E- and A-shape barres, power chords; bass gets the root), Alt+←→ moves a note, Space plays from the cursor, Ctrl+Z undoes. Grid in 1/4, 1/8, triplets or 1/16 over the song's own beats. You can also write a tab by hand on a track with no takes.
+- Lyric timing is tighter: words from the vocals now start where the singing actually starts and end where it stops (Whisper's word times were up to a few hundred ms off on singing). Lyrics → ⏱ Tighten timing does the same for words already on the song, without re-transcribing. Practice also follows what you HEAR now — your speakers' / interface's output delay is taken off — and a per-computer sync nudge (words sooner / later, 25 ms steps) handles Bluetooth headphones.
+- Stereo tracks and the master show left and right level bars.
+- Tab reading runs in its own worker, so reading a long take no longer stalls the screen. Control API: POST /lyrics/retime; GET /meters adds masterLR and tracksLR.
+
 ## 0.16.5
 - Rename a song: ⋯ on the song → "Rename the song…". The folder on the band Drive is renamed to match (the folder is the song name — browsable by a human, no song1/song2), every take and version comes along, and the song's XP, goals and history follow it (song.json keeps `renamedFrom`). Refused while a bandmate has the song open or holds it. Control API: POST /song/rename {name}.
 - Mute / solo are yours, not the song's: they live on this computer only and are never saved to the shared song, on your own tracks too. Dan can sit on his solo'd guitar while you hear the whole mix. Your picks are remembered per song on this computer and come back when you reopen it.

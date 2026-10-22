@@ -52,6 +52,57 @@
     }
     const ratio = sr / 16000, m = Math.floor(n / ratio), y = new Float32Array(m); for (let i = 0; i < m; i++) { const p = i * ratio, k = Math.floor(p), f = p - k; y[i] = mono[k] * (1 - f) + (mono[k + 1] || 0) * f; } return y;
   }
+  // ---- word timing from the voice itself ----
+  // Whisper's word times come from where the model was "looking" (cross-attention), not from the sound: on singing they
+  // land up to a few hundred ms off, often in the breath before the word or glued to the end of the word before. This
+  // moves each word's start onto the vocal's own onset near it (energy jumping up out of a gap or a sharp rise), and its
+  // end onto where the voice actually stops. Legato lines with no onset to find keep Whisper's time.
+  // x: mono samples, word times in seconds from x[0]; returns new {w, t, e} (input untouched).
+  function envelopeDb(x, sr, hop = 0.01) {
+    const H = Math.max(1, Math.round(sr * hop)), W = H * 2; const n = Math.max(0, Math.floor((x.length - W) / H) + 1); const db = new Float32Array(n);
+    // one-pole high-pass ~150 Hz first: rumble, hum and kick bleed mustn't read as singing
+    const a = Math.exp(-2 * Math.PI * 150 / sr); const y = new Float32Array(x.length); let py = 0, px = 0;
+    for (let i = 0; i < x.length; i++) { const v = x[i]; py = a * (py + v - px); px = v; y[i] = py; }
+    for (let f = 0; f < n; f++) { let s = 0; const o = f * H; for (let i = 0; i < W; i++) { const v = y[o + i]; s += v * v; } db[f] = 10 * Math.log10(s / W + 1e-12); }
+    return { db, hop: H / sr, win: W / sr };
+  }
+  const pctl = (arr, q) => { const a = Array.from(arr).sort((p, r) => p - r); return a.length ? a[Math.min(a.length - 1, Math.max(0, Math.floor(q * (a.length - 1))))] : -120; };
+  function refineWordTimes(words, x, sr, { reach = 0.4, minRise = 4 } = {}) {
+    const ws = (words || []).map((w) => ({ ...w })); if (!ws.length || !x || x.length < sr * 0.2) return ws;
+    const { db, hop, win } = envelopeDb(x, sr); const n = db.length; if (n < 10) return ws;
+    const floor = pctl(db, 0.1), peak = pctl(db, 0.98); if (peak - floor < 10) return ws;   // no dynamics to read (a pad, a wash)
+    const thr = Math.max(floor + 0.35 * (peak - floor), peak - 30);
+    const voiced = (f) => f >= 0 && f < n && db[f] > thr;
+    const rise = (f) => { let lo = Infinity; for (let k = 1; k <= 4; k++) if (f - k >= 0) lo = Math.min(lo, db[f - k]); return lo === Infinity ? 0 : Math.max(0, db[f] - lo); };
+    const fr = (t) => Math.max(0, Math.min(n - 1, Math.round(t / hop)));
+    const tm = (f) => f * hop + win * 0.25;   // a frame's time: a quarter in, where a rise inside it shows up
+    const orig = ws.map((w) => ({ t: w.t, e: w.e }));
+    let prev = -Infinity;
+    for (let i = 0; i < ws.length; i++) {
+      const t = orig[i].t; const nextT = i + 1 < ws.length ? orig[i + 1].t : Infinity;
+      const lo = Math.max(0, t - reach, prev + 0.08), hi = Math.min(t + reach, Math.max(t + 0.1, nextT - 0.02), tm(n - 1));
+      let best = -1, bs = -Infinity;
+      for (let f = fr(lo); f <= fr(hi); f++) {
+        if (!voiced(f) && !voiced(f + 1)) continue;
+        const r = rise(f); const gap = !voiced(f - 1) || !voiced(f - 2);
+        if (r < minRise && !(gap && voiced(f) && voiced(f + 1))) continue;
+        const sc = r + (gap ? 4 : 0) - 9 * Math.abs(tm(f) - t);
+        if (sc > bs) { bs = sc; best = f; }
+      }
+      let nt = t;
+      if (best >= 0) { let g = best; while (g > fr(lo) && db[g - 1] < db[g] - 0.5 && db[g - 1] > thr - 12) g--; nt = tm(g); }
+      else if (!voiced(fr(t))) { for (let f = fr(t); f <= fr(hi); f++) if (voiced(f)) { nt = tm(f); break; } }   // Whisper's start sits in a gap: the word starts when the voice does
+      nt = Math.max(nt, prev + 0.05, 0); ws[i].t = Math.round(nt * 1000) / 1000; prev = nt;
+    }
+    for (let i = 0; i < ws.length; i++) {   // ends: where the voice stops (a gap of 80 ms), no later than the next word, at most a second past Whisper's
+      const t = ws[i].t; const nextT = i + 1 < ws.length ? ws[i + 1].t : Infinity; const cap = Math.min(nextT - 0.01, Math.max(orig[i].e, t + 0.15) + 1.0, t + 6);
+      let e = null, run = 0;
+      for (let f = fr(t + 0.05); f < n && tm(f) < cap; f++) { if (voiced(f)) run = 0; else if (++run >= 8) { e = (f - run) * hop + win * 0.75; break; } }   /* the last voiced frame's window, most of the way in */
+      if (e == null) e = Number.isFinite(cap) ? cap : Math.max(orig[i].e, t + 0.15);
+      ws[i].e = Math.round(Math.max(t + 0.08, Math.min(e, Number.isFinite(nextT) ? nextT - 0.01 : e)) * 1000) / 1000;
+    }
+    return ws;
+  }
   // ---- aligning what was heard with words someone typed ----
   const norm = (w) => String(w || '').toLowerCase().replace(/[^a-z0-9']/g, '').replace(/'/g, '');
   const toks = (text) => String(text || '').split(/\s+/).filter(Boolean);
@@ -153,8 +204,9 @@
     const x = await toMono16k(buf, from, to);
     if (x.length < 16000 * 0.5) return { lines: [], words: [], text: '' };
     const r = await runAsr(x, { model, bridge, onProgress });
-    const words = cleanWords(r.chunks);
+    let words = cleanWords(r.chunks);
+    try { words = refineWordTimes(words, x, 16000); } catch (_) { /* keep Whisper's times */ }
     return { lines: groupLines(words), words, text: String(r.text || '').trim() };
   }
-  return { state, MODELS, cleanWords, groupLines, tidy, toMono16k, load, transcribe, alignWords, similarity, alignToTyped };
+  return { state, MODELS, cleanWords, groupLines, tidy, toMono16k, load, transcribe, alignWords, similarity, alignToTyped, refineWordTimes, envelopeDb };
 });

@@ -75,3 +75,18 @@ test('text tab stacks chords, draws bars, names them', () => {
   assert.ok(rows[1].includes('12'), rows[1]); assert.ok(rows[1].includes('|'), 'bar lines');
   const lanes = T.laneEvents(ev); assert.equal(lanes.length, 1 + 5 + 1); assert.equal(lanes[1].sub, 'A');
 });
+
+test('lead or rhythm: the name says so, else chords vs single notes decide', () => {
+  const chord = { notes: [40, 47, 52], mono: false }, note = { notes: [64], mono: true };
+  assert.equal(T.partRole([], 'Lead Gtr'), 'lead'); assert.equal(T.partRole([], 'Rhythm L'), 'rhythm'); assert.equal(T.partRole([], 'Gtr solo'), 'lead');
+  assert.equal(T.partRole(Array(10).fill(chord), 'Gtr L'), 'rhythm');
+  assert.equal(T.partRole([...Array(9).fill(note), chord], 'Gtr 2'), 'lead');
+  assert.equal(T.partRole([...Array(6).fill(note), ...Array(4).fill(chord)], 'Guitar'), 'guitar');
+  assert.equal(T.partRole([note, chord], 'Guitar'), 'guitar', 'too little to tell');
+  // a real read: the strummed test chords come back rhythm, the plucked line lead
+  const buf = new Float32Array(SR * 5); const E = [40, 47, 52, 56, 59, 64], G = [43, 47, 50, 55, 59, 67];
+  for (let k = 0; k < 8; k++) strum(buf, 0.2 + k * 0.6, 0.55, k % 2 ? G : E);
+  assert.equal(T.partRole(T.transcribe(buf, SR, { instrument: 'guitar' }).events, 'Gtr'), 'rhythm');
+  const b2 = new Float32Array(SR * 4); [64, 67, 69, 71, 72, 71, 69, 67].forEach((m, i) => pluck(b2, 0.2 + i * 0.42, 0.38, m));
+  assert.equal(T.partRole(T.transcribe(b2, SR, { instrument: 'guitar' }).events, 'Gtr'), 'lead');
+});

@@ -2100,7 +2100,8 @@
           ...[0, -1, -2, -3, -4, -5, 1, 2, 3].map((k) => ({ label: k === 0 ? 'As written' : k < 0 ? `Capo ${-k} (chords shown ${k})` : `Up ${k} half step${k === 1 ? '' : 's'}`, action: () => showChartShifted(k) })),
           'sep', { label: 'Chords from this track (listen to the takes)', action: () => chordsFromTracks([t]).catch(fail), disabled: ro() },
           { label: `Tab from this track (${bassTrack(t) ? 'bass' : 'guitar'}: every note and chord shape)`, hint: 'reads the takes', action: () => tabTrack(t).catch(fail), disabled: ro() || tabBusy },
-          { label: 'Play-along highway (Practice → play along)', action: () => { setWorkspace('practice'); setTimeout(() => { const al = $('#k-along'); if (al) { al.value = bassTrack(t) ? 'bass' : 'chords'; al.dispatchEvent(new Event('change')); } }, 300); } }] },
+          ...(AMX.role(t) === 'gtr' || bassTrack(t) || tabFor(t.id) ? [{ label: tabFor(t.id) ? 'Edit the tab…' : 'Write a tab by hand…', hint: 'type frets on the strings', action: () => openTabEditor(t).catch(fail) }] : []),
+          { label: 'Play-along highway (Practice → play along)', action: () => { setWorkspace('practice'); setTimeout(() => { const al = $('#k-along'); if (al) { karaTabOptions(); al.value = bassTrack(t) ? 'bass' : AMX.role(t) === 'gtr' && [...al.options].some((o) => o.value === `gtr:${t.id}`) ? `gtr:${t.id}` : 'chords'; al.dispatchEvent(new Event('change')); } }, 300); } }] },
         { label: '🔁 Transpose the whole song (re-tunes the recordings too)', sub: transposeItems(null), disabled: state.readOnly }] : []),
       { label: t.mute ? 'Un-mute track' : 'Mute track', action: () => toggleMS(t, 'mute') },
       { label: t.solo ? 'Un-solo track' : 'Solo track', action: () => toggleMS(t, 'solo') },
@@ -3361,33 +3362,194 @@
   const TB = window.BPTab; let tabBusy = false;
   const liveTabs = () => CB.live(CB.list(state.song, 'tabs'));
   const tabFor = (trackId) => liveTabs().filter((x) => x.trackId === trackId).sort((a, b) => String(b.at).localeCompare(String(a.at)))[0] || null;
-  async function tabTrack(t) {
-    if (!state.folder || !t || tabBusy) return;
+  // the takes a tab was read from, so a re-recorded part is noticed (and re-read unless someone edited the tab)
+  const tabSrcKey = (t) => t.clips.filter((c) => c.kind !== 'midi' && !engine.clipMuted(c)).map((c) => `${audioId(c)}@${c.start}:${c.trimStart || 0}:${c.trimEnd || 0}`).join(',');
+  // tab reading runs in a worker (tab-worker.js) so Practice keeps scrolling; the page thread only if it can't start
+  let tabWorker = null, tabWorkerOff = false, tabSeq = 0; const tabJobs = new Map();
+  function tabTranscribe(m, sr, instrument) {
+    if (!tabWorker && !tabWorkerOff && typeof Worker !== 'undefined') {
+      try {
+        tabWorker = new Worker('tab-worker.js');
+        tabWorker.onmessage = (e) => { const d = e.data || {}; const j = tabJobs.get(d.id); if (!j) return; tabJobs.delete(d.id); if (d.ok) j.res(d.result); else j.rej(new Error(d.error)); };
+        tabWorker.onerror = (ev) => { const err = new Error(`tab worker: ${ev.message || 'failed'}`); for (const j of tabJobs.values()) j.rej(err); tabJobs.clear(); tabWorker = null; tabWorkerOff = true; };
+      } catch (_) { tabWorker = null; tabWorkerOff = true; }
+    }
+    const inPage = () => new Promise((res) => setTimeout(() => res(TB.transcribe(m, sr, { instrument })), 0));
+    if (!tabWorker) return inPage();
+    const copy = m.slice();   /* its own buffer, handed over whole (a view would clone the entire take) */
+    return new Promise((res, rej) => { const id = ++tabSeq; tabJobs.set(id, { res, rej }); tabWorker.postMessage({ id, mono: copy, sr, instrument }, [copy.buffer]); })
+      .catch((err) => { if (/tab worker/.test(err.message)) return inPage(); throw err; });
+  }
+  // read a track's takes into a tab entry and store it (newest per track wins; Undo brings the old one back)
+  async function readTab(t) {
     const clips = t.clips.filter((c) => c.kind !== 'midi' && !engine.clipMuted(c) && engine.buffers.get(audioId(c)));
-    if (!clips.length) { status('No takes to read on that track yet.'); return; }
+    if (!clips.length) return null;
+    const instrument = bassTrack(t) ? 'bass' : 'guitar'; const srcKey = tabSrcKey(t);
+    const events = []; let tuning = 0, n = 0;
+    for (const c of clips) {
+      const buf = engine.buffers.get(audioId(c)); const sr = buf.sampleRate; const i0 = Math.floor((c.trimStart || 0) * sr), i1 = Math.min(buf.length, i0 + Math.floor((engine.clipLength(c) || 0) * sr));
+      if (i1 - i0 < sr * 0.1) continue;
+      const m = mono(window.BPWav.audioBufferToChannels(buf).map((ch) => ch.subarray(i0, i1)));
+      const r = await tabTranscribe(m, sr, instrument);
+      for (const e of r.events) events.push({ ...e, t: Math.round((e.t + c.start) * 1000) / 1000 });
+      tuning += r.tuningCents; n++;
+    }
+    events.sort((a, b) => a.t - b.t);
+    if (!events.length) return { events, empty: true, instrument };
+    if (!engine.track(t.id) || !state.song) return null;   // the song closed while it was reading
+    const entry = { id: newId(), trackId: t.id, track: t.name, instrument, role: instrument === 'bass' ? 'bass' : TB.partRole(events, t.name), tuningCents: n ? Math.round(tuning / n) : 0, events, srcKey, by: me(), at: nowIso() };
+    cchange(() => { for (const x of CB.list(state.song, 'tabs')) if (x.trackId === t.id && !x.deleted) { x.deleted = true; x.deletedBy = me(); x.deletedAt = nowIso(); } (state.song.tabs = state.song.tabs || []).push(entry); }, { label: `tab ${t.name}` });
+    return entry;
+  }
+  async function tabTrack(t, { force = false } = {}) {
+    if (!state.folder || !t || tabBusy) return;
+    if (!t.clips.some((c) => c.kind !== 'midi' && !engine.clipMuted(c) && engine.buffers.get(audioId(c)))) { status('No takes to read on that track yet.'); return; }
+    const old = tabFor(t.id);
+    if (old && old.edited && !force) { const a = await ask('Read the tab again?', `${old.editedBy || 'Someone'} edited the ${t.name} tab by hand. Reading the takes again replaces it (${MOD}+Z brings it back).`, [['Read again', 'go', 'danger'], ['Cancel', 'cancel']]); if (a !== 'go') return; }
     const instrument = bassTrack(t) ? 'bass' : 'guitar';
     tabBusy = true; const t0 = performance.now(); status(`Reading ${t.name} for a ${instrument} tab…`, 0);
     try {
-      const events = []; let tuning = 0, n = 0;
-      for (const c of clips) {
-        const buf = engine.buffers.get(audioId(c)); const sr = buf.sampleRate; const i0 = Math.floor((c.trimStart || 0) * sr), i1 = Math.min(buf.length, i0 + Math.floor((engine.clipLength(c) || 0) * sr));
-        if (i1 - i0 < sr * 0.1) continue;
-        const m = mono(window.BPWav.audioBufferToChannels(buf).map((ch) => ch.subarray(i0, i1)));
-        const r = await new Promise((res) => setTimeout(() => res(TB.transcribe(m, sr, { instrument })), 0));   // let the status paint first
-        for (const e of r.events) events.push({ ...e, t: Math.round((e.t + c.start) * 1000) / 1000 });
-        tuning += r.tuningCents; n++;
-        await new Promise((res) => setTimeout(res, 0));
-      }
-      events.sort((a, b) => a.t - b.t);
-      if (!events.length) { status(`Couldn't hear notes on ${t.name} — is it a ${instrument} take?`, 8000); return; }
-      const entry = { id: newId(), trackId: t.id, track: t.name, instrument, tuningCents: n ? Math.round(tuning / n) : 0, events, by: me(), at: nowIso() };
-      cchange(() => { for (const x of CB.list(state.song, 'tabs')) if (x.trackId === t.id && !x.deleted) { x.deleted = true; x.deletedBy = me(); x.deletedAt = nowIso(); } (state.song.tabs = state.song.tabs || []).push(entry); }, { label: `tab ${t.name}` });
+      const entry = await readTab(t);
+      if (!entry || entry.empty) { status(`Couldn't hear notes on ${t.name} — is it a ${instrument} take?`, 8000); return; }
       questPop(`tab ${t.name}`);
-      const chords = events.filter((e) => !e.mono).length;
-      status(`${t.name}: ${events.length} events read (${chords} chord${chords === 1 ? '' : 's'}, ${events.length - chords} single notes${entry.tuningCents ? `, tuned ${entry.tuningCents > 0 ? '+' : ''}${entry.tuningCents}¢` : ''}) in ${((performance.now() - t0) / 1000).toFixed(1)} s — Chords tab has the tab; Practice can play it along.`, 12000);
+      const events = entry.events; const chords = events.filter((e) => !e.mono).length;
+      status(`${t.name}: ${events.length} events read (${chords} chord${chords === 1 ? '' : 's'}, ${events.length - chords} single notes${entry.tuningCents ? `, tuned ${entry.tuningCents > 0 ? '+' : ''}${entry.tuningCents}¢` : ''}${entry.role === 'lead' || entry.role === 'rhythm' ? ` — sounds like the ${entry.role} part` : ''}) in ${((performance.now() - t0) / 1000).toFixed(1)} s — Chords tab has the tab (✎ edits it); Practice can play along with it.`, 12000);
       setWorkspace('write'); showTab('chart'); renderChart();
     } finally { tabBusy = false; }
   }
+  // ---------- tab editor (tabedit.js): a grid over the song's beats, type frets on strings ----------
+  const TE = window.BPTabEdit;
+  const te = { trackId: null, col: 0, str: 5, sub: 2, cols: [], beats: [], bars: [], digit: null, raf: 0, colW: 24, labelW: 30, top: 40, gap: 18 };
+  const tabTracks = () => engine.tracks.filter((t) => (AMX.role(t) === 'gtr' || bassTrack(t) || tabFor(t.id)) && t.instrument !== 'drumkit');
+  const teTuning = (t, tb) => ((tb ? tb.instrument === 'bass' : bassTrack(t)) ? TB.BASS : TB.GUITAR);
+  function teGrid() {
+    const end = Math.max(karaEnd(), engine.contentLength() || 0, ...((tabFor(te.trackId) || {}).events || []).map((e) => e.t + 1)) + 2;
+    const map = engine.meterMap(); te.beats = window.BPMeter.beatsIn(map, 0, end); te.bars = new Set(te.beats.filter((b) => b.beat === 0).map((b) => Math.round(b.t * 1000) / 1000));
+    te.cols = TE.columns(te.beats, te.sub, end);
+    $('#te-space').style.width = `${te.labelW + te.cols.length * te.colW + 60}px`;
+  }
+  async function openTabEditor(t, at = null) {
+    if (!state.song) return; const list = tabTracks(); if (!t) t = list.find((x) => tabFor(x.id)) || list[0];
+    if (!t) { status('No guitar or bass track to write a tab for.', 6000); return; }
+    te.trackId = t.id; const sel = $('#te-track'); sel.innerHTML = '';
+    for (const x of list) sel.append(new Option(`${x.name}${tabFor(x.id) ? '' : ' (no tab yet)'}`, x.id)); sel.value = t.id;
+    let sub = 2; try { sub = Number(localStorage.getItem('bp.teSub')) || 2; } catch (_) {} te.sub = sub; $('#te-sub').value = String(sub);
+    teGrid(); const tn = teTuning(t, tabFor(t.id)); te.str = tn.length - 1;
+    const t0 = at != null ? at : (engine.playing ? engine.currentPos() : engine.playhead) || 0;
+    te.col = Math.max(0, TE.colOf(te.cols, t0));
+    const dlg = $('#tabed'); if (!dlg.open) dlg.showModal();
+    requestAnimationFrame(() => { teSize(); teScrollTo(te.col, true); teDraw(); $('#te-cv').focus(); });
+    teLoop();
+  }
+  function teSize() {
+    const sc = $('#te-scroll'); const cv = $('#te-cv'); const tn = teTuning(engine.track(te.trackId), tabFor(te.trackId));
+    const W = Math.max(300, sc.clientWidth), H = te.top + tn.length * te.gap + 14; const dpr = window.devicePixelRatio || 1;
+    cv.style.width = `${W}px`; cv.style.height = `${H}px`; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); $('#te-space').style.height = `${H}px`;
+  }
+  function teScrollTo(col, center = false) {
+    const sc = $('#te-scroll'); const x = te.labelW + col * te.colW; const W = sc.clientWidth;
+    if (center) sc.scrollLeft = Math.max(0, x - W / 3); else if (x < sc.scrollLeft + te.labelW + 20) sc.scrollLeft = Math.max(0, x - te.labelW - 40); else if (x > sc.scrollLeft + W - 60) sc.scrollLeft = x - W + 120;
+  }
+  function teDraw() {
+    const dlg = $('#tabed'); if (!dlg.open) return;
+    const cv = $('#te-cv'); const ctx = cv.getContext('2d'); const dpr = window.devicePixelRatio || 1; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = cv.width / dpr, H = cv.height / dpr; const sl = $('#te-scroll').scrollLeft; const t = engine.track(te.trackId); const tb = tabFor(te.trackId); const tn = teTuning(t, tb); const n = tn.length;
+    const yOf = (s) => te.top + (n - 1 - s) * te.gap + te.gap / 2; const xOf = (i) => te.labelW + i * te.colW - sl;
+    ctx.fillStyle = '#12151b'; ctx.fillRect(0, 0, W, H);
+    const c0 = Math.max(0, Math.floor((sl - te.labelW) / te.colW) - 1), c1 = Math.min(te.cols.length - 1, Math.ceil((sl + W) / te.colW) + 1);
+    // sections + bar lines + beats
+    ctx.font = '11px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+    for (const sc of liveSections()) { const i = TE.colOf(te.cols, sc.start); if (i < c0 - 40 || i > c1) continue; ctx.fillStyle = '#ffb07a'; ctx.fillText(sc.name, Math.max(te.labelW + 2, xOf(i) + 2), 9); }
+    let barNo = 0; for (let i = 0; i <= c1; i++) { if (te.bars.has(te.cols[i])) { barNo++; if (i >= c0) { const x = xOf(i); ctx.strokeStyle = '#4a5468'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, te.top); ctx.lineTo(x, te.top + n * te.gap); ctx.stroke(); ctx.fillStyle = '#7d879c'; ctx.fillText(String(barNo), x + 3, 22); } } else if (i >= c0 && i % te.sub === 0) { const x = xOf(i); ctx.strokeStyle = '#262c38'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, te.top); ctx.lineTo(x, te.top + n * te.gap); ctx.stroke(); } }
+    // strings
+    ctx.strokeStyle = '#59627a'; ctx.lineWidth = 1; for (let s = 0; s < n; s++) { ctx.beginPath(); ctx.moveTo(te.labelW, yOf(s)); ctx.lineTo(W, yOf(s)); ctx.stroke(); }
+    // cursor column + cell
+    { const x = xOf(te.col); ctx.fillStyle = '#7fb8ff1c'; ctx.fillRect(x - te.colW / 2, te.top, te.colW, n * te.gap); ctx.strokeStyle = '#7fb8ff'; ctx.lineWidth = 1.5; ctx.strokeRect(x - te.colW / 2 + 1, yOf(te.str) - te.gap / 2 + 1, te.colW - 2, te.gap - 2); }
+    // events
+    const used = new Map(); let crowd = 0;
+    ctx.textAlign = 'center'; ctx.font = '600 12px ui-monospace, Menlo, Consolas, monospace';
+    for (const e of (tb && tb.events) || []) {
+      const i = TE.colOf(te.cols, e.t); if (used.has(i)) crowd++; used.set(i, (used.get(i) || 0) + 1); if (i < c0 || i > c1) continue;
+      const x = xOf(i) + (used.get(i) - 1) * 6;
+      e.frets.forEach((f, s) => { if (f < 0) return; const txt = String(f); const w = ctx.measureText(txt).width + 4; ctx.fillStyle = '#12151b'; ctx.fillRect(x - w / 2, yOf(s) - 7, w, 14); ctx.fillStyle = e.filled ? '#9aa4b8' : '#e8eeff'; ctx.fillText(txt, x, yOf(s) + 0.5); });
+      if (e.name) { ctx.fillStyle = '#7fb8ff'; ctx.font = '600 11px system-ui, sans-serif'; ctx.fillText(e.name, x, te.top - 7); ctx.font = '600 12px ui-monospace, Menlo, Consolas, monospace'; }
+    }
+    ctx.textAlign = 'left';
+    // playhead
+    if (engine.playing) { const p = engine.heardPos(); const i = TE.colOf(te.cols, p); if (i >= 0) { const fr = (p - te.cols[i]) / TE.colLen(te.cols, i); const x = xOf(i) + fr * te.colW; ctx.strokeStyle = '#ff5d73'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, te.top - 4); ctx.lineTo(x, H - 4); ctx.stroke(); } }
+    // string names, fixed on the left
+    ctx.fillStyle = '#12151b'; ctx.fillRect(0, 0, te.labelW, H); ctx.fillStyle = '#9aa4b8'; ctx.font = '600 11px ui-monospace, Menlo, Consolas, monospace';
+    const lab = n === 6 ? ['E', 'A', 'D', 'G', 'B', 'e'] : n === 4 ? ['E', 'A', 'D', 'G'] : tn.map((m) => MU.noteName ? MU.noteName(m) : String(m));
+    for (let s = 0; s < n; s++) ctx.fillText(lab[s] || '', 8, yOf(s) + 0.5);
+    const ev = tb ? tb.events[TE.eventAt(tb.events, te.cols, te.col)] : null;
+    const nameEl = $('#te-name'); if (document.activeElement !== nameEl) nameEl.value = ev && ev.name ? ev.name : '';
+    $('#te-info').textContent = `${!tb ? 'No tab yet — type frets to write one. ' : tb.edited ? `Edited by ${tb.editedBy || 'hand'}. ` : 'Read off the takes. '}${crowd ? `${crowd} note${crowd === 1 ? ' is' : 's are'} closer together than the grid — try 1/16. ` : ''}${posLabel(te.cols[te.col] || 0)}`;
+    $('#te-title').textContent = `Tab — ${t ? t.name : ''}`;
+  }
+  function teLoop() { cancelAnimationFrame(te.raf); const step = () => { if (!$('#tabed').open) return; if (engine.playing) { const i = TE.colOf(te.cols, engine.heardPos()); if (i >= 0) teScrollTo(i); } teDraw(); te.raf = requestAnimationFrame(step); }; te.raf = requestAnimationFrame(step); }
+  // every edit: one undo step, the tab marked as edited (re-reading the takes then asks first)
+  function teCommit(next, label) {
+    if (!next || !state.song) return false; const t = engine.track(te.trackId); if (!t) return false;
+    const tb = tabFor(te.trackId); if (tb && next === tb.events) return false;
+    const clean = next.map((e) => { const o = { t: Math.round(e.t * 1000) / 1000, d: Math.round((e.d || 0.25) * 1000) / 1000, notes: e.notes.slice(), frets: e.frets.slice(), mono: !!e.mono }; if (e.name) o.name = e.name; if (e.nameSet) o.nameSet = true; if (e.filled) o.filled = true; return o; });
+    cchange(() => {
+      const x = tb && CB.list(state.song, 'tabs').find((y) => y.id === tb.id);
+      if (x) { x.events = clean; x.edited = true; x.editedBy = me(); x.editedAt = nowIso(); }
+      else (state.song.tabs = state.song.tabs || []).push({ id: newId(), trackId: t.id, track: t.name, instrument: bassTrack(t) ? 'bass' : 'guitar', role: bassTrack(t) ? 'bass' : TB.partRole(clean, t.name), tuningCents: 0, events: clean, srcKey: tabSrcKey(t), by: me(), at: nowIso(), edited: true, editedBy: me(), editedAt: nowIso() });
+    }, { label: `${label} (${t.name} tab)` });
+    hw.key = ''; tabOptKey = ''; return true;
+  }
+  const teEvents = () => { const tb = tabFor(te.trackId); return tb ? tb.events : []; };
+  const teTn = () => teTuning(engine.track(te.trackId), tabFor(te.trackId));
+  function teMove(dc, ds = 0) { te.col = Math.max(0, Math.min(te.cols.length - 1, te.col + dc)); te.str = Math.max(0, Math.min(teTn().length - 1, te.str + ds)); te.digit = null; teScrollTo(te.col); }
+  async function tePlay() { if (engine.playing) { await stop(); return; } engine.seek(te.cols[te.col] || 0); await play(); }
+  $('#te-cv').addEventListener('keydown', (e) => {
+    const k = e.key; const mod = e.ctrlKey || e.metaKey;
+    if (mod && k.toLowerCase() === 'z') { e.preventDefault(); e.stopPropagation(); (e.shiftKey ? redo() : undo()).catch(fail); return; }
+    if (mod && k.toLowerCase() === 'y') { e.preventDefault(); e.stopPropagation(); redo().catch(fail); return; }
+    if (k === 'Escape') return;   // closes the dialog
+    e.stopPropagation();
+    if (/^[0-9]$/.test(k)) {
+      e.preventDefault(); const now = performance.now(); let f = Number(k);
+      if (te.digit && te.digit.col === te.col && te.digit.str === te.str && now - te.digit.at < 900 && te.digit.v * 10 + f <= TE.MAXF) f = te.digit.v * 10 + f;   /* 1 then 2 = fret 12 */
+      teCommit(TE.setFret(teEvents(), te.cols, te.col, te.str, f, teTn()), `fret ${f}`); te.digit = { col: te.col, str: te.str, v: f, at: now }; return;
+    }
+    if (k === 'Delete' || k === 'Backspace' || k === 'x' || k === 'X') { e.preventDefault(); teCommit(TE.clear(teEvents(), te.cols, te.col, e.shiftKey ? -1 : te.str, teTn()), e.shiftKey ? 'clear column' : 'clear note'); te.digit = null; return; }
+    if (k === 'ArrowLeft' || k === 'ArrowRight') {
+      e.preventDefault(); const dir = k === 'ArrowLeft' ? -1 : 1;
+      if (e.altKey) { const nx = TE.shift(teEvents(), te.cols, te.col, dir); if (teCommit(nx, 'move note')) teMove(dir); return; }
+      if (e.shiftKey) { let i = te.col + dir; while (i > 0 && i < te.cols.length - 1 && !te.bars.has(te.cols[i])) i += dir; teMove(i - te.col); return; }
+      teMove(dir); return;
+    }
+    if (k === 'ArrowUp') { e.preventDefault(); teMove(0, 1); return; }
+    if (k === 'ArrowDown') { e.preventDefault(); teMove(0, -1); return; }
+    if (k === 'Home') { e.preventDefault(); teMove(-te.col); return; }
+    if (k === ' ') { e.preventDefault(); tePlay().catch(fail); return; }
+    if (k === 'c' || k === 'C' || k === 'Enter') { e.preventDefault(); const n = $('#te-name'); n.focus(); n.select(); }
+  });
+  $('#te-cv').addEventListener('mousedown', (e) => {
+    const r = e.currentTarget.getBoundingClientRect(); const x = e.clientX - r.left, y = e.clientY - r.top; const n = teTn().length;
+    if (x < te.labelW) return; const sl = $('#te-scroll').scrollLeft;
+    te.col = Math.max(0, Math.min(te.cols.length - 1, Math.round((x + sl - te.labelW) / te.colW))); const row = Math.floor((y - te.top) / te.gap);
+    if (row >= 0 && row < n) te.str = n - 1 - row; te.digit = null; e.currentTarget.focus(); e.preventDefault();
+    if (e.detail === 2 && !engine.playing) { engine.seek(te.cols[te.col]); }
+  });
+  $('#te-scroll').addEventListener('wheel', (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); $('#te-scroll').scrollLeft += e.deltaY; } }, { passive: false });
+  $('#te-name').addEventListener('keydown', (e) => {
+    e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); $('#te-cv').focus(); return; }
+    if (e.key !== 'Enter') return; e.preventDefault();
+    const nx = TE.setName(teEvents(), te.cols, te.col, e.target.value, teTn());
+    if (nx === null) { status(`"${e.target.value}" isn't a chord I know a shape for — type the frets instead.`, 6000); return; }
+    teCommit(nx, e.target.value ? `chord ${e.target.value}` : 'chord name'); $('#te-cv').focus();
+  });
+  $('#te-track').addEventListener('change', (e) => { te.trackId = e.target.value; te.str = teTn().length - 1; teGrid(); teSize(); teDraw(); $('#te-cv').focus(); });
+  $('#te-sub').addEventListener('change', (e) => { const at = te.cols[te.col] || 0; te.sub = Number(e.target.value) || 2; try { localStorage.setItem('bp.teSub', String(te.sub)); } catch (_) {} teGrid(); te.col = Math.max(0, TE.colOf(te.cols, at)); teScrollTo(te.col, true); $('#te-cv').focus(); });
+  $('#te-play').addEventListener('click', () => { tePlay().catch(fail); $('#te-cv').focus(); });
+  $('#te-clearcol').addEventListener('click', () => { teCommit(TE.clear(teEvents(), te.cols, te.col, -1, teTn()), 'clear column'); $('#te-cv').focus(); });
+  $('#te-reread').addEventListener('click', async () => { const t = engine.track(te.trackId); if (!t) return; await tabTrack(t); if (!$('#tabed').open) await openTabEditor(t, te.cols[te.col]); });
+  $('#tabed').addEventListener('close', () => { cancelAnimationFrame(te.raf); renderChart(); });
+  window.addEventListener('resize', () => { if ($('#tabed').open) { teSize(); teDraw(); } });
+  $('#btn-tab-edit').addEventListener('click', () => { const list = tabTracks(); const withTab = list.filter((t) => tabFor(t.id)); if (withTab.length <= 1) { openTabEditor(withTab[0] || null).catch(fail); return; } const r = $('#btn-tab-edit').getBoundingClientRect(); M.show(r.left, r.bottom, [{ title: 'Edit which tab?' }, ...list.map((t) => ({ label: `${t.name}${tabFor(t.id) ? '' : ' (start one)'}`, action: () => openTabEditor(t).catch(fail) }))]); });
   // text for every tabbed track: chord names over the strings, bars from the song's beat
   function tabsText(semis = 0) {
     const out = [];
@@ -3430,6 +3592,7 @@
     const txt = chartText(Number(sel.value) || 0); const v = $('#chart-view'); v.innerHTML = '';
     for (const line of txt.split('\n')) { const d = el('div', /^\[/.test(line) ? 'sec' : /^\|/.test(line) ? 'ch' : /^[A-G]#? ?\|/.test(line) ? 'tabline' : null, line || ' '); v.append(d); }
     { const b = $('#btn-tab-track'); if (b) { const cands = engine.tracks.filter((t) => t.instrument === 'audio' && t.clips.some((c) => c.kind !== 'midi') && (harmonicTrack(t) || bassTrack(t))); b.hidden = !cands.length; b.disabled = tabBusy || state.readOnly; } }
+    { const b = $('#btn-tab-edit'); if (b) b.hidden = !state.song || !tabTracks().length; }
   }
   $('#chart-transpose').addEventListener('change', renderChart);
   $('#btn-chart-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(chartText(Number($('#chart-transpose').value) || 0)); status('Chart copied — paste it in the group chat.'); } catch (err) { fail(err); } });
@@ -4090,6 +4253,29 @@
     return transcribeClips(plan);
   }
   $('#btn-lyrics-asr').addEventListener('click', () => transcribeSong());
+  // Tighten timing: the words already on the song (from speech-to-text or typed and pinned) get their starts / ends
+  // moved onto the vocal takes' own onsets and stops (ASR.refineWordTimes) — no speech model needed, nothing re-typed
+  async function retimeLyrics() {
+    const plan = vocalPlan(); if (!plan.length) { status('No vocal takes to listen to.', 6000); return 0; }
+    const lines = liveLyrics().filter((l) => typeof l.time === 'number' && Array.isArray(l.words) && l.words.length).sort((a, b) => a.time - b.time);
+    if (!lines.length) { status('No timed words yet — 🎤 From the vocals first (or pin lines and let it hear the words).', 8000); return 0; }
+    const upd = new Map(); let moved = 0, total = 0;
+    for (const { c } of plan) {
+      const buf = engine.buffers.get(audioId(c)); if (!buf) continue;
+      const from = c.trimStart || 0, to = Math.max(from, (c.duration || buf.duration) - (c.trimEnd || 0));
+      const here = lines.filter((l) => !upd.has(l.id) && l.time >= c.start - 0.3 && l.time < clipEnd(c) - 0.1); if (!here.length) continue;
+      const x = await ASR.toMono16k(buf, from, to); await new Promise((r) => setTimeout(r, 0));
+      const flat = []; for (const l of here) for (const w of l.words) flat.push({ w: w.w, t: l.time + Number(w.t) - c.start, e: l.time + Number(w.e) - c.start, l });
+      const r = ASR.refineWordTimes(flat, x, 16000);
+      r.forEach((w, i) => { total++; if (Math.abs(w.t - flat[i].t) > 0.015) moved++; const arr = upd.get(flat[i].l.id) || []; arr.push({ w: w.w, t: w.t + c.start, e: w.e + c.start }); upd.set(flat[i].l.id, arr); });
+    }
+    if (!upd.size) { status("None of the timed lines sit on a vocal take I can hear.", 6000); return 0; }
+    cchange(() => { for (const l of liveLyrics()) { const ws = upd.get(l.id); if (!ws || !ws.length) continue; l.time = Math.max(0, Math.round(ws[0].t * 1000) / 1000); l.words = ws.map((w) => ({ w: w.w, t: Math.round((w.t - l.time) * 1000) / 1000, e: Math.round((w.e - l.time) * 1000) / 1000 })); } }, { label: `tighten lyric timing (${upd.size} lines)` });
+    kara.key = ''; renderAll();
+    status(`Timing tightened: ${moved} of ${total} words moved onto the singing (${upd.size} lines). ${MOD}+Z puts the old times back.`, 8000);
+    return moved;
+  }
+  $('#btn-lyrics-retime').addEventListener('click', () => retimeLyrics().catch(fail));
   // ---------- chords heard from the recordings (chordsdetect.js) ----------
   // Guitar / keys / bass takes → a chord per half bar (Viterbi-smoothed, key-aware, slash chords from the bass), drafted
   // into the chord lane only where nobody has put chords yet (or over earlier drafts). MIDI parts are read note by note.
@@ -4445,7 +4631,10 @@
     return kara.lines;
   }
   const fmtClock = (sec) => { sec = Math.max(0, Math.round(sec)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
-  const karaTime = () => { if (practice && practice.startAt != null && engine.ctx) { const len = practice.to - practice.from; return practice.from + (((engine.ctx.currentTime - practice.startAt) * practice.pct / 100) % len + len) % len; } return engine.playing ? engine.currentPos() : engine.playhead; };
+  // what's on screen follows what you HEAR (output latency taken off), plus this computer's own sync nudge (k-sync, ms;
+  // + = words later) for speakers that report their delay wrong
+  const karaSync = () => { const v = Number($('#k-sync') && $('#k-sync').value); return Number.isFinite(v) ? v / 1000 : 0; };
+  const karaTime = () => { if (practice && practice.startAt != null && engine.ctx) { const len = practice.to - practice.from; return practice.from + (((engine.heardCtxTime() - karaSync() - practice.startAt) * practice.pct / 100) % len + len) % len; } return engine.playing ? Math.max(0, engine.heardPos() - karaSync()) : engine.playhead; };
   const karaEnd = () => Math.max(engine.contentLength() || 0, ...liveSections().map((x) => x.end), 1);
   const karaView = () => $('#k-view').value;
   // chords as shown: moved up/down for a capo or another tuning (what you hear doesn't change)
@@ -4546,6 +4735,7 @@
     $('#k-pos').textContent = `${posLabel(t)}${practice ? ` · ${practice.pct}%` : ''}${setInfo}`;
     const along = $('#k-along').value; const chordsOnly = view === 'chords' && !along; const crawl = view === 'crawl';
     for (const id of ['#k-prev', '#k-cur', '#k-next', '#k-next2']) $(id).hidden = chordsOnly || !!along || crawl;
+    $('#k-tabedit').hidden = !/^(gtr|tab):/.test(along);
     $('#k-bars').hidden = !chordsOnly; $('#k-hw').hidden = !along; $('#k-hw').classList.add('persp'); $('#k-crawl').hidden = !crawl; $('#k-hw-line').hidden = crawl;
     if (crawl) { karaCrawl(t, ls, a); const em = $('#k-crawl-empty'); if (em) em.hidden = !!ls.length; }
     const nextIdx = a.i + 1; const nl = ls[nextIdx]; const cnt = $('#k-count');
@@ -4576,7 +4766,7 @@
   }
   // ---- play along (highway.js): what to play scrolls down to the hit line — chord grips, the bass line as a tab, a MIDI part ----
   const HW = window.BPHighway;
-  const hw = { key: '', events: [], mode: '', bassNotes: null, bassKey: '', loading: false, ctx: null };
+  const hw = { key: '', events: [], mode: '', bassNotes: null, bassKey: '', loading: false, ctx: null, reading: null, readFail: '' };
   async function hwBassNotes() {   // the bass line, read off the bass takes (pitch-tracked), cached per song state
     const bass = engine.tracks.filter((t) => t.instrument === 'audio' && window.BPAutoMix.role(t) === 'bass' && engine.audible(t));
     const key = state.folder + '|' + bass.map((t) => t.clips.filter((c) => !engine.clipMuted(c)).map((c) => `${audioId(c)}@${c.start}:${c.trimStart}:${c.trimEnd}`).join(',')).join(';');
@@ -4603,10 +4793,20 @@
       if (key !== hw.key) { hw.key = key; hw.events = HW.events({ mode: 'chords', chords, from: 0, to: karaEnd(), capo }); }
       return hw.events;
     }
+    if (/^gtr:/.test(mode)) {   // a guitar part: its tab (read off the takes the first time, in the background; re-read when the takes changed and nobody edited it)
+      const id = mode.slice(4); const tr = engine.track(id); if (!tr) { $('#k-hw-msg').textContent = 'That guitar track is gone.'; return []; }
+      const tb0 = tabFor(id); const stale = !tb0 || (!tb0.edited && tb0.srcKey && tb0.srcKey !== tabSrcKey(tr));
+      if (stale && !hw.reading && !tabBusy && hw.readFail !== `${id}|${tabSrcKey(tr)}`) {
+        hw.reading = id; const fk = `${id}|${tabSrcKey(tr)}`;
+        readTab(tr).then((e) => { if (!e || e.empty) hw.readFail = fk; else questPop(`tab ${tr.name}`); }).catch((err) => { hw.readFail = fk; console.warn('tab read', err); }).finally(() => { hw.reading = null; hw.key = ''; });
+      }
+      if (!tb0) { $('#k-hw-msg').textContent = hw.reading === id ? `Reading ${tr.name} for the tab — first time only…` : hw.readFail && hw.readFail.startsWith(`${id}|`) ? `Couldn't hear notes on ${tr.name}.` : ''; return []; }
+      mode = `tab:${id}`;   /* the old one shows while the new takes are read */
+    }
     if (/^tab:/.test(mode)) {
       const tb = tabFor(mode.slice(4)); if (!tb) { $('#k-hw-msg').textContent = 'That tab is gone — right-click the track → Tab from this track.'; return []; }
       const tn = tb.instrument === 'bass' ? TB.BASS : TB.GUITAR; const key = `tab|${k}|${tb.id}`;
-      if (key !== hw.key) { hw.key = key; const ev = k ? tb.events.map((e) => { const notes = e.notes.map((m) => m + k); const frets = TB.voicing(notes, tn) || e.frets; return { ...e, notes, frets, name: e.name ? MU.transposeChord(e.name, k) : e.name }; }) : tb.events; hw.events = TB.laneEvents(ev, { from: 0, to: karaEnd() }); hw.mode = tb.instrument; $('#k-hw-msg').textContent = `${tb.track} — tab read off the takes`; }
+      if (key !== hw.key) { hw.key = key; const ev = k ? tb.events.map((e) => { const notes = e.notes.map((m) => m + k); const frets = TB.voicing(notes, tn) || e.frets; return { ...e, notes, frets, name: e.name ? MU.transposeChord(e.name, k) : e.name }; }) : tb.events; hw.events = TB.laneEvents(ev, { from: 0, to: karaEnd() }); hw.mode = tb.instrument; $('#k-hw-msg').textContent = `${tb.track} — tab ${tb.edited ? `edited by ${tb.editedBy || 'hand'}` : 'read off the takes'}${hw.reading === tb.trackId ? ' · reading the new takes…' : ''} · ✎ Chords tab edits it`; }
       return hw.events;
     }
     if (mode === 'bass') {
@@ -4633,15 +4833,30 @@
     const events = hwEvents(mode, t); const lanes = mode === 'chords' ? 1 : (mode === 'bass' || hw.mode === 'bass') ? 4 : 6;
     HW.draw(ctx, { w: W, h: H, now: t, events, lookahead: 4, lanes, labels: lanes === 4 ? HW.BASS.labels || ['E', 'A', 'D', 'G'] : lanes === 6 ? HW.GUITAR.labels || ['E', 'A', 'D', 'G', 'B', 'e'] : null });
   }
+  $('#k-tabedit').addEventListener('click', () => { const v = $('#k-along').value; const t = engine.track(v.slice(4)); if (t) openTabEditor(t, karaTime()).catch(fail); });
   $('#k-along').addEventListener('change', (e) => { hw.key = ''; try { localStorage.setItem('bp.kAlong', e.target.value); } catch (_) {} e.target.blur(); });
-  // one "tab: <track>" choice per tabbed track in the play-along picker
+  // the play-along picker: one choice per guitar part (lead / rhythm, read off its takes the first time you pick it),
+  // plus any other tabbed track (bass, keys …) as "tab: <track>"
   let tabOptKey = '';
+  const ROLE_NAME = { lead: 'Lead guitar', rhythm: 'Rhythm guitar', guitar: 'Guitar' };
+  function guitarParts() {
+    if (!state.song) return [];
+    const out = engine.tracks.filter((t) => t.instrument === 'audio' && AMX.role(t) === 'gtr' && t.clips.some((c) => c.kind !== 'midi')).map((t) => { const tb = tabFor(t.id); return { t, tb, role: (tb && tb.role && tb.role !== 'bass' && tb.role) || (tb ? TB.partRole(tb.events, t.name) : TB.partRole([], t.name)) }; });
+    const rank = { rhythm: 0, lead: 1, guitar: 2 }; return out.sort((a, b) => rank[a.role] - rank[b.role]);
+  }
   function karaTabOptions() {
-    const sel = $('#k-along'); if (!sel) return; const tabs = state.song ? liveTabs() : []; const key = tabs.map((x) => `${x.trackId}:${x.track}:${x.instrument}`).join('|');
+    const sel = $('#k-along'); if (!sel) return; const tabs = state.song ? liveTabs() : []; const parts = guitarParts();
+    const key = parts.map((p) => `${p.t.id}:${p.t.name}:${p.role}:${p.tb ? 1 : 0}`).join('|') + '#' + tabs.map((x) => `${x.trackId}:${x.track}:${x.instrument}`).join('|');
     if (key === tabOptKey) return; tabOptKey = key;
-    for (const o of [...sel.options]) if (/^tab:/.test(o.value)) o.remove();
-    for (const x of tabs) { const o = new Option(`🎸 ${x.track} tab (${x.instrument})`, `tab:${x.trackId}`); sel.append(o); }
-    if (/^tab:/.test(sel.value) && !tabs.some((x) => `tab:${x.trackId}` === sel.value)) sel.value = '';
+    const was = sel.value;
+    for (const o of [...sel.options]) if (/^(tab|gtr):/.test(o.value)) o.remove();
+    const gids = new Set(parts.map((p) => p.t.id));
+    const roles = parts.map((p) => p.role); const dup = (r) => roles.filter((x) => x === r).length > 1;
+    for (const p of parts) sel.append(new Option(`🎸 ${ROLE_NAME[p.role]}${dup(p.role) || p.role === 'guitar' ? ` — ${p.t.name}` : ` (${p.t.name})`} · tab${p.tb ? '' : ' (reads it first)'}`, `gtr:${p.t.id}`));
+    for (const x of tabs) if (!gids.has(x.trackId) && !tabs.some((y) => y.trackId === x.trackId && String(y.at) > String(x.at))) sel.append(new Option(`🎸 ${x.track} tab (${x.instrument})`, `tab:${x.trackId}`));
+    let v = was; if (/^tab:/.test(v) && gids.has(v.slice(4))) v = `gtr:${v.slice(4)}`;   /* a guitar tab picked before: its part */
+    sel.value = [...sel.options].some((o) => o.value === v) ? v : (/^(tab|gtr):/.test(v) ? '' : v);
+    if (sel.value !== was) hw.key = '';
   }
   // who you hear: vocals (guide / off) + tracks you've taken out (by name, so it carries through the setlist) or one soloed
   function karaApplyMix() {
@@ -4715,7 +4930,9 @@
     if (!state.folder) { status('Open a song first — then 🎙 Practice (or K).'); return; }
     await engine.init(); kara.open = true; $('#btn-karaoke').classList.add('active'); $('#karaoke').hidden = false; $('#k-song').textContent = state.song.name;
     let vox = 'guide'; try { vox = localStorage.getItem('bp.kVox') || 'guide'; } catch (_) {} $('#k-vox').value = vox;
+    tabOptKey = ''; karaTabOptions();   /* the guitar parts exist as choices before the saved one is put back */
     try { const v = localStorage.getItem('bp.kView'); if (v) $('#k-view').value = v; const al = localStorage.getItem('bp.kAlong'); if (al != null) $('#k-along').value = al; hw.key = ''; const c = localStorage.getItem('bp.kCountIn'); $('#k-countin').checked = c == null ? true : c === '1'; } catch (_) {}
+    { const sy = $('#k-sync'); if (sy && !sy.options.length) { for (let ms = -400; ms <= 400; ms += 25) sy.append(new Option(ms ? `words ${ms > 0 ? '+' : '−'}${Math.abs(ms)} ms ${ms > 0 ? '(later)' : '(sooner)'}` : 'words in sync', String(ms))); let v = '0'; try { v = localStorage.getItem('bp.kSync') || '0'; } catch (_) {} sy.value = sy.querySelector(`option[value="${v}"]`) ? v : '0'; sy.addEventListener('change', () => { try { localStorage.setItem('bp.kSync', sy.value); } catch (_) {} sy.blur(); }); } }
     const tp = $('#k-tp'); if (!tp.options.length) { for (let k = -6; k <= 6; k++) tp.append(new Option(k ? `chords ${k > 0 ? '+' : ''}${k}${k < 0 ? ` (capo ${-k})` : ''}` : 'chords as written', String(k))); tp.value = '0'; }
     $('#k-click').checked = engine.click.on; $('#k-clickvol').value = String(engine.click.gainDb);
     karaApplyMix();
@@ -5806,7 +6023,13 @@
     const m = engine.ctx ? engine.meters() : null;
     if (m) {
       const recId = engine.recording && !engine.recording.midi ? engine.recording.trackId : null;
-      document.querySelectorAll('.strip').forEach((s) => { const lv = s.dataset.id === 'master' ? m.master : s.dataset.id === recId ? m.input : m.tracks[s.dataset.id]; const fill = s.querySelector('.meter .fill'); if (fill) fill.style.height = `${pct(lv)}%`; });
+      document.querySelectorAll('.strip').forEach((s) => {
+        const id = s.dataset.id; const mt = s.querySelector('.meter'); if (!mt) return;
+        const lr = id === 'master' ? m.masterLR : id === recId ? null : (m.tracksLR || {})[id];   /* stereo: a bar per side */
+        if (!!lr !== mt.classList.contains('lr')) { mt.classList.toggle('lr', !!lr); mt.innerHTML = lr ? '<div class="fill l"></div><div class="fill r"></div>' : '<div class="fill"></div>'; mt.title = lr ? 'Level, left | right' : 'Level'; }
+        if (lr) { const [fl, fr] = mt.children; fl.style.height = `${pct(lr[0])}%`; fr.style.height = `${pct(lr[1])}%`; }
+        else { const lv = id === 'master' ? m.master : id === recId ? m.input : m.tracks[id]; mt.firstChild.style.height = `${pct(lv)}%`; }
+      });
       const ms = $('#master-area .strip'); if (ms && m.master) {
         const now = performance.now(); const p = m.master.peakDbfs;
         if (Number.isFinite(p) && (p >= peakHold.v || now - peakHold.at > 2000)) peakHold = { v: p, at: now };
@@ -7238,6 +7461,7 @@
       case 'relabelTakes': { writable(); const r = await syncTakeNames(); return { renamed: r }; }
       case 'unreferenced': need(); state.unreferenced = await bp.song.unreferenced(state.folder, referencedIds()); updateBadges(); return state.unreferenced;
       case 'attachTake': writable(); return attachTake(args);
+      case 'retimeLyrics': { const moved = await retimeLyrics(); return { moved, lyrics: liveLyrics().filter((l) => typeof l.time === 'number').sort((a, b) => a.time - b.time).map((l) => ({ id: l.id, time: l.time, text: l.text, words: l.words || null })) }; }
       case 'transcribe': {
         writable(); let list = [];
         if (args.clipId) { const f = findClip(args.clipId); if (!f) throw new Error(`no clip ${args.clipId}`); list = [{ t: f.t, c: f.c.link ? (mirrorSource(f.c) || f).c : f.c }]; }
@@ -7295,7 +7519,7 @@
       }
       case 'workspace': { if (args.ws) setWorkspace(String(args.ws)); return { ws: state.ws, practice: kara.open }; }
       case 'chartAll': return chartAllSongs({ interactive: false });
-      case 'tabTrack': { writable(); const t = engine.track(args.trackId); if (!t) throw new Error('no such track'); await tabTrack(t); const tb = tabFor(t.id); if (!tb) throw new Error('no notes heard'); return { ...tb, text: tabsText(0) }; }
+      case 'tabTrack': { writable(); const t = engine.track(args.trackId); if (!t) throw new Error('no such track'); await tabTrack(t, { force: true }); const tb = tabFor(t.id); if (!tb) throw new Error('no notes heard'); return { ...tb, text: tabsText(0) }; }
       case 'tabs': { need(); return { tabs: liveTabs(), text: tabsText(0) }; }
       case 'chordsDetect': { writable(); const ts = Array.isArray(args.trackIds) ? args.trackIds.map((id) => engine.track(id)).filter(Boolean) : null; const n = await chordsFromTracks(ts, { replaceDrafts: args.replaceDrafts !== false, wipe: args.wipe === true }); return { added: n || 0, chords: liveChords().map((c) => ({ time: c.time, chord: c.chord, det: !!c.det })) }; }
       case 'autoMix': { writable(); const r = await autoMix(); return r ? { changes: r.lines, tracks: engine.tracks.map((t) => ({ id: t.id, name: t.name, gainDb: t.gainDb, pan: t.pan, fx: t.fx })) } : null; }
@@ -7476,7 +7700,7 @@
   });
 
   stageReady = true; try { renderStage(); } catch (_) {}
-  window.cobanderDebug = { engine, state, collectSong, kara: () => kara, timingReport: (id) => timingReport(engine.track(id), null), closeSong, addNote, insertSongPart, songPartList, renderAll: () => renderAll(), editTrack: (id, patch) => change(() => engine.updateTrack(id, patch), { label: `edit ${(engine.track(id) || {}).name}` }), mineT, heldBy, unlockAll, lockAll, rollAt: (i) => { const G = rollGeom(); const z = G && G.g.notes[i]; if (!z) return null; const r = RC.cv().getBoundingClientRect(); return { x: r.left + (G.xOf(z.t) + Math.max(G.xOf(z.t) + 3, G.xOf(z.t + z.d))) / 2, y: r.top + G.yOf(z.n) + G.rowH / 2, rowH: G.rowH, grid: G.grid, pxPerSec: (G.w - G.gut) / G.W, left: r.left, top: r.top, gut: G.gut, topPad: G.top }; } };
+  window.cobanderDebug = { engine, state, tabWorkerOn: () => !!tabWorker && !tabWorkerOff, collectSong, kara: () => kara, timingReport: (id) => timingReport(engine.track(id), null), closeSong, addNote, insertSongPart, songPartList, renderAll: () => renderAll(), editTrack: (id, patch) => change(() => engine.updateTrack(id, patch), { label: `edit ${(engine.track(id) || {}).name}` }), mineT, heldBy, unlockAll, lockAll, rollAt: (i) => { const G = rollGeom(); const z = G && G.g.notes[i]; if (!z) return null; const r = RC.cv().getBoundingClientRect(); return { x: r.left + (G.xOf(z.t) + Math.max(G.xOf(z.t) + 3, G.xOf(z.t + z.d))) / 2, y: r.top + G.yOf(z.n) + G.rowH / 2, rowH: G.rowH, grid: G.grid, pxPerSec: (G.w - G.gut) / G.W, left: r.left, top: r.top, gut: G.gut, topPad: G.top }; } };
   // ---------- boot ----------
   (async () => {
     await loadSettings();

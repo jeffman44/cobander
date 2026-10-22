@@ -590,6 +590,7 @@ async function startApi() {
     'GET /phone': () => Phone.info(),
     'POST /audio/compact': ({ body }) => tracked(() => compactAudio((body && body.folder) || null, body || {})),
     'POST /lyrics/transcribe': ({ body }) => askRenderer('transcribe', body || {}, 900000),
+    'POST /lyrics/retime': () => askRenderer('retimeLyrics', {}, 300000),
     'POST /audio': ({ body }) => askRenderer('audioSettings', body || {}),
     'POST /latency/measure': ({ body }) => askRenderer('measureLatency', body || {}),
     'POST /update': async ({ body }) => { if (!updater) throw new Error('updater not running'); if (body && body.install) { updater.install(); return { installing: true }; } return updater.check({ force: true }); },

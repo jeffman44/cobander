@@ -1212,8 +1212,8 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       const tabs = await jeff.get('/tabs'); assert.equal(tabs.tabs.length, 1);
       const tb2 = await jeff.post('/tab', { trackId: tr('Gtr').id }); assert.equal((await jeff.get('/tabs')).tabs.length, 1, 're-tabbing replaces'); assert.notEqual(tb2.id, tb.id);
       await jeff.evalJs(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', code: 'KeyK', bubbles: true })); true`); await sleep(500);
-      assert.equal(await jeff.evalJs(`(() => { const o = [...document.querySelector('#k-along').options]; return o.some((x) => x.value === 'tab:' + ${JSON.stringify(tr('Gtr').id)}); })()`), true, 'practice offers the tab to play along');
-      await jeff.evalJs(`(() => { const s = document.querySelector('#k-along'); s.value = 'tab:' + ${JSON.stringify(tr('Gtr').id)}; s.dispatchEvent(new Event('change')); return true; })()`); await sleep(600);
+      assert.equal(await jeff.evalJs(`(() => { const o = [...document.querySelector('#k-along').options]; return o.some((x) => x.value === 'gtr:' + ${JSON.stringify(tr('Gtr').id)} && /Rhythm guitar/.test(x.textContent)); })()`), true, 'practice offers the guitar part (rhythm: strummed chords) to play along');
+      await jeff.evalJs(`(() => { const s = document.querySelector('#k-along'); s.value = 'gtr:' + ${JSON.stringify(tr('Gtr').id)}; s.dispatchEvent(new Event('change')); return true; })()`); await sleep(600);
       assert.match(await jeff.evalJs(`document.querySelector('#k-hw-msg').textContent`), /Gtr — tab/); await jeff.shot('practice-tab');
       await jeff.evalJs(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); true`); await sleep(300);
       assert.match(await jeff.evalJs(`document.querySelector('#chart-view').textContent`), /TAB — Gtr/);
@@ -1466,6 +1466,63 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       assert.match(String(bad.error || ''), /Take over|holds|has this song open/i, JSON.stringify(bad));
       assert.ok(await fsp.stat(path.join(shared, 'Quality Song')).catch(() => null), 'folder untouched');
       await kat.post('/song/close').catch(() => {});
+    });
+    await step('0.17: L/R meters on stereo; guitar parts as lead / rhythm play-along tabs (read in a worker); tab editor; lyric timing tightened to the voice', async () => {
+      await jeff.post('/song/close').catch(() => {}); await jeff.post('/song/open', { folder: 'Fourteen' }); await sleep(800);
+      // meters: a stereo take gets a bar per side, mono tracks keep one; the master always has two
+      await jeff.post('/song/patch', { addTrack: { kind: 'other', name: 'Wide' } });
+      let st = await jeff.get('/state'); const tr = (n) => st.song.tracks.find((t) => t.name === n);
+      await jeff.post('/clip/import', { path: path.join(WORK, 'stereo.wav'), trackId: tr('Wide').id, start: 0, name: 'wide' });
+      await jeff.post('/workspace', { ws: 'mix' }); await jeff.post('/transport', { action: 'seek', time: 0.1 }); await jeff.post('/transport', { action: 'play' }); await sleep(500);
+      const m = await jeff.get('/meters'); await jeff.post('/transport', { action: 'stop' });
+      assert.ok(Array.isArray(m.masterLR) && m.masterLR.length === 2, JSON.stringify(m.masterLR));
+      const w = m.tracksLR[tr('Wide').id]; assert.ok(w && w.length === 2, `stereo track metered L/R: ${JSON.stringify(m.tracksLR)}`);
+      assert.ok(w[0].peakDbfs > w[1].peakDbfs + 3, `left is the louder side: ${JSON.stringify(w)}`);
+      assert.ok(!m.tracksLR[tr('Gtr').id], 'mono track: one bar');
+      await jeff.post('/transport', { action: 'play' }); await sleep(300);
+      assert.equal(await jeff.evalJs(`!!document.querySelector('.strip[data-id="${tr('Wide').id}"] .meter.lr') && !document.querySelector('.strip[data-id="${tr('Gtr').id}"] .meter.lr') && !!document.querySelector('#master-area .strip .meter.lr')`), true, 'two bars on the stereo strip and the master');
+      await jeff.post('/transport', { action: 'stop' }); await jeff.post('/workspace', { ws: 'write' });
+      // a lead line on a second guitar: single plucked notes
+      { const sr = 48000, x = new Float32Array(sr * 5); [64, 67, 69, 71, 72, 71, 69, 67].forEach((mi, k) => { const f0 = mtof(mi); const a0 = Math.round((0.5 + k * 0.5) * sr); for (let h = 1; h <= 6; h++) for (let i = 0; i < 0.45 * sr; i++) { const t = i / sr; x[a0 + i] += 0.25 / h * Math.min(1, t / 0.004) * Math.exp(-(1.2 + 0.6 * h) * t) * Math.sin(2 * Math.PI * f0 * h * t + h); } }); await fsp.writeFile(path.join(WORK, 'lead.wav'), wavF([x], sr)); }
+      await jeff.post('/song/patch', { addTrack: { kind: 'guitar', name: 'Lead Gtr' } }); st = await jeff.get('/state');
+      await jeff.post('/clip/import', { path: path.join(WORK, 'lead.wav'), trackId: tr('Lead Gtr').id, start: 0, name: 'lick' });
+      await jeff.post('/practice', { open: true }); await sleep(500);
+      const opts = await jeff.evalJs(`[...document.querySelector('#k-along').options].map((o) => [o.value, o.textContent])`);
+      const og = opts.find((o) => o[0] === `gtr:${tr('Gtr').id}`), ol = opts.find((o) => o[0] === `gtr:${tr('Lead Gtr').id}`);
+      assert.ok(og && /Rhythm guitar/.test(og[1]), JSON.stringify(opts)); assert.ok(ol && /Lead guitar/.test(ol[1]) && /reads it first/.test(ol[1]), JSON.stringify(opts));
+      await jeff.evalJs(`(() => { const s = document.querySelector('#k-along'); s.value = 'gtr:' + ${JSON.stringify(tr('Lead Gtr').id)}; s.dispatchEvent(new Event('change')); return true; })()`);
+      await until(async () => (await jeff.get('/tabs')).tabs.some((x) => x.trackId === tr('Lead Gtr').id), 30000, 'lead tab read in the background');
+      assert.equal(await jeff.evalJs(`window.cobanderDebug.tabWorkerOn()`), true, 'tab reading ran in the worker');
+      let lt = (await jeff.get('/tabs')).tabs.find((x) => x.trackId === tr('Lead Gtr').id);
+      assert.equal(lt.role, 'lead'); assert.ok(lt.events.length >= 7 && lt.events.length <= 9, `lead events ${lt.events.length}`); assert.ok(lt.events.filter((e) => e.mono).length >= 7);
+      assert.deepEqual(lt.events.map((e) => e.notes[0]).slice(0, 8), [64, 67, 69, 71, 72, 71, 69, 67]);
+      await sleep(400); assert.match(await jeff.evalJs(`document.querySelector('#k-hw-msg').textContent`), /Lead Gtr — tab read off the takes/);
+      assert.equal(await jeff.evalJs(`!document.querySelector('#k-tabedit').hidden`), true, '✎ tab in Practice');
+      // the tab editor: type a fret, a two-digit fret, delete, name a chord on an empty column, undo
+      await jeff.evalJs(`document.querySelector('#k-tabedit').click(); true`); await sleep(500);
+      assert.equal(await jeff.evalJs(`document.querySelector('#tabed').open`), true);
+      const key = (k, o = {}) => jeff.evalJs(`document.querySelector('#te-cv').dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(k)}, bubbles: true, cancelable: true, ...${JSON.stringify(o)} })); true`);
+      const at0 = async () => (await jeff.get('/tabs')).tabs.find((x) => x.trackId === tr('Lead Gtr').id).events.find((e) => e.t < 0.1);
+      await key('Home'); await key('7'); await sleep(300);
+      let e0 = await at0(); assert.ok(e0 && e0.frets[5] === 7 && e0.notes[0] === 71, JSON.stringify(e0));
+      lt = (await jeff.get('/tabs')).tabs.find((x) => x.trackId === tr('Lead Gtr').id); assert.equal(lt.edited, true); assert.equal(lt.editedBy, 'Jeff');
+      await sleep(1000); await key('1'); await key('2'); await sleep(300); e0 = await at0(); assert.equal(e0.frets[5], 12, '1 then 2 = fret 12');
+      await key('Delete'); await sleep(300); assert.equal(await at0(), undefined, 'cleared');
+      await jeff.evalJs(`(() => { const n = document.querySelector('#te-name'); n.value = 'Am'; n.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); return true; })()`); await sleep(300);
+      e0 = await at0(); assert.deepEqual(e0 && e0.frets, [-1, 0, 2, 2, 1, 0], JSON.stringify(e0)); assert.equal(e0.name, 'Am');
+      await key('z', { ctrlKey: true }); await sleep(600); assert.equal(await at0(), undefined, 'Ctrl+Z takes the chord back out');
+      await jeff.shot('tab-editor');
+      await jeff.evalJs(`document.querySelector('#tabed').close(); true`); await sleep(200);
+      await jeff.evalJs(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); true`); await sleep(300);
+      const rr = await jeff.post('/tab', { trackId: tr('Lead Gtr').id }); assert.ok(!rr.edited, 're-read from the takes (API forces past the edit)');
+      // lyric timing: words a third of a second late get pulled onto the sung notes (0.5, 1.1, 1.7, 2.3 s on the Vox take)
+      await jeff.evalJs(`(() => { const s = window.cobanderDebug.state.song; (s.lyrics = s.lyrics || []).push({ id: 'e2eLa', time: 0.8, text: 'la la la la', words: [0, 0.6, 1.2, 1.8].map((t) => ({ w: 'la', t, e: t + 0.3 })), by: 'Jeff', at: new Date().toISOString() }); window.cobanderDebug.renderAll(); return true; })()`);
+      const rt = await jeff.post('/lyrics/retime', {}); const la = rt.lyrics.find((l) => l.id === 'e2eLa');
+      assert.ok(rt.moved >= 4, JSON.stringify(rt)); assert.ok(Math.abs(la.time - 0.5) < 0.05, `line starts on the first note: ${la.time}`);
+      la.words.forEach((x, k) => { assert.ok(Math.abs(la.time + x.t - (0.5 + 0.6 * k)) < 0.05, `word ${k} starts at ${la.time + x.t}`); assert.ok(Math.abs(la.time + x.e - (1.05 + 0.6 * k)) < 0.08, `word ${k} ends at ${la.time + x.e}`); });
+      // the practice clock runs on what you hear (output latency off) and the sync nudge
+      assert.equal(await jeff.evalJs(`(() => { const e = window.cobanderDebug.engine; return Number.isFinite(e.heardLatency()) && e.heardLatency() >= 0 && e.heardLatency() < 1; })()`), true);
+      assert.ok(await jeff.evalJs(`document.querySelector('#k-sync').options.length`) >= 30);
     });
     await step('opening a song: the screen is usable when the loading bar goes (longest freeze after it is logged)', async () => {
       const songs = await jeff.get('/songs'); const pick = songs.map((x) => x.folder).find((f) => /Basement Anthem|Link Song|Tremors/.test(f)) || (songs[0] && songs[0].folder);

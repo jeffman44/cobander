@@ -351,7 +351,7 @@
       try { await this.ctx.audioWorklet.addModule('gate-worklet.js'); this.ctx._bpGateReady = true; } catch (err) { console.warn('gate worklet unavailable', err); }
       this.masterIn = this.ctx.createGain();
       this.masterGain = this.ctx.createGain();
-      this.masterAnalyser = this.ctx.createAnalyser(); this.masterAnalyser.fftSize = 2048;
+      this.masterAnalyser = this.ctx.createAnalyser(); this.masterAnalyser.fftSize = 2048; 
       this.reverbIn = this.ctx.createGain();
       this.convolver = this.ctx.createConvolver();
       this.convolver.buffer = makeImpulse(this.ctx, this.master.reverb);
@@ -359,6 +359,7 @@
       this.limiter = makeLimiter(this.ctx); this.limiterBypass = this.ctx.createGain(); this.limiterOn = this.ctx.createGain();
       // analyser sits BEFORE the limiter so the clip light shows what the limiter had to catch
       this.masterIn.connect(this.masterGain); this.masterGain.connect(this.masterAnalyser);
+      this.masterLR = lrTap(this.ctx, this.masterGain);   // L / R bars on the master strip
       // listen gain: the volume knob in Practice — this computer's speakers only, never part of the saved mix
       this.listenGain = this.ctx.createGain(); this.listenGain.gain.value = this.listen === undefined ? 1 : this.listen; this.listenGain.connect(this.ctx.destination);
       this.masterAnalyser.connect(this.limiterOn); this.limiterOn.connect(this.limiter); this.limiter.connect(this.listenGain);
@@ -727,6 +728,18 @@
     }
 
     currentPos() { return this.playing && this.ctx ? this.startPos + (this.ctx.currentTime - this.startCtxTime) : this.playhead; }
+    // the context time of the sample coming out of the speakers right now: currentTime is what is being RENDERED, which
+    // reaches your ears baseLatency + outputLatency later (tens of ms on an interface, 150+ ms on Bluetooth). Anything you
+    // follow by eye against what you hear (lyrics, the play-along lane) should run on this clock.
+    heardCtxTime() {
+      const c = this.ctx; if (!c) return 0; const now = c.currentTime;
+      try {
+        if (c.getOutputTimestamp && typeof performance !== 'undefined') { const ts = c.getOutputTimestamp(); if (ts && ts.contextTime > 0 && ts.performanceTime > 0) { const v = ts.contextTime + (performance.now() - ts.performanceTime) / 1000; if (v <= now + 0.005 && v > now - 1) return v; } }
+      } catch (_) {}
+      return now - ((c.baseLatency || 0) + (c.outputLatency || 0));
+    }
+    heardLatency() { return this.ctx ? Math.max(0, this.ctx.currentTime - this.heardCtxTime()) : 0; }
+    heardPos() { return this.playing && this.ctx ? Math.max(this.startPos, this.startPos + (this.heardCtxTime() - this.startCtxTime)) : this.playhead; }
 
     tick() {
       if (!this.playing) return;
@@ -1135,9 +1148,21 @@
     }
 
     // ---------- meters ----------
+    // a track is metered left / right when one of its audible takes is stereo (mono takes keep one bar)
+    isStereoTrack(t) {
+      if (!t || t.instrument !== 'audio') return false;
+      for (const c of t.clips || []) { if (c.kind === 'midi' || this.clipMuted(c)) continue; const b = this.buffers.get(audioId(c)); if (b && b.numberOfChannels >= 2) return true; }
+      return false;
+    }
     meters() {
-      const out = { master: this.masterAnalyser ? levelOf(this.masterAnalyser) : null, limiterDb: this.limiter && this.master.limiter ? round1(this.limiter.reduction) : 0, tracks: {} };
-      for (const [id, ch] of this.chains) out.tracks[id] = ch.analyser ? levelOf(ch.analyser) : null;
+      const out = { master: this.masterAnalyser ? levelOf(this.masterAnalyser) : null, masterLR: this.masterLR ? lrLevel(this.masterLR) : null, limiterDb: this.limiter && this.master.limiter ? round1(this.limiter.reduction) : 0, tracks: {}, tracksLR: {} };
+      for (const [id, ch] of this.chains) {
+        out.tracks[id] = ch.analyser ? levelOf(ch.analyser) : null;
+        const t = this.track(id); const st = this.isStereoTrack(t);
+        if (st && !ch.lr && this.ctx && ch.panner) ch.lr = lrTap(this.ctx, ch.panner);   // built on first need: two analysers per stereo track only
+        else if (!st && ch.lr) { dropTap(ch.lr); ch.lr = null; }
+        if (ch.lr) out.tracksLR[id] = lrLevel(ch.lr);
+      }
       out.input = this.inputLevel();
       return out;
     }
@@ -1270,6 +1295,10 @@
   }
   function rmsOf(d) { let s = 0; for (let i = 0; i < d.length; i++) s += d[i] * d[i]; return Math.sqrt(s / Math.max(1, d.length)); }
   function round1(x) { return Number.isFinite(x) ? Math.round(x * 10) / 10 : (x === -Infinity ? -120 : x); }
+  // left / right meters: a splitter and an analyser per side, hung off a stereo node (nothing downstream)
+  function lrTap(ctx, node) { const split = ctx.createChannelSplitter(2); const l = ctx.createAnalyser(), r = ctx.createAnalyser(); l.fftSize = 1024; r.fftSize = 1024; node.connect(split); split.connect(l, 0); split.connect(r, 1); return { node, split, l, r }; }
+  function dropTap(tp) { try { tp.node.disconnect(tp.split); } catch (_) {} try { tp.split.disconnect(); } catch (_) {} }
+  const lrLevel = (tp) => [levelOf(tp.l), levelOf(tp.r)];
   function levelOf(an) {
     const d = new Float32Array(an.fftSize); an.getFloatTimeDomainData(d);
     let p = 0, s = 0; for (let i = 0; i < d.length; i++) { const a = Math.abs(d[i]); if (a > p) p = a; s += d[i] * d[i]; }

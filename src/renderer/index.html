@@ -177,7 +177,7 @@
               <textarea id="notes" title="Scratch notes for this song — anything goes, everyone in the band sees them" placeholder="anything: lyrics drafts, gear, to-dos…"></textarea>
             </div>
             <div class="side-tab" data-tab="lyrics" hidden>
-              <div class="tab-tools"><button id="btn-melody" title="Melody: Cobander writes a tune for your lyrics — the syllables are spread across a part, in key, over your chords">🎵 Melody…</button><button id="btn-lyrics-paste" title="Add lyrics: paste or type the words, one line per row">Add lines…</button><button id="btn-lyric-pin" title="Pin next (P): marks where the next lyric line is sung — play the song and press P as each line comes in">Pin next (P)</button><button id="btn-lyrics-asr" title="From the vocals: Cobander listens to the vocal takes and types out the lyrics, each line pinned where it's sung. Runs on this computer; the speech model downloads once."><i class="om om-karaoke"></i> From the vocals</button></div>
+              <div class="tab-tools"><button id="btn-melody" title="Melody: Cobander writes a tune for your lyrics — the syllables are spread across a part, in key, over your chords">🎵 Melody…</button><button id="btn-lyrics-paste" title="Add lyrics: paste or type the words, one line per row">Add lines…</button><button id="btn-lyric-pin" title="Pin next (P): marks where the next lyric line is sung — play the song and press P as each line comes in">Pin next (P)</button><button id="btn-lyrics-asr" title="From the vocals: Cobander listens to the vocal takes and types out the lyrics, each line pinned where it's sung. Runs on this computer; the speech model downloads once."><i class="om om-karaoke"></i> From the vocals</button><button id="btn-lyrics-retime" title="Tighten timing: moves every word's start and end onto the singing itself (where the voice starts and stops on the vocal takes), so the words light up and land on the beat you hear in Practice. Keeps the words; Undo puts the old times back.">⏱ Tighten timing</button></div>
               <div class="small muted" id="lyrics-hint"></div>
               <ul id="lyric-list" class="small"></ul>
             </div>
@@ -202,7 +202,7 @@
               <ul id="part-list" class="small"></ul>
             </div>
             <div class="side-tab" data-tab="chart" hidden>
-              <div class="tab-tools"><button id="btn-chords-detect" title="From the recordings: Cobander listens to the guitar / keys / bass takes and writes a draft of the chords — only where nobody has typed chords yet"><i class="om om-guitar"></i> From the recordings</button><button id="btn-tab-track" hidden title="Tab from the takes: Cobander listens to a guitar or bass track and writes every note and chord shape it hears as a tab (string / fret), under the chart. Right-click a track for the same thing."><i class="om om-guitar"></i> Tab a track</button><button id="btn-chart-copy" title="Copy the chord chart and lyrics as plain text, to paste in the group chat">Copy text</button><button id="btn-chart-save" title="Save a printable chord chart into the song folder (opens in any browser)">Save printable</button><select id="chart-transpose" title="Transpose: show the chords moved up or down, to play the song in another key or with a capo"></select></div>
+              <div class="tab-tools"><button id="btn-chords-detect" title="From the recordings: Cobander listens to the guitar / keys / bass takes and writes a draft of the chords — only where nobody has typed chords yet"><i class="om om-guitar"></i> From the recordings</button><button id="btn-tab-edit" hidden title="Edit a tab: fix a wrong fret, add the notes it missed, name chords — or write a tab by hand">✎ Edit tab</button><button id="btn-tab-track" hidden title="Tab from the takes: Cobander listens to a guitar or bass track and writes every note and chord shape it hears as a tab (string / fret), under the chart. Right-click a track for the same thing."><i class="om om-guitar"></i> Tab a track</button><button id="btn-chart-copy" title="Copy the chord chart and lyrics as plain text, to paste in the group chat">Copy text</button><button id="btn-chart-save" title="Save a printable chord chart into the song folder (opens in any browser)">Save printable</button><select id="chart-transpose" title="Transpose: show the chords moved up or down, to play the song in another key or with a capo"></select></div>
               <pre id="chart-view" class="small"></pre>
             </div>
             <div class="side-tab" data-tab="versions" hidden>
@@ -408,6 +408,21 @@
   </form>
 </dialog>
 
+<dialog id="tabed">
+  <form method="dialog">
+    <h3 id="te-title">Tab</h3> <label class="small">track <select id="te-track" title="Which part's tab you're editing"></select></label> <label class="small">grid <select id="te-sub" title="How fine the columns are: 1/8 = two per beat, 1/16 = four. Notes read off the takes sit in the column nearest them."><option value="1">1/4</option><option value="2" selected>1/8</option><option value="3">1/8 triplets</option><option value="4">1/16</option></select></label>
+    <div class="row ml-buttons">
+      <button type="button" id="te-play" title="Play from the cursor (Space) — press again to stop">▶ Play</button>
+      <label class="small" title="Name the chord in the cursor's column. On an empty column a playable shape is put in for it (G, Am7, F#5, Bbsus4…)">chord <input id="te-name" size="8" placeholder="G, Am7…" autocomplete="off"></label>
+      <button type="button" id="te-clearcol" title="Clear everything in the cursor's column (Shift+Delete)">Clear column</button>
+      <button type="button" id="te-reread" title="Throw this tab away and read the takes again">Read the takes again</button>
+      <span id="te-info" class="small muted"></span>
+    </div>
+    <div id="te-scroll"><div id="te-space"><canvas id="te-cv" tabindex="0" aria-label="tab — click a string, type a fret"></canvas></div></div>
+    <div class="small muted">Click a string (or use the arrows) and <b>type a fret</b> (0–24) · <b>Delete</b> clears it, Shift+Delete the whole column · <b>C</b> names the chord · <b>Alt+←→</b> moves the note a column · Shift+←→ jumps a bar · <b>Space</b> plays from the cursor · Ctrl+Z (⌘Z) undoes</div>
+    <menu><button value="ok" class="primary">Done</button></menu>
+  </form>
+</dialog>
 <dialog id="drumed">
   <form method="dialog">
     <h3>Drums</h3>
@@ -477,9 +492,10 @@
     <label class="chip" title="Volume: how loud the song plays here while you practise — just your speakers, the mix itself doesn't change"><i class="om om-speaker"></i><input type="range" id="k-vol" min="0" max="100" value="100"></label>
     <label class="chip" title="Click: a metronome while you practise, so you stay in time (C)"><input type="checkbox" id="k-click"> click <input type="range" id="k-clickvol" min="-30" max="0" step="1" title="Click volume: how loud the metronome is in your headphones while you practise. 0 is loudest; drag left if it's drowning out the band."></label>
     <label class="chip" title="Count-in: a bar of clicks before it starts playing, so you know when to come in"><input type="checkbox" id="k-countin"> count-in</label>
-    <label class="chip" title="Play along: a scrolling lane of what to play next, like a rhythm game — guitar chord shapes, the bass line as a tab (read off the bass takes), or a MIDI part as a tab. Follows the capo / transpose setting."><select id="k-along"><option value="">play along: off</option><option value="chords">🎸 guitar chords</option><option value="bass">🎸 bass line (tab)</option><option value="midi">🎹 MIDI part (tab)</option></select></label>
+    <label class="chip" title="Play along: a scrolling lane of what to play next, like a rhythm game — chord shapes from the chord lane, a guitar part as a tab (lead or rhythm: each guitar track is read off its takes the first time you pick it, and the tab can be edited in the Chords tab), the bass line as a tab, or a MIDI part. Follows the capo / transpose setting."><select id="k-along"><option value="">play along: off</option><option value="chords">🎸 chord shapes (chord lane)</option><option value="bass">🎸 bass line (tab)</option><option value="midi">🎹 MIDI part (tab)</option></select></label><button id="k-tabedit" class="chip" hidden title="Edit this tab: fix a fret, add what it missed, name a chord">✎ tab</button>
     <label class="chip" title="What's on screen: words and chords, just the chords bar by bar, or just the words"><select id="k-view"><option value="crawl">3D — words fly at you</option><option value="both">Classic karaoke — words + chords</option><option value="chords">chords only (bars)</option><option value="words">words only</option></select></label>
     <label class="chip" title="Capo / transpose: show the chords moved up or down, for a capo or a different tuning (the sound doesn't change)"><select id="k-tp"></select></label>
+    <label class="chip" title="Sync: if the words land before or after you hear them, nudge them here (this computer only). Cobander already takes your speakers' delay off; Bluetooth headphones often need more."><select id="k-sync"></select></label>
     <button id="k-size" class="chip" title="Text size — bigger or smaller (↑ ↓)">A±</button>
     <button id="k-rec" class="rec" title="Record while you practise (R) — onto the armed track, the one you picked to record onto">● rec</button>
   </div>
@@ -529,6 +545,7 @@
 <script src="timing.js"></script>
 <script src="highway.js"></script>
 <script src="tab.js"></script>
+<script src="tabedit.js"></script>
 <script src="lpc.js"></script>
 <script src="pitchcheck.js"></script>
 <script src="changes.js"></script>

@@ -304,5 +304,16 @@
     for (const e of events) { if (e.t < from || e.t >= to) continue; e.frets.forEach((f, s) => { if (f >= 0) out.push({ t: e.t, d: e.d, lane: s, label: String(f), sub: e.name && s === e.frets.findIndex((x) => x >= 0) ? e.name : '', midi: e.notes[Math.min(e.notes.length - 1, out.length)] }); }); }
     return out.sort((a, b) => a.t - b.t || a.lane - b.lane);
   }
-  return { transcribe, onsets, peaks, multiPitch, voicing, chordName, tabText, laneEvents, tuningEstimate, GUITAR, BASS, BASS5, decimate };
+  // lead or rhythm? By the track's name when it says so; otherwise by what was played: mostly chords = rhythm, mostly
+  // single notes (riffs, fills, solos) = lead. 'guitar' when it's a real mix of both or there's too little to tell.
+  function partRole(events, name = '') {
+    const nm = String(name || '');
+    if (/\b(lead|solo|ld|melody|hook)\b/i.test(nm)) return 'lead';
+    if (/\b(rhythm|rhy|rhtm|rtm|chug|chords?|strum|power|crunch)\b/i.test(nm)) return 'rhythm';
+    const ev = (events || []).filter((e) => e && Array.isArray(e.notes) && e.notes.length);
+    if (ev.length < 6) return 'guitar';
+    const ch = ev.filter((e) => e.notes.length >= 2 && !e.mono).length / ev.length;
+    return ch >= 0.5 ? 'rhythm' : ch <= 0.3 ? 'lead' : 'guitar';
+  }
+  return { transcribe, onsets, peaks, multiPitch, voicing, chordName, tabText, laneEvents, tuningEstimate, partRole, GUITAR, BASS, BASS5, decimate };
 });
