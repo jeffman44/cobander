@@ -5517,6 +5517,7 @@
     if (engine.ctx) engine.setMonitorTrack(state.armedTrack || state.selectedTrack || null);   // monitoring follows the armed track's FX
     try { renderSongParts(); } catch (_) { /* the bin never breaks the timeline */ }
     renderSnapChip(); renderUnlockBtn();
+    checkApproved();   /* takes can change without markDirty (import, record → saveWithClip): every redraw re-checks approved parts */
     const keepTop = arrange.scrollTop; requestAnimationFrame(() => { if (Math.abs(arrange.scrollTop - keepTop) > 1) arrange.scrollTop = Math.min(keepTop, arrange.scrollHeight); });   /* re-render must not jump the track list to the top */
     tracksEl.innerHTML = '';
     const w = timelineWidth(); const gridLanes = [];
