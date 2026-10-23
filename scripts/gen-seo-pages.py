@@ -631,4 +631,15 @@ _ip = os.path.join(DOCS, 'index.html'); _h = open(_ip, encoding='utf-8').read()
 _g = '<p>Guides: ' + ' · '.join(f'<a href="{p["slug"]}/">{esc(p["nav"])}</a>' for p in PAGES) + '</p>'
 _h2 = re.sub(r'<p>Guides: .*?</p>', lambda m: _g, _h, count=1)
 if _h2 != _h: open(_ip, 'w', encoding='utf-8').write(_h2)
+
+# Cloudflare Web Analytics (cookie-free page counts) on every page of the site
+CF_BEACON = """<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "3504ac4a74f54ff9a3871fef99121b79"}'></script><!-- End Cloudflare Web Analytics -->"""
+_beaconed = 0
+for _root, _, _fs in os.walk(DOCS):
+    for _f in _fs:
+        if not _f.endswith('.html'): continue
+        _p = os.path.join(_root, _f); _t = open(_p, encoding='utf-8').read()
+        if 'cloudflareinsights.com/beacon' in _t or '</body>' not in _t: continue
+        open(_p, 'w', encoding='utf-8').write(_t.replace('</body>', CF_BEACON + '\n</body>', 1)); _beaconed += 1
+print('analytics beacon added to', _beaconed, 'pages')
 print('pages:', [p['slug'] for p in PAGES], 'sitemap urls:', len(urls))
