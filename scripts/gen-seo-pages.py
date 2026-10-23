@@ -171,6 +171,110 @@ PAGES = [
             ('Can I practice offline?', 'Yes. Songs live in your synced folder on your own computer.'),
         ],
     },
+    {
+        'slug': 'find-the-key-of-a-song',
+        'title': 'Find the Key of Your Song From the Recording — Cobander',
+        'nav': 'Find your song\'s key',
+        'desc': 'Cobander listens to your band\'s takes and tells you what key the song is in — then moves the whole song, recordings included, to a key that fits your singer. Runs on your own computer.',
+        'h1': 'What key is this song in? Cobander listens and tells you.',
+        'lead': 'Nobody wrote the key down, the bass player swears it\'s G, and the singer is straining on the chorus. Cobander hears the key from the recordings, shows it on the song, and can move the whole song to a better one.',
+        'img': ('write.jpg', 'Cobander\'s Write workspace: song parts, a chord lane and lyrics pinned to the timeline'),
+        'sections': [
+            ('Hear the key from the takes', [
+                'After the first takes land, Cobander listens to the recordings and the chords and names the key. If it isn\'t sure, it says so instead of guessing — and it offers the relative major or minor when the song could be either.',
+                'Songs that change key get a key per section, so the bridge that lifts a step up is labelled as its own key.',
+            ]),
+            ('Move the song to a key that fits', [
+                'Transpose the song up or down by half steps. The recordings are re-tuned, MIDI parts and chords move with them, and the drums stay put. Change one section only, or relabel a key that was named wrong without moving anything.',
+                'Only keys you can actually reach by shifting the pitch are offered, so you never end up with a song labelled one thing and sounding like another.',
+            ]),
+            ('Know when a part is out of key', [
+                'A warning chip shows up when a part doesn\'t sit in the song\'s key — handy when someone recorded their riff in E and the rest of the band is in F.',
+            ]),
+        ],
+        'faq': [
+            ('Does it work on a rough demo?', 'Yes. A guitar and a guide vocal are enough for it to hear the key.'),
+            ('Does transposing hurt the sound?', 'Small moves of a step or two sound natural. Big jumps change the character of a voice or a guitar, the same as any pitch shifter.'),
+            ('Is the audio sent anywhere?', 'No. Key detection and transposing run on your own computer.'),
+        ],
+    },
+    {
+        'slug': 'chords-from-a-recording',
+        'title': 'Get the Chords From Your Own Recording — Cobander',
+        'nav': 'Chords from a recording',
+        'desc': 'Record the guitar, keys or bass and Cobander drafts the chords onto the song\'s chord lane, bar by bar, from the notes actually played. Edit, transpose and print the chart for the band.',
+        'h1': 'Play it once. Get the chord chart.',
+        'lead': 'The guitarist knows the song with his hands, not on paper. Cobander listens to the guitar, keys and bass takes, works out the notes that were played, and drafts the chords onto the song so everyone can read them.',
+        'img': ('write.jpg', 'Cobander\'s Write workspace with a chord lane running above the song'),
+        'sections': [
+            ('Chords from the notes, not a guess', [
+                'Cobander reads each guitar, keys and bass track note by note with a small note-tracking model on your computer, then names the chord in each half bar from what was played together. The bass note decides slash chords like G/B.',
+                'It is a draft: wrong chords are one right-click away from fixed, and it asks before replacing chords someone already typed.',
+            ]),
+            ('One chart for the whole band', [
+                'The chord lane runs above the timeline and the chord chart shows every section with its chords and lyrics. Transpose the chart for a capo or a different key without touching the recording.',
+            ]),
+            ('Chords that follow you in Practice', [
+                'In Practice the chords scroll with the song above the lyrics, so the new guy can play along on day one.',
+            ]),
+        ],
+        'faq': [
+            ('Does it work on distorted guitar?', 'Power chords and crunchy rhythm parts work. Heavy fuzz, lots of reverb or two guitars on one track make it harder; check the draft by ear.'),
+            ('Can it read a part I play live into the mic?', 'Yes. Any audio take on a guitar, keys or bass track can be read.'),
+            ('Does it need an internet connection?', 'No. It runs on your own computer.'),
+        ],
+    },
+    {
+        'slug': 'song-structure-planner',
+        'title': 'Plan Your Song\'s Structure With the Band — Cobander',
+        'nav': 'Song structure planner',
+        'desc': 'Start a song from a style and a structure, lay out verses, choruses and bridges on the timeline, drag them around, and get a drum part to write over — then record into it with your band.',
+        'h1': 'Lay out the song before anyone hits record',
+        'lead': 'Verse, pre, chorus, verse, chorus, bridge, double chorus — or something weirder. Cobander lets you sketch the shape of a song in a minute, hear it with a drum part, and move sections around until it feels right.',
+        'img': ('write.jpg', 'Cobander\'s Write workspace: song sections laid out along the timeline'),
+        'sections': [
+            ('Start from a shape', [
+                'The new-song wizard sets the tempo, key and feel from a list of styles and offers dozens of named song structures. Pick one, or start blank and add sections as you go.',
+            ]),
+            ('Move whole sections, takes and all', [
+                'Drag a section and everything recorded in it moves with it. Restructure the song, make the second chorus a copy of the first so a fix to one fixes both, or give a section its own key.',
+            ]),
+            ('Something to write over', [
+                'The drum generator writes a part for each section in the song\'s feel — fill it in per drum at quarters, eighths or sixteenths, then add or remove single hits. The riff and melody generators give you a starting point when you are stuck.',
+            ]),
+            ('Notes where the music is', [
+                'Pin a note to a bar ("half-time here?"), tag a bandmate, and give each part a stage from idea to approved so everyone knows what\'s left.',
+            ]),
+        ],
+        'faq': [
+            ('Can I change the structure after we\'ve recorded?', 'Yes. Sections carry their takes with them when you move, copy or remove them.'),
+            ('Do I need to read music?', 'No. Sections, chords and lyrics are all labelled in plain words.'),
+        ],
+    },
+    {
+        'slug': 'melody-from-vocal',
+        'title': 'Turn a Sung Vocal Into Melody Notes — Cobander',
+        'nav': 'Melody from a vocal',
+        'desc': 'Sing the line and Cobander writes it down as notes on the song\'s melody track, in key and on the beat — or type lyrics and get a melody to try. Runs on your own computer.',
+        'h1': 'Hum it, and the melody is written down',
+        'lead': 'The best melody ideas get sung into a phone at a red light and forgotten. In Cobander, a vocal take becomes notes on the song\'s melody track, so the band can see it, play it and keep it.',
+        'img': ('write.jpg', 'Cobander\'s Write workspace with the melody track under the song'),
+        'sections': [
+            ('A vocal take becomes notes', [
+                'Right-click a vocal track and choose Melody from this track. Cobander follows the sung pitch and writes notes: vibrato and the scoop into a note count as the note you were aiming at, and notes are pulled into the song\'s key and onto the beat when the recording backs it up.',
+            ]),
+            ('Or start from the words', [
+                'Type a lyric and the melody generator sets it to a tune that fits the chords — reroll the notes, the rhythm or both, edit any note by hand, and keep the one you like. A guide voice sings it back so you can hear it.',
+            ]),
+            ('Use it everywhere', [
+                'The melody shows up in the chart and in Practice, and a keyboard player can read it straight off the note editor.',
+            ]),
+        ],
+        'faq': [
+            ('Do I need a good voice?', 'No. It writes down the notes you aimed for; a rough hum works.'),
+            ('Does it upload my singing?', 'No. It runs on your own computer.'),
+        ],
+    },
 ]
 
 STYLE = """
@@ -381,4 +485,9 @@ sm += [f'  <url><loc>{SITE}/{u}</loc><lastmod>{TODAY}</lastmod><priority>{pr}</p
 sm.append('</urlset>')
 open(os.path.join(DOCS, 'sitemap.xml'), 'w').write('\n'.join(sm) + '\n')
 open(os.path.join(DOCS, 'robots.txt'), 'w').write(f'User-agent: *\nAllow: /\n\nSitemap: {SITE}/sitemap.xml\n')
+# homepage Guides line lists every landing page
+_ip = os.path.join(DOCS, 'index.html'); _h = open(_ip, encoding='utf-8').read()
+_g = '<p>Guides: ' + ' · '.join(f'<a href="{p["slug"]}/">{esc(p["nav"])}</a>' for p in PAGES) + '</p>'
+_h2 = re.sub(r'<p>Guides: .*?</p>', lambda m: _g, _h, count=1)
+if _h2 != _h: open(_ip, 'w', encoding='utf-8').write(_h2)
 print('pages:', [p['slug'] for p in PAGES], 'sitemap urls:', len(urls))
