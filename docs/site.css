@@ -16,7 +16,7 @@ h2 { font-size:clamp(28px, 4.5vw, 40px); margin:40px 0 12px; }
 h3 { font-size:18px; margin:18px 0 4px; }
 p { margin:0 0 14px; color:#d6d9e0; }
 .lead { font-size:20px; color:var(--white); }
-figure { margin:26px 0 8px; } figure img { width:100%; height:auto; border-radius:10px; border:1px solid var(--line); display:block; }
+figure { margin:26px 0 8px; } picture { display:contents; } picture source { display:none; } figure img { width:100%; height:auto; border-radius:10px; border:1px solid var(--line); display:block; }
 .cta { display:flex; gap:10px; flex-wrap:wrap; margin:22px 0 6px; }
 .btn { display:inline-block; font:700 17px/1 var(--body); padding:15px 22px; border-radius:8px; text-decoration:none; border:2px solid transparent; }
 .btn.hot { background:var(--noodle); color:#1d1d1d; } .btn.hot:hover { background:#ffc94d; }

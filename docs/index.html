@@ -70,6 +70,7 @@
   .pitch p { font-size: 19px; }
   .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 26px 0 10px; }
   .herofig { margin: 30px 0 0; } .herofig img { width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 30px 60px rgba(0,0,0,.5); }
+  picture { display: contents; } picture source { display: none; }
   .shots figure { margin: 0; }
   .shots img { width: 100%; height: auto; display: block; border-radius: 10px; border: 1px solid var(--line); }
   .shots figcaption { color: var(--steel); font-size: 14px; margin-top: 8px; }
@@ -153,12 +154,12 @@
 <body>
 <div class="wrap">
   <nav>
-    <a class="mark" href="#"><b>COBANDER</b><span class="seal"><img class="gi" src="icons/gi-delapouite-noodles.svg" alt=""></span></a>
+    <a class="mark" href="#"><b>COBANDER</b><span class="seal"><img class="gi" src="icons/gi-delapouite-noodles.svg" alt="" width="17" height="17"></span></a>
     <div class="links"><a href="#novel">Why it's different</a><a href="#does">What it does</a><a href="#menu">Licenses</a><a href="#setup">Setup</a><a href="#faq">Questions</a><a href="manual/">Manual</a></div>
   </nav>
 
   <header class="hero">
-    <img class="scene" src="img/band-scene.jpg" alt="A colander full of noodles on bass and a takeout box on drums, playing in a basement" width="1800" height="1200">
+    <picture><source type="image/webp" srcset="img/band-scene-640.webp 640w, img/band-scene-960.webp 960w, img/band-scene-1280.webp 1280w" sizes="(max-width: 760px) calc(100vw - 40px), 520px"><img class="scene" src="img/band-scene.jpg" alt="A colander full of noodles on bass and a takeout box on drums, playing in a basement" width="1800" height="1200" fetchpriority="high" decoding="async"></picture>
     <div class="txt">
     <h1>COBANDER<small>NOODLE TOGETHER</small></h1>
     <p class="lede">A sketchpad for your whole band. Everyone records, writes, mixes and practices on their own computer; the song lives in the folder you already share. And the whole band levels up while you do it.</p>
@@ -170,15 +171,15 @@
     <p class="fine dl-notes">Free to download — the whole app, one song per band. Mac with an Intel chip? <a href="https://takeout.cobander.com/download/mac-x64">Intel Mac download</a>.<br>First launch: Windows may say "Windows protected your PC" → <b>More info → Run anyway</b>. Mac says it can't check the app → <b>Done</b>, then <b>System Settings → Privacy &amp; Security → Open Anyway</b>.</p>
     <span class="muted">Windows &amp; Mac · no server · no accounts · no subscription</span>
     </div>
-    <figure class="herofig"><img src="img/mix.jpg" alt="Cobander's Mix workspace: the song timeline with a console of faders below and Track FX on the right"></figure>
+    <figure class="herofig"><picture><source type="image/webp" srcset="img/mix-640.webp 640w, img/mix-960.webp 960w, img/mix-1280.webp 1280w" sizes="(max-width: 1040px) calc(100vw - 40px), 1000px"><img src="img/mix.jpg" alt="Cobander's Mix workspace: the song timeline with a console of faders below and Track FX on the right" width="1280" height="793" decoding="async"></picture></figure>
   </header>
 
   <section class="pitch">
     <p>Somebody records a riff at 11 pm. By 11:01 it's on everyone else's screen, on its own track, in the right place in the song. The drummer adds a take at lunch. The singer pins the words to where she sings them. Nobody uploaded anything, nobody made an account, and nobody paid for a plan — the band's Google Drive (or OneDrive, iCloud, Dropbox) is the server.</p>
     <p class="muted">It's for the band that has songs in a group chat and voice memos, not for mixing an album. Although it mixes pretty well.</p>
     <div class="shots two">
-      <figure><img src="img/practice.jpg" alt="Practice: lyrics flying toward you in 3D over the song" loading="lazy"><figcaption>Practice: the words fly at you and hit the line when it's time to sing them.</figcaption></figure>
-      <figure><img src="img/band.jpg" alt="The Band page: levels, loose ends, the setlist, the band feed" loading="lazy"><figcaption>Band: levels, achievements, the setlist, the next show, the to-do list that isn't a song.</figcaption></figure>
+      <figure><picture><source type="image/webp" srcset="img/practice-640.webp 640w, img/practice-960.webp 960w, img/practice-1280.webp 1280w" sizes="(max-width: 1040px) calc(50vw - 27px), 493px"><img src="img/practice.jpg" alt="Practice: lyrics flying toward you in 3D over the song" width="1280" height="793" loading="lazy" decoding="async"></picture><figcaption>Practice: the words fly at you and hit the line when it's time to sing them.</figcaption></figure>
+      <figure><picture><source type="image/webp" srcset="img/band-640.webp 640w, img/band-960.webp 960w, img/band-1280.webp 1280w" sizes="(max-width: 1040px) calc(50vw - 27px), 493px"><img src="img/band.jpg" alt="The Band page: levels, loose ends, the setlist, the band feed" width="1280" height="793" loading="lazy" decoding="async"></picture><figcaption>Band: levels, achievements, the setlist, the next show, the to-do list that isn't a song.</figcaption></figure>
     </div>
   </section>
 
@@ -196,8 +197,8 @@
     <h2>Your band levels up</h2>
     <p class="sub">Every take, chord, lyric, note and practice minute earns XP. Everyone levels up, and so does the band.</p>
     <div class="shots two">
-      <figure><img src="img/shot-char.jpg" alt="The character builder: body, hair, clothes and your instrument" loading="lazy"><figcaption>Build your rocker: hundreds of hand-drawn parts, plus what you play.</figcaption></figure>
-      <figure><img src="img/shot-levelup.jpg" alt="The full-screen level-up show" loading="lazy"><figcaption>Level up and the whole screen loses it. Fanfare included.</figcaption></figure>
+      <figure><picture><source type="image/webp" srcset="img/shot-char-640.webp 640w, img/shot-char-960.webp 960w, img/shot-char-1280.webp 1280w" sizes="(max-width: 1040px) calc(50vw - 27px), 493px"><img src="img/shot-char.jpg" alt="The character builder: body, hair, clothes and your instrument" width="1280" height="793" loading="lazy" decoding="async"></picture><figcaption>Build your rocker: hundreds of hand-drawn parts, plus what you play.</figcaption></figure>
+      <figure><picture><source type="image/webp" srcset="img/shot-levelup-640.webp 640w, img/shot-levelup-960.webp 960w, img/shot-levelup-1280.webp 1280w" sizes="(max-width: 1040px) calc(50vw - 27px), 493px"><img src="img/shot-levelup.jpg" alt="The full-screen level-up show" width="1280" height="793" loading="lazy" decoding="async"></picture><figcaption>Level up and the whole screen loses it. Fanfare included.</figcaption></figure>
     </div>
     <div class="novel-grid">
       <div><h3>100 levels each</h3><p>Fresh Noodle to Living Legend, with a new title, badge and pose every ten. A band that records every week takes a year or two to reach the top — no grinding it out in a night.</p></div>
@@ -219,7 +220,7 @@
     </ul>
   </section>
 
-  <figure class="banner"><img src="img/band-banner.jpg" alt="The kitchen band on a basement stage: colander on bass, takeout box on drums, ramen bowl singing, salt shaker on keys" loading="lazy"></figure>
+  <figure class="banner"><picture><source type="image/webp" srcset="img/band-banner-640.webp 640w, img/band-banner-960.webp 960w, img/band-banner-1280.webp 1280w" sizes="(max-width: 1040px) calc(100vw - 40px), 1000px"><img src="img/band-banner.jpg" alt="The kitchen band on a basement stage: colander on bass, takeout box on drums, ramen bowl singing, salt shaker on keys" width="1800" height="900" loading="lazy" decoding="async"></picture></figure>
 
   <section class="menu" id="menu">
     <div class="menu-row">
@@ -239,7 +240,7 @@
         <span class="fine">The key arrives by email. Paste it once; the band folder keeps it.</span>
       </div>
     </div>
-    <img class="jump" src="img/levelup.jpg" alt="The colander leaping with a bass guitar, confetti everywhere" loading="lazy">
+    <picture><source type="image/webp" srcset="img/levelup-640.webp 640w, img/levelup-900.webp 900w" sizes="(max-width: 900px) 260px, 320px"><img class="jump" src="img/levelup.jpg" alt="The colander leaping with a bass guitar, confetti everywhere" width="900" height="900" loading="lazy" decoding="async"></picture>
     </div>
   </section>
 
