@@ -138,7 +138,7 @@
 
   // ---------- 3. tidy ----------
   // notes: [{f0,f1,midi,amp}] → [{t, d, midi, amp, slot?}]
-  function tidy(raw, post, { instrument = 'guitar', tuning = null, beats = null, key = null, minAmp = 0.3, overtone = 0.4, overtoneIv = [12, 19, 24, 28, 31], vote = true, keyFix = true } = {}) {
+  function tidy(raw, post, { instrument = 'guitar', tuning = null, beats = null, key = null, minAmp = 0.3, overtone = 0.5, overtoneIv = [12, 19, 24, 28, 31], vote = true, keyFix = true } = {}) {
     const tn = tuning || (instrument === 'bass' ? BASS : GUITAR); const lowM = tn[0], highM = tn[tn.length - 1] + (instrument === 'bass' ? 21 : 22);
     let notes = raw.filter((n) => n.midi >= lowM && n.midi <= highM && n.amp >= minAmp).map((n) => ({ ...n, t: frameTime(n.f0), d: frameTime(n.f1) - frameTime(n.f0) }));
     // overtones: a note an octave / twelfth / two octaves above a louder note struck at the same time, much weaker than it
@@ -154,7 +154,7 @@
     // playing around it: inside chords (power chords, strums) the octave is usually played; in a single-note line (a riff,
     // a lead) it is the lower note's own overtone. A bass plays one note at a time anyway.
     const partnerOf = (n) => notes.find((m) => m !== n && overtoneIv.includes(n.midi - m.midi) && Math.abs(m.f0 - n.f0) <= 3 && n.f1 <= m.f1 + 6);
-    const monoAround = (n) => { const w = 0.7 * FPS; const near = notes.filter((m) => Math.abs(m.f0 - n.f0) > 3 && Math.abs(m.f0 - n.f0) < w); if (near.length < 3) return 0.5; const ms = near.slice().sort((x, y) => x.f0 - y.f0); const groups = []; for (const m of ms) { const g = groups[groups.length - 1]; if (g && m.f0 - g.first <= 7) g.ms.push(m.midi); else groups.push({ first: m.f0, ms: [m.midi] }); } const chordal = (g) => { const lo = Math.min(...g.ms); return g.ms.some((x) => x !== lo && !overtoneIv.includes(x - lo)); }; return groups.filter((g) => !chordal(g)).length / groups.length; };
+    const monoAround = (n) => { const w = 0.7 * FPS; let near = notes.filter((m) => Math.abs(m.f0 - n.f0) > 3 && Math.abs(m.f0 - n.f0) < w); if (near.length < 3) near = notes.filter((m) => Math.abs(m.f0 - n.f0) > 3 && Math.abs(m.f0 - n.f0) < 4 * w); if (near.length < 2) return 0.5; const ms = near.slice().sort((x, y) => x.f0 - y.f0); const groups = []; for (const m of ms) { const g = groups[groups.length - 1]; if (g && m.f0 - g.first <= 7) g.ms.push(m.midi); else groups.push({ first: m.f0, ms: [m.midi] }); } const chordal = (g) => { const lo = Math.min(...g.ms); return g.ms.some((x) => x !== lo && !overtoneIv.includes(x - lo)); }; return groups.filter((g) => !chordal(g)).length / groups.length; };
     { const drop = new Set();
       for (const n of notes) { const m = partnerOf(n); if (!m) continue;
         if (n.amp < overtone * m.amp) { drop.add(n); continue; }
@@ -227,7 +227,7 @@
   // group notes struck together into events
   function events(notes) {
     const out = []; const sorted = notes.slice().sort((a, b) => a.t - b.t || a.midi - b.midi);
-    for (const n of sorted) { const e = out[out.length - 1]; if (e && (n.slot != null && e.slot != null ? n.slot === e.slot : Math.abs(n.t - e.t) < 0.03) && !e.notes.includes(n.midi)) { e.notes.push(n.midi); e.d = Math.max(e.d, n.d); e.amp = Math.max(e.amp, n.amp); e.inferred = e.inferred && n.inferred; continue; } out.push({ t: n.t, d: n.d, notes: [n.midi], slot: n.slot, amp: n.amp, inferred: !!n.inferred }); }
+    for (const n of sorted) { const e = out[out.length - 1]; if (e && (n.slot != null && e.slot != null ? n.slot === e.slot : Math.abs(n.t - e.t) < 0.03) && !e.notes.includes(n.midi)) { e.notes.push(n.midi); e.amps[n.midi] = n.amp; e.d = Math.max(e.d, n.d); e.amp = Math.max(e.amp, n.amp); e.inferred = e.inferred && n.inferred; continue; } out.push({ t: n.t, d: n.d, notes: [n.midi], amps: { [n.midi]: n.amp }, slot: n.slot, amp: n.amp, inferred: !!n.inferred }); }
     for (const e of out) e.notes.sort((a, b) => a - b);
     return out;
   }
@@ -250,7 +250,18 @@
   const strs = (fr) => fr.map((x, s) => (x >= 0 ? s : -1)).filter((s) => s >= 0);
   function fret(evs, tuning) {
     if (!evs.length) return [];
-    const cands = evs.map((e) => { let notes = e.notes.slice(); let f = fingerings(notes, tuning); while (!f.length && notes.length > 1) { notes = notes.slice(1); f = fingerings(notes, tuning); } return { notes, f }; });
+    // more notes than a hand can fret (or than there are strings): let go of the weakest first — a doubled pitch class
+    // before a chord's only copy of a tone, the bass note last
+    const cands = evs.map((e) => {
+      let notes = e.notes.slice(); const amp = (m) => (e.amps && e.amps[m] != null ? e.amps[m] : 0.5);
+      let f = notes.length <= tuning.length ? fingerings(notes, tuning) : [];
+      while (!f.length && notes.length > 1) {
+        const pcCount = (m) => notes.filter((x) => mod(x) === mod(m)).length;
+        const shadow = (m) => notes.some((x) => [12, 19, 24, 28, 31].includes(m - x)); const keep = (m) => amp(m) + (pcCount(m) > 1 ? 0 : 0.12) - (shadow(m) && m - notes[0] > 24 ? 0.3 : 0); const order = notes.slice(1).sort((a, b) => keep(a) - keep(b) || b - a);
+        notes = notes.filter((x) => x !== order[0]); f = notes.length <= tuning.length ? fingerings(notes, tuning) : [];
+      }
+      return { notes, f };
+    });
     const N = evs.length; const cost = []; const back = [];
     cost[0] = cands[0].f.map((x) => x.c); back[0] = cands[0].f.map(() => -1);
     for (let i = 1; i < N; i++) {
