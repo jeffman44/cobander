@@ -413,6 +413,7 @@
     if (files) { try { quest.files = await bp.quest.read(); quest.filesOk = true; } catch (_) { /* Drive hiccup: keep the last board */ } quest.fields = Q.merge(quest.files); }
     quest.board = Q.board(quest.fields, state.songs || [], { me: me(), license: state.takeout && state.takeout.unlocked ? { band: state.takeout.band, members: state.takeout.members || [] } : null });
     questCelebrate(); renderXpChip(); renderBandPane(); renderBandFeed(); renderStage(); if (state.folder) renderTracks();
+    { const sig = (quest.board ? quest.board.members : []).map((m) => `${m.name}:${(m.aliases || []).join('/')}:${m.look ? JSON.stringify(m.look) : ''}`).join('|') + `#${!!quest.filesOk}`; if (sig !== quest.lookSig) { quest.lookSig = sig; renderSongs(); } }   /* song-list avatars follow the real characters */
     return quest.board;
   }
   const myQuest = () => (quest && quest.board ? quest.board.members.find((m) => m.isMe) || null : null);
@@ -563,7 +564,9 @@
   function roleGuess(m) { const r = String((m && m.role) || '').toLowerCase(); if (/bass/.test(r)) return 'lowend'; if (/drum/.test(r)) return 'thumper'; if (/vo(x|cal)|sing/.test(r)) return 'howler'; if (/key|piano|synth/.test(r)) return 'wizard'; if (/sax|horn|trumpet|brass/.test(r)) return 'horn'; if (/banjo|mandolin/.test(r)) return 'picker'; if (/guitar|gtr/.test(r)) return 'shredder'; return 'noodle'; }
   // everyone gets a look from the start (rolled from their name) until they build one; tiers pick the animation
   const LPC = window.BPLPC; LPC.load().then(() => { if (state.ws === 'band') renderBandPane(); renderStage(); if (state.folder) renderTracks(); }).catch((e) => console.warn('lpc', e));
-  const lookOf = (m) => (LPC.ready() ? LPC.sanitize(m && m.look ? m.look : LPC.defaultLook(m && m.name)) : null);
+  // a member's own character; the stand-in rolled from their name only once the band's files have been read and they
+  // really have none (before that, nobody is drawn — no strangers flashing up while Cobander starts)
+  const lookOf = (m) => { if (!LPC.ready() || !m) return null; if (m.look) return LPC.sanitize(m.look); if (!(quest && quest.filesOk)) return null; const mb = memberOf(m.name); if (mb && mb.look) return LPC.sanitize(mb.look); return LPC.sanitize(LPC.defaultLook(m.name)); };
   const animOf = (t) => Q.TIER_ANIM[t - 1] || 'idle';
   // a canvas that draws frame 0 now, animates while hovered, and (live) while it is on screen; a 'big' hero plays `anims` nonstop
   function lpcCanvas(look, { anim = 'idle', scale = 1, live = false, anims = null, hover = true } = {}) {
@@ -813,7 +816,7 @@
       { const pr = s.folder === state.folder && state.song ? CB.stageRollup(state.song) : s.parts; if (pr && pr.staged) { const c = el('span', `chip-s parts${pr.approved === pr.total ? ' all' : ''}`, `✅ ${pr.approved}/${pr.total} parts`); c.title = `Part stages: ${CB.PART_STAGES.filter((x) => pr.counts[x.k]).map((x) => `${x.icon} ${x.label} ${pr.counts[x.k]}`).join(' · ')}${pr.total > pr.staged ? ` · ${pr.total - pr.staged} not set` : ''}`; chips.append(c); } if (pr && pr.redo) { const c = el('span', 'chip-s needs', `🔁 ${pr.redo} redo`); c.title = `${pr.redo} part${pr.redo === 1 ? '' : 's'} flagged for a redo — open the song to see which`; chips.append(c); } }
       if (s.needsMine) { const c = el('span', 'chip-s ping', `for you ${s.needsMine}`); c.title = `${s.needsMine} "needs" item${s.needsMine === 1 ? '' : 's'} assigned to you`; chips.append(c); }
       if (s.needsOpen) { const tot = s.needsOpen + (s.needsDone || 0); const c = el('span', 'chip-s needs', `needs ${s.needsOpen}${s.needsDone ? ` · ${Math.round(100 * s.needsDone / tot)}% done` : ''}`); c.title = (s.needs || []).join('\n'); chips.append(c); }
-      for (const p of s.presence || []) { if (LPC.ready() && stageReady) { const m = bandMembers().find((x) => isUser(x, p.user)) || { name: p.user }; chips.append(stageWho('list', m, whoDoing(m.name), { title: false })); } if (s.lock && !s.lock.stale && p.user === s.lock.user && p.mode !== 'listening') continue; const c = el('span', 'chip-s here', `${p.user} ${p.mode === 'waiting' ? '⏳ waiting to edit' : p.mode === 'recording' ? '● rec' : p.mode === 'practicing' ? '🎙 rehearsing' : p.playing ? '🎧 listening' : 'looking'}`); c.title = `${p.user} has this song open on ${p.host}`; chips.append(c); }
+      for (const p of s.presence || []) { if (LPC.ready() && stageReady) { const m = bandMembers().find((x) => isUser(x, p.user)) || { name: p.user }; if (lookOf(m)) chips.append(stageWho('list', m, whoDoing(m.name), { title: false })); } if (s.lock && !s.lock.stale && p.user === s.lock.user && p.mode !== 'listening') continue; const c = el('span', 'chip-s here', `${p.user} ${p.mode === 'waiting' ? '⏳ waiting to edit' : p.mode === 'recording' ? '● rec' : p.mode === 'practicing' ? '🎙 rehearsing' : p.playing ? '🎧 listening' : 'looking'}`); c.title = `${p.user} has this song open on ${p.host}`; chips.append(c); }
       if (chips.children.length) li.appendChild(chips);
       { const qs = songQuest(s.folder); if (qs) { const bar = el('div', 'song-xp'); const f = el('i'); f.style.width = `${qs.max ? (100 * qs.xp / qs.max).toFixed(0) : 0}%`; bar.append(f); bar.title = `Quest: ${qs.xp} / ${qs.max} XP · ${qs.goals.filter((g) => g.done).map((g) => g.label).join(', ') || 'no goals yet'} · ${qs.prog.map((p) => `${p.member} ${p.pct}%${p.written ? ' ✓' : ''}`).join(' · ')}`; li.appendChild(bar); } }
       li.addEventListener('click', () => { if (s.folder === state.folder && state.readOnly && !(s.lock && !s.lock.stale && !s.lockMine)) takeOver().catch(fail); else openSong(s.folder).catch(fail); });
@@ -2162,6 +2165,7 @@
       ...lockItems(t),
       { label: `Part stage${(partStageOf(t) || {}).stage ? `: ${CB.stageInfo(partStageOf(t).stage).label}` : ''}`, sub: partStageItems(t) },
       { label: state.armedTrack === t.id ? 'Disarm' : 'Arm for recording', action: () => { state.armedTrack = state.armedTrack === t.id ? null : t.id; renderTracks(); }, disabled: ro() || t.instrument === 'drumkit' },
+      ...(t.instrument === 'audio' && t.clips.length && AMX.role(t) === 'drums' ? [{ label: '🥁 Drums to MIDI (the hits → a drum-machine track you can edit)', action: () => drumsToMidi(t).catch(fail), disabled: ro() || tabBusy }] : []),
       ...(t.instrument === 'audio' && t.clips.length && isVocalTrack(t) ? [{ label: '🎤 Lyrics from this track (speech-to-text)', action: () => transcribeTrack(t), disabled: !!asrBusy }, { label: '🎵 Melody from this track (sung notes → the Melody track, on the beat and in key)', action: () => melodyFromVocal(t).catch(fail), disabled: ro() }] : []),
       ...(harmonicTrack(t) || bassTrack(t) ? [
         { label: '🎸 Chords & tabs for this track', sub: [
@@ -3498,6 +3502,39 @@
   // the song's beats inside a stretch of song time, in that stretch's own clock (for snapping a take's notes to the grid)
   function chordsFor(from, to) { try { return liveChords().filter((c) => c.time >= from - 8 && c.time < to).map((c) => ({ time: Math.round((c.time - from) * 1000) / 1000, chord: c.chord })); } catch (_) { return null; } }
   function beatsFor(from, to) { try { const map = engine.meterMap(); return window.BPMeter.beatsIn(map, Math.max(0, from), to).map((b) => ({ t: Math.round((b.t - from) * 10000) / 10000, beat: b.beat })); } catch (_) { return null; } }
+  // A drum take → its hits as a drum part on a drum-machine track (kick, snare, hats, open hat / ride, crash; on the
+  // grid). 'layer' keeps the recording playing under the kit; 'replace' mutes the recording's clips. Undo takes it back.
+  async function drumsToMidi(t, { mode = null } = {}) {
+    if (!state.folder || !t) return null; if (ro()) { status('Read-only — take over first.'); return null; }
+    const clips = t.clips.filter((c) => c.kind !== 'midi' && !engine.clipMuted(c) && engine.buffers.get(audioId(c)));
+    if (!clips.length) { status('No drum takes on that track yet.'); return null; }
+    if (!mode) { const a = await ask('Drums to MIDI', `Cobander reads the hits off ${t.name} and writes them as a drum part on a drum-machine track (kick, snare, hats, ride / open hat, crash — on the beat). Keep the recording playing too?`, [['Layer: keep both', 'layer'], ['Replace: mute the recording', 'replace', 'danger'], ['Cancel', 'cancel']]); if (!a || a === 'cancel') return null; mode = a; }
+    const parts = []; let k = 0;
+    for (const c of clips) {
+      const buf = engine.buffers.get(audioId(c)); const sr = buf.sampleRate; const i0 = Math.floor((c.trimStart || 0) * sr), i1 = Math.min(buf.length, i0 + Math.floor((engine.clipLength(c) || 0) * sr));
+      if (i1 - i0 < sr * 0.3) continue; const len = (i1 - i0) / sr;
+      const m = mono(window.BPWav.audioBufferToChannels(buf).map((ch) => ch.subarray(i0, i1)));
+      status(`Reading the hits on ${t.name}${clips.length > 1 ? ` (take ${k + 1} of ${clips.length})` : ''}…`, 0);
+      const r = await tabTranscribe(m, sr, 'drums', { op: 'drums', beats: beatsFor(c.start, c.start + len) }); k++;
+      const notes = (r.hits || []).filter((h) => h.t >= 0 && h.t < len).map((h) => ({ t: h.t, d: 0.1, n: h.n, v: Math.max(0.3, Math.min(1, h.vel)) }));
+      if (notes.length) parts.push({ c, len, notes });
+    }
+    if (!parts.length) { status(`Didn't hear drum hits on ${t.name}.`, 7000); return null; }
+    let made = null;
+    const did = change(() => {
+      const kind = TRACK_KINDS.drums; made = engine.addTrack(`${t.name} (MIDI)`.slice(0, 60));
+      const drum = window.BPEngine.DEFAULT_DRUM(); drum.kit = 'rock'; drum.custom = { kick: new Array(16).fill(0), snare: new Array(16).fill(0), hat: new Array(16).fill(0) };   /* no built-in groove: only the hits read off the take */
+      engine.updateTrack(made.id, { type: kind.type, instrument: 'drumkit', gainDb: -3, typeSet: true, drum, fromDrums: t.id });
+      const mt = engine.track(made.id);
+      for (const p of parts) mt.clips.push({ id: newId(), kind: 'midi', name: `drums · from ${p.c.name || t.name}`, start: p.c.start, duration: p.len, trimStart: 0, trimEnd: 0, gainDb: 0, fadeIn: 0, fadeOut: 0, mute: false, takenBy: me(), takenAt: nowIso(), notes: clipNotes(p.notes) });
+      if (mode === 'replace') for (const p of parts) p.c.mute = true;
+      state.selectedTrack = made.id;
+    }, { label: `${t.name} → drum MIDI` });
+    if (!did) { status('Could not add the drum part (read-only or A/B).'); return null; }
+    const n = parts.reduce((a, p) => a + p.notes.length, 0); const by = {}; for (const p of parts) for (const x of p.notes) { const v = window.BPDrums.voiceOf(x.n); by[v] = (by[v] || 0) + 1; }
+    renderAll(); status(`${n} hits → ${made.name} (${Object.entries(by).map(([v, c]) => `${c} ${v}`).join(', ')}). The drum editor edits them; ${MOD}+Z takes it back.`, 10000);
+    return { hits: n, byVoice: by, trackId: made.id, mode };
+  }
   // A sung take → the melody as notes on the Melody track: the note tracker hears it, and the notes are pulled onto the
   // beat grid and toward the key (vibrato and scoops become the note being aimed at). Undo takes it back.
   async function melodyFromVocal(t) {
@@ -7685,6 +7722,7 @@
       }
       case 'workspace': { if (args.ws) setWorkspace(String(args.ws)); return { ws: state.ws, practice: kara.open }; }
       case 'chartAll': return chartAllSongs({ interactive: false });
+      case 'drumsToMidi': { writable(); const t = engine.track(args.trackId); if (!t) throw new Error('no such track'); const r = await drumsToMidi(t, { mode: args.mode === 'replace' ? 'replace' : 'layer' }); if (!r) throw new Error('no drum hits heard'); const mt = engine.track(r.trackId); return { ...r, clips: mt.clips.map((c) => ({ id: c.id, start: c.start, notes: c.notes })) }; }
       case 'melodyFromVocal': { writable(); const t = engine.track(args.trackId); if (!t) throw new Error('no such track'); const r = await melodyFromVocal(t); if (!r) throw new Error('no sung notes heard'); const mt = engine.track(r.trackId); return { ...r, clips: mt.clips.filter((c) => c.fromVocal === t.id).map((c) => ({ id: c.id, start: c.start, notes: c.notes })) }; }
       case 'tabTrack': { writable(); const t = engine.track(args.trackId); if (!t) throw new Error('no such track'); await tabTrack(t, { force: true }); const tb = tabFor(t.id); if (!tb) throw new Error('no notes heard'); return { ...tb, text: tabsText(0) }; }
       case 'partStage': { need(); const t = engine.track(args.trackId) || engine.tracks.find((x) => args.track && x.name.toLowerCase() === String(args.track).toLowerCase()); if (!t) throw new Error('trackId or track (name) required'); const o = {}; if (args.stage !== undefined) { if (args.stage && !CB.STAGE_KEYS.includes(args.stage)) throw new Error(`stage must be ${CB.STAGE_KEYS.join(' | ')} | null`); o.stage = args.stage || null; } if (args.redo !== undefined) o.redo = args.redo || null; if (!Object.keys(o).length) throw new Error('stage or redo required'); if (!setPartStageUI(t, o)) throw new Error('could not set the stage'); const e = partStageOf(t) || {}; return { trackId: t.id, stage: e.stage || null, redo: e.redo || null }; }

@@ -581,6 +581,7 @@ async function startApi() {
     'POST /chords/detect': ({ body }) => askRenderer('chordsDetect', body || {}, 600000),
     'POST /tab': ({ body }) => askRenderer('tabTrack', body || {}, 600000),
     'POST /melody/from-vocal': ({ body }) => askRenderer('melodyFromVocal', body || {}, 600000),
+    'POST /drums/to-midi': ({ body }) => askRenderer('drumsToMidi', body || {}, 600000),
     'GET /tabs': () => askRenderer('tabs', {}),
     'POST /part/stage': ({ body }) => askRenderer('partStage', body || {}),
     'GET /part/stages': () => askRenderer('partStages', {}),

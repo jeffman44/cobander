@@ -3,7 +3,7 @@
 // Out: {id, progress} while it works, then {id, ok, result: {events, notes, tuningCents, key, engine}} | {id, ok:false, error}.
 // The ears are the note tracker (nmp.js + models/nmp.onnx on ONNX Runtime); notes.js writes the notes down like a player.
 // If the tracker can't start (no WebAssembly, model missing) the older spectrum reader (tab.js) answers instead.
-importScripts('tuner.js', 'music.js', 'pitchcheck.js', 'tab.js', 'nmp.js', 'notes.js');
+importScripts('tuner.js', 'music.js', 'pitchcheck.js', 'tab.js', 'nmp.js', 'notes.js', 'drumtx.js');
 let ortP = null;
 function tracker() {
   if (!ortP) ortP = (async () => {
@@ -19,6 +19,10 @@ self.onmessage = async (e) => {
   const d = e.data || {};
   try {
     let result;
+    if (d.op === 'drums') {   /* drum hits: kick / snare / hats / cymbals, snapped to the grid */
+      const r = self.BPDrumTx.transcribe(d.mono, d.sr, { beats: d.beats || null });
+      postMessage({ id: d.id, ok: true, result: { hits: r.hits, engine: 'drums' } }); return;
+    }
     if (d.instrument === 'voice') {   /* singing: the single-pitch tracker hears it, notes.js decides what was meant */
       const PC = self.BPPitchCheck; const sung = PC.track(d.mono, d.sr);
       const r = self.BPNotes.fromSung(sung, { beats: d.beats || null, key: d.key || null, chords: d.chords || null });

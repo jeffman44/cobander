@@ -34,6 +34,7 @@ const ROUTES = [
   ['POST', '/part/share', '{section: id|name} bounce one part (+ a bar of ring-out) with its chart into bounces/<song> - <part> <stamp>/'],
   ['POST', '/comp', '{clipId, from, to} comp: that take is the only one heard on its track between from and to (s); others play as before outside'],
   ['POST', '/workspace', '{ws: "write"|"record"|"mix"|"practice"|"band"} switch the workspace'],
+  ['POST', '/drums/to-midi', '{trackId, mode?:"layer"|"replace"} read the hits off a drum track (kick, snare, hi-hat, open hat / ride, crash), snapped to the beat grid, and write them as a drum part on a new drum-machine track; replace mutes the recording → {hits, byVoice, trackId, clips[]}'],
   ['POST', '/melody/from-vocal', '{trackId} hear the sung notes on a vocal track and write them as MIDI on the Melody track, snapped to the beat grid and pulled toward the key (one clip per take, replacing an earlier one from the same take) → {notes, clips[], trackId}'],
   ['POST', '/tab', '{trackId} read every live take on a guitar / bass track and write its tab (notes + chord voicings as string/fret events) onto the song → {id, instrument, tuningCents, events[], text}'],
   ['POST', '/part/stage', '{trackId|track, stage?: idea|writing|demo|tracking|editing|mixing|review|approved|null, redo?: "text"|null} set where a part is at — anyone can, no lock (it is mailed to whoever has the song) → {trackId, stage, redo}'],

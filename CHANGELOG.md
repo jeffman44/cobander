@@ -1,5 +1,9 @@
 # Cobander changelog
 
+## 0.19.0
+- 🥁 Drums to MIDI: right-click a drum track → Drums to MIDI. The hits are read off the recording — kick, snare, hi-hat, open hat / ride and crash — snapped to the beat, and written as a drum part on a new drum-machine track you can edit hit by hit, re-kit, or export as MIDI. Layer it under the recording or replace the recording with it. Bars that repeat back each other up: a hat buried under a crash is filled in from the bars around it.
+- No more stand-in characters flashing up when Cobander starts: avatars appear once the band's real characters are loaded, and the song list follows them.
+
 ## 0.18.2
 - 🎵 Melody from a vocal: right-click a vocal track → Melody from this track. The sung line is written as notes on the Melody track — vibrato and the scoop into a note are read as the note being aimed at, a note between two is pulled to the one in the key, and every note lands on the beat. Undo takes it back.
 - Practice play-along: tab notes are spread out and move faster when a part is busy (a 16th-note riff no longer arrives as one block), and a ringing note no longer paints over the next one on its string.

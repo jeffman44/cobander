@@ -1241,6 +1241,12 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       { const mf = await jeff.post('/melody/from-vocal', { trackId: tr('Vox').id }); const ns = mf.clips[0].notes;
         assert.deepEqual(ns.map((n) => n.n), [67, 69, 71, 72], JSON.stringify(ns)); ns.forEach((n, k) => { assert.ok(Math.abs(mf.clips[0].start + n.t - (0.5 + k * 0.6)) < 0.07, `note ${k} at ${n.t}`); assert.ok(Math.abs(n.t / 0.125 - Math.round(n.t / 0.125)) < 1e-3, 'on a 16th'); });
         }
+      // drums → MIDI: the sloppy 8ths come back as a drum part on a new drum-machine track, every hit on the grid
+      { const dm = await jeff.post('/drums/to-midi', { trackId: tr('Drums').id, mode: 'layer' }); const ns = dm.clips[0].notes;
+        const times = new Set(ns.map((n) => Math.round((dm.clips[0].start + n.t) * 1000))); assert.ok(times.size >= 24 && times.size <= 40, `hit times ${times.size}: ${JSON.stringify(dm.byVoice)}`);   /* noise bursts aren't any one drum: count the hits, not what they're called */
+        assert.ok(ns.every((n) => Math.abs(n.t / 0.125 - Math.round(n.t / 0.125)) < 1e-3), 'every hit on a 16th');
+        assert.ok(ns.every((n) => [36, 38, 42, 46, 49].includes(n.n)), 'GM drum notes');
+        const st2 = await jeff.get('/state'); const dt = st2.song.tracks.find((t) => t.id === dm.trackId); assert.equal(dt.instrument, 'drumkit'); assert.ok(!st2.song.tracks.find((t) => t.name === 'Drums').clips[0].mute, 'layer keeps the recording'); }
       // phone page: on, the page and its live state answer on the network port with the key
       await jeff.evalJs(`window.cobander.phone.start().then(() => true)`);
       const ph = await jeff.get('/phone'); assert.ok(ph.on);
