@@ -946,3 +946,8 @@ write_page('faq.html', 'Troubleshooting', 'Fixes for the usual Cobander problems
   <li>Pick it under ⚙ → <b>MIDI input</b>. The <b>midi</b> light at the top of Record blinks when it's talking to Cobander.</li>
 </ul>
 ''')
+
+# the manual pages carry SEO tags added by gen-seo-pages.py between <!-- seo:start/end --> markers: re-add them
+import subprocess as _sp, sys as _sys, os as _os
+_root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+_sp.run([_sys.executable, '-I', _os.path.join(_root, 'scripts', 'gen-seo-pages.py'), _os.path.join(_root, 'docs')], check=True)
