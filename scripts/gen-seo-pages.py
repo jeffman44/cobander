@@ -275,6 +275,146 @@ PAGES = [
             ('Does it upload my singing?', 'No. It runs on your own computer.'),
         ],
     },
+    {
+        'slug': 'free-recording-software',
+        'title': 'Free Recording Software for Bands — Windows and Mac — Cobander',
+        'nav': 'Free recording software',
+        'desc': 'Cobander is free multitrack recording software built for bands writing songs together: each member records from home into the same song through your shared cloud folder. Unlimited tracks, lossless takes, punch-ins, comping, a mixer, tuner and click. No trial, no watermark, no subscription.',
+        'h1': 'Free recording software built for a band, not one guy at one desk',
+        'lead': 'Plug in, arm a track, hit R — and your bandmates hear the take in the song from their own houses. Cobander is real multitrack recording on Windows and Mac, organized around a band writing songs together, and the free version is the whole program, not a trial.',
+        'img': ('mix.jpg', 'Cobander\'s Mix workspace: multitrack timeline with a mixing console'),
+        'sections': [
+            ('Everyone records into the same song', [
+                'Share the song through a Google Drive, OneDrive, iCloud or Dropbox folder. The drummer records at his place, the singer at hers, and every take lands on its own track, lined up with everyone else\'s. Notes, takes and votes on which take to keep are all in the song, so nobody is chasing files in a group chat.',
+            ]),
+            ('What you get for free', [
+                'Unlimited tracks and takes in a song. Takes are saved lossless, so nothing gets squashed on the way in.',
+                'Punch in to fix one bar without redoing the whole part. Record several takes and comp the best pieces together.',
+                'A click with count-in, a built-in tuner, a drum machine and drum generator, and MIDI instruments you can play from a USB keyboard or draw in with the mouse.',
+                'A real mixer: faders, pan, sends, EQ, compression, amp sims for DI guitar and bass, reverb and delay. Auto mix and Auto master get you a balanced, loud-enough rough mix in two clicks.',
+                'Bounce the mix or stems (one file per instrument) as WAV files.',
+            ]),
+            ('The one limit', [
+                'The free version holds one song per band folder. Every feature, every update, no watermark, no time limit. A one-time license unlocks unlimited songs for the whole band — no subscription.',
+            ]),
+            ('Works with the gear you have', [
+                'Cobander records from whatever your computer sees as an input: a USB audio interface, a USB mic, or the laptop\'s built-in mic for a quick idea. Pick mono or stereo per track, and set the latency once so takes line up with the music.',
+            ]),
+            ('Made for getting songs down', [
+                'Most recording programs open to a blank grid and a hundred menus. Cobander opens to your songs, explains every button when you hover over it, and has a help mode (F1) that labels the whole screen. It is built for a band getting ideas recorded fast, not for engineering an album.',
+            ]),
+        ],
+        'faq': [
+            ('Is it really free?', 'Yes. The free version is the full program with one song per band folder. You only pay if you want more songs.'),
+            ('Does it work on Windows and Mac?', 'Yes — Windows 10/11 and Macs with Apple silicon or Intel.'),
+            ('Do I need an audio interface?', 'No, but it helps. Any input your computer recognizes works, including USB mics and the built-in mic.'),
+            ('Can I use plugins?', 'No. Cobander has its own EQ, compression, amp sims, reverb and delay built in, and hands a session off to a studio program when a song needs more.'),
+        ],
+    },
+    {
+        'slug': 'free-songwriting-software',
+        'title': 'Free Songwriting Software for Bands and Co-Writers — Cobander',
+        'nav': 'Free songwriting software',
+        'desc': 'Free songwriting software that gets the whole band writing the same song: lyrics, chords, structure, melody and demo takes in one place, synced through your shared cloud folder. Windows and Mac.',
+        'h1': 'Free songwriting software that gets the whole band on the same song',
+        'lead': 'The singer has lyrics in a notes app, the guitarist has the riff in a voice memo, the drummer has no idea what the bridge is. Cobander puts the whole song on one timeline in your band\'s shared folder, so everyone is writing the same song instead of chasing fragments.',
+        'img': ('write.jpg', 'Cobander\'s Write workspace: song sections, chord lane and lyrics on the timeline'),
+        'sections': [
+            ('Lyrics where they are sung', [
+                'Type lyrics into a section, or sing a take and let Cobander transcribe the words for you. Each word is pinned to its moment in the song, so the lyric sheet and the recording never drift apart.',
+            ]),
+            ('Chords on a lane', [
+                'Put chords on the chord lane above the timeline with a key-aware picker that suggests chords that fit, or let Cobander draft them from a guitar, keys or bass take. Transpose the chart for a capo in one move.',
+            ]),
+            ('Structure you can see and move', [
+                'Start from a song structure, or build one section at a time. Drag a chorus, copy it, link two choruses so a fix to one fixes both, or move the bridge — the recordings go with it.',
+            ]),
+            ('Melody and ideas', [
+                'Sing a line and it becomes notes on the melody track, or type a lyric and get a melody to try. A parts bin holds riffs that don\'t have a song yet; drop one in and it is matched to the song\'s tempo and key.',
+            ]),
+            ('Hear it right away', [
+                'A drum part, a guide melody and a scratch take are enough to hear whether a chorus works. Record over it, keep the good takes, and come back tomorrow to a song that plays.',
+            ]),
+            ('Everyone knows what\'s next', [
+                'Share the song folder and co-writers add lyrics, notes and takes from wherever they are. Leave a note on a bar, tag someone, and track each part from idea to approved.',
+            ]),
+        ],
+        'faq': [
+            ('Is it for solo songwriters too?', 'Yes. Everything works for one person; sharing with a band is optional.'),
+            ('Do I need to know music theory?', 'No. The chord picker suggests chords in your key and every control explains itself when you hover over it.'),
+            ('What does free include?', 'Every feature, with one song per folder. A one-time license unlocks unlimited songs.'),
+        ],
+    },
+    {
+        'slug': 'home-recording-for-beginners',
+        'title': 'Home Recording for Beginners: Record Your Band\'s First Song — Cobander',
+        'nav': 'Home recording for beginners',
+        'desc': 'A plain-English guide to recording music at home: the gear you actually need, setting levels, recording to a click, fixing mistakes, and mixing a demo — with free software.',
+        'h1': 'Home recording for beginners: your band\'s first song, start to finish',
+        'lead': 'Your band doesn\'t need a studio — or even the same room — to record a good demo. Each person needs a computer, an input, headphones and a program that doesn\'t fight them. Here is the whole process, step by step, using free software.',
+        'img': ('mix.jpg', 'A song recorded at home in Cobander, with the mixer below the timeline'),
+        'sections': [
+            ('The gear you actually need', [
+                'A computer (Windows or Mac), wired headphones so the click doesn\'t bleed into the mic, and a way to get sound in. A USB audio interface with one or two inputs is the usual step up; a USB mic works for vocals and acoustic guitar; your laptop\'s mic is fine for capturing an idea.',
+                'Electric guitar and bass can go straight into the interface — Cobander has amp sims built in, so you don\'t need to mic an amp.',
+            ]),
+            ('Record your first song', [[
+                'Make a song and set the tempo. Pick a structure if you know it, or start with one section.',
+                'Add a track for each instrument. Choose the input and whether it is mono or stereo.',
+                'Set the level: play your loudest part and keep the meter out of the red. Too quiet is easy to fix; clipped is not.',
+                'Turn on the click and a count-in, arm the track and record. Start with the instrument that keeps time — usually drums or rhythm guitar.',
+                'Record the other parts over it. Missed a bar? Punch in on just that bar. Not sure which take was best? Keep several and comp.',
+                'Mix: press Auto mix for a starting balance, then adjust faders until the vocal sits on top. Auto master brings it to a normal listening level.',
+                'Bounce the mix to a WAV file and send it to your band.',
+            ]]),
+            ('Common beginner problems', [
+                'Takes sound late: set your latency once in Cobander\'s settings so recordings line up with what you heard.',
+                'Everything sounds muddy: turn the bass down on everything that isn\'t bass or kick. The mixer\'s quick fixes do this per track.',
+                'The vocal disappears: it\'s almost always too quiet or the guitars are too loud in the middle. Push the vocal up before you reach for effects.',
+            ]),
+            ('When you play in a band', [
+                'Put the song in a shared Google Drive, OneDrive, iCloud or Dropbox folder and each person records their part at home. Cobander lines everyone\'s takes up in the same song.',
+            ]),
+        ],
+        'faq': [
+            ('What is the best free recording software for beginners?', 'Pick one that opens fast, explains itself, and doesn\'t limit tracks. Cobander is free with every feature and labels every button in plain words.'),
+            ('Do I need to treat my room?', 'Not for a demo. Record close to the mic, away from bare walls, and use headphones.'),
+            ('Can I record drums at home?', 'Yes, with mics into an interface, or use the built-in drum machine and drum generator to write a part.'),
+        ],
+    },
+    {
+        'slug': 'online-music-collaboration',
+        'title': 'Collaborate on Music Online With Google Drive or Dropbox — Cobander',
+        'nav': 'Online music collaboration',
+        'desc': 'Make music with people in other houses or other cities. Cobander syncs songs, takes, lyrics and notes through the Google Drive, OneDrive, iCloud or Dropbox folder you already share — no new account, no upload limits.',
+        'h1': 'Make music with people who aren\'t in the room',
+        'lead': 'Online music collaboration usually means a website, an account for everyone, upload limits and a monthly fee. Cobander skips all of that: the song lives in a folder you already share, and everyone works on it from their own computer.',
+        'img': ('write.jpg', 'One song in Cobander with every bandmate\'s parts, chords and lyrics on the same timeline'),
+        'sections': [
+            ('How it works', [[
+                'Make a folder in Google Drive, OneDrive, iCloud Drive or Dropbox and share it with your collaborators.',
+                'Point Cobander at that folder on each computer.',
+                'Make a song. Everyone sees it, opens it, and records, writes or comments on their own time.',
+            ]]),
+            ('No stepping on each other', [
+                'Locks show who is editing a song or a track, and two people\'s changes are merged instead of one overwriting the other. Versions keep the history, so any earlier state of the song can come back.',
+            ]),
+            ('Talk about the music, on the music', [
+                'Leave a note on a bar, tag a collaborator, react to a take, vote on which take to keep. The feed shows what changed since you last looked.',
+            ]),
+            ('Your files stay yours', [
+                'There is no Cobander server. Songs are ordinary folders with the song\'s name and audio files inside, in storage you already pay for or get free. If you stop using Cobander tomorrow, your recordings are still sitting there.',
+            ]),
+            ('Not a live jam', [
+                'Cobander isn\'t real-time jamming over the internet — the internet is too slow for playing in time. It\'s for writing and recording songs together, each person adding their part when they can.',
+            ]),
+        ],
+        'faq': [
+            ('Does everyone need the same cloud service?', 'Everyone needs access to the same shared folder, so pick one service for the band.'),
+            ('Is there a file size limit?', 'Only your cloud storage. Takes are compressed losslessly to save space.'),
+            ('Mac and Windows together?', 'Yes.'),
+        ],
+    },
 ]
 
 STYLE = """
@@ -302,6 +442,7 @@ figure { margin:26px 0 8px; } picture { display:contents; } picture source { dis
 .btn.hot { background:var(--noodle); color:#1d1d1d; } .btn.hot:hover { background:#ffc94d; }
 .btn.cool { color:var(--white); border-color:var(--line); } .btn.cool:hover { border-color:var(--steel); }
 .fine { font-size:14px; color:var(--steel); }
+ol { padding-left:22px; margin:0 0 14px; color:#d6d9e0; } ol li { margin:0 0 8px; }
 .faq { border-top:2px solid var(--noodle); margin-top:40px; }
 .more { display:flex; flex-wrap:wrap; gap:8px 18px; padding:0; list-style:none; margin:0 0 10px; }
 footer { border-top:1px solid var(--line); margin-top:48px; padding:22px 0 40px; color:var(--steel); font-size:14px; }
@@ -326,7 +467,7 @@ def page(p):
     body = []
     for h, paras in p['sections']:
         body.append(f'<h2>{esc(h)}</h2>')
-        body += [f'<p>{esc(x)}</p>' for x in paras]
+        body += [(f'<ol>' + ''.join(f'<li>{esc(y)}</li>' for y in x) + '</ol>') if isinstance(x, list) else f'<p>{esc(x)}</p>' for x in paras]
     faq = ''.join(f'<h3>{esc(q)}</h3><p>{esc(a)}</p>' for q, a in p['faq'])
     more = ''.join(f'<li><a href="../{o["slug"]}/">{esc(o["nav"])}</a></li>' for o in PAGES if o is not p)
     return f"""<!doctype html>

@@ -22,6 +22,7 @@ figure { margin:26px 0 8px; } picture { display:contents; } picture source { dis
 .btn.hot { background:var(--noodle); color:#1d1d1d; } .btn.hot:hover { background:#ffc94d; }
 .btn.cool { color:var(--white); border-color:var(--line); } .btn.cool:hover { border-color:var(--steel); }
 .fine { font-size:14px; color:var(--steel); }
+ol { padding-left:22px; margin:0 0 14px; color:#d6d9e0; } ol li { margin:0 0 8px; }
 .faq { border-top:2px solid var(--noodle); margin-top:40px; }
 .more { display:flex; flex-wrap:wrap; gap:8px 18px; padding:0; list-style:none; margin:0 0 10px; }
 footer { border-top:1px solid var(--line); margin-top:48px; padding:22px 0 40px; color:var(--steel); font-size:14px; }
