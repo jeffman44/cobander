@@ -250,8 +250,10 @@
     const end = Math.max(...notes.map((x) => x.t + (x.d || 0)));
     const slots = slotsFrom(beats, barStarts, chordsPerBar, end);
     const units = slots.map(([a, z]) => {
-      const c = new Float32Array(12); const bass = new Float32Array(12); let low = Infinity, e = 0;
-      for (const x of notes) { const s = Math.max(a, x.t), f = Math.min(z, x.t + (x.d || 0.1)); if (f <= s) continue; const w = (f - s) * (x.v == null ? 1 : x.v); c[mod(x.n)] += w; e += w; if (x.n < low) low = x.n; }
+      const c = new Float32Array(12); const bass = new Float32Array(12); let low = Infinity, e = 0; const lows = [];
+      for (const x of notes) { const s = Math.max(a, x.t), f = Math.min(z, x.t + (x.d || 0.1)); if (f <= s) continue; const w = (f - s) * (x.v == null ? 1 : x.v); c[mod(x.n)] += w; e += w; lows.push([x.n, w]); if (x.n < low) low = x.n; }
+      // the bass note is the low note that is held / repeated most, not a passing note that dips below it once
+      if (lows.length) { const tot = new Map(); for (const [n, w] of lows) tot.set(n, (tot.get(n) || 0) + w); const mx = Math.max(...tot.values()); const held = [...tot].filter(([, w]) => w >= 0.3 * mx).map(([n]) => n); if (held.length) low = Math.min(...held); }
       // fold in harmonics like a real instrument so the audio templates fit
       const c2 = new Float32Array(12); for (let k = 0; k < 12; k++) if (c[k]) for (const [h, hw] of HARM) c2[mod(k + h)] += c[k] * hw;
       if (low < Infinity) bass[mod(low)] = 1;

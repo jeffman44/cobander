@@ -1,5 +1,17 @@
 # Cobander changelog
 
+## 0.18.0
+- Tabs are rebuilt from the ground up. Cobander now listens for every note that rings, with a small note-tracking model that runs on your computer, and writes the part down the way a player would:
+  - riffs and single-note lines come through note for note, not just the chords
+  - notes snap to the song's beat grid (16ths, or triplets where a bar is played in threes)
+  - a weak note outside the song's key is pulled to the in-key note right next to it when the recording backs that up
+  - bars that repeat back each other up: a riff played cleanly three times fills in a note the fourth pass barely sounded, and a stray blip only one pass has is dropped (filled-in notes are marked)
+  - overtones the ear picks up aren't written down as extra notes; octaves inside power chords and strums stay
+  - frets are chosen like a guitarist would: one hand position, the same note in the same place, real chord shapes
+- Chords from the recordings are now built from those notes (guitar, keys and bass together), so the chord lane follows what was actually played. The old method is still there as a fallback.
+- New track types: Rhythm guitar and Lead guitar (in + track and in the new-song wizard). An existing guitar track can be marked under right-click → Chords & tabs → Guitar part. Practice files the tab under that part.
+- Reading a take shows its progress.
+
 ## 0.17.4
 - No more level-up show every time Cobander starts. It only plays when you actually reach a new level, and always with your own character.
 - The level-up screen drops the big mascot picture behind your character.

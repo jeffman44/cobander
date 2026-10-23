@@ -829,7 +829,7 @@
 
   // ---------- new-song wizard + templates ----------
   const TPL = window.BPTemplates;
-  const KIND_LABEL = { guitar: 'Guitar', bass: 'Bass', vocals: 'Vocals', drumsMic: 'Drums (mics)', drums: 'Drum machine', keys: 'Keys', other: 'Other audio' };
+  const KIND_LABEL = { guitar: 'Guitar', rhythmGuitar: 'Rhythm guitar', leadGuitar: 'Lead guitar', bass: 'Bass', vocals: 'Vocals', drumsMic: 'Drums (mics)', drums: 'Drum machine', keys: 'Keys', other: 'Other audio' };
   async function allTemplates() {
     let band = []; try { band = (await bp.templates.list()).map(TPL.normalize).filter(Boolean).map((t) => ({ ...t, band: true })); } catch (_) {}
     return [...TPL.BUILTIN, ...band];
@@ -2168,6 +2168,7 @@
           { title: 'Show the chart moved for a capo / another key (nothing is re-tuned)' },
           ...[0, -1, -2, -3, -4, -5, 1, 2, 3].map((k) => ({ label: k === 0 ? 'As written' : k < 0 ? `Capo ${-k} (chords shown ${k})` : `Up ${k} half step${k === 1 ? '' : 's'}`, action: () => showChartShifted(k) })),
           'sep', { label: 'Chords from this track (listen to the takes)', action: () => chordsFromTracks([t]).catch(fail), disabled: ro() },
+          ...(AMX.role(t) === 'gtr' ? [{ label: `Guitar part: ${t.guitarRole === 'lead' ? 'lead' : t.guitarRole === 'rhythm' ? 'rhythm' : 'not set'}`, sub: [['rhythm', 'Rhythm guitar (chords and riffs)'], ['lead', 'Lead guitar (lines, fills, solos)'], [null, 'Not set (tell from what is played)']].map(([v, lb]) => ({ label: `${(t.guitarRole || null) === v ? '✓ ' : ''}${lb}`, disabled: ro(), action: () => { change(() => { engine.updateTrack(t.id, { guitarRole: v || undefined }); const tb = tabFor(t.id); if (tb) tb.role = v || TB.partRole(tb.events, t.name); }, { label: `${t.name}: ${v || 'no'} guitar part` }); renderAll(); } })) }] : []),
           { label: `Tab from this track (${bassTrack(t) ? 'bass' : 'guitar'}: every note and chord shape)`, hint: 'reads the takes', action: () => tabTrack(t).catch(fail), disabled: ro() || tabBusy },
           ...(AMX.role(t) === 'gtr' || bassTrack(t) || tabFor(t.id) ? [{ label: tabFor(t.id) ? 'Edit the tab…' : 'Write a tab by hand…', hint: 'type frets on the strings', action: () => openTabEditor(t).catch(fail) }] : []),
           { label: 'Play-along highway (Practice → play along)', action: () => { setWorkspace('practice'); setTimeout(() => { const al = $('#k-along'); if (al) { karaTabOptions(); al.value = bassTrack(t) ? 'bass' : AMX.role(t) === 'gtr' && [...al.options].some((o) => o.value === `gtr:${t.id}`) ? `gtr:${t.id}` : 'chords'; al.dispatchEvent(new Event('change')); } }, 300); } }] },
@@ -3480,20 +3481,22 @@
   const tabSrcKey = (t) => t.clips.filter((c) => c.kind !== 'midi' && !engine.clipMuted(c)).map((c) => `${audioId(c)}@${c.start}:${c.trimStart || 0}:${c.trimEnd || 0}`).join(',');
   // tab reading runs in a worker (tab-worker.js) so Practice keeps scrolling; the page thread only if it can't start
   let tabWorker = null, tabWorkerOff = false, tabSeq = 0; const tabJobs = new Map();
-  function tabTranscribe(m, sr, instrument) {
+  function tabTranscribe(m, sr, instrument, { beats = null, key = null, op = 'tab', onProgress = null } = {}) {
     if (!tabWorker && !tabWorkerOff && typeof Worker !== 'undefined') {
       try {
         tabWorker = new Worker('tab-worker.js');
-        tabWorker.onmessage = (e) => { const d = e.data || {}; const j = tabJobs.get(d.id); if (!j) return; tabJobs.delete(d.id); if (d.ok) j.res(d.result); else j.rej(new Error(d.error)); };
+        tabWorker.onmessage = (e) => { const d = e.data || {}; const j = tabJobs.get(d.id); if (!j) return; if (d.progress != null) { if (j.onProgress) j.onProgress(d.progress); return; } tabJobs.delete(d.id); if (d.ok) j.res(d.result); else j.rej(new Error(d.error)); };
         tabWorker.onerror = (ev) => { const err = new Error(`tab worker: ${ev.message || 'failed'}`); for (const j of tabJobs.values()) j.rej(err); tabJobs.clear(); tabWorker = null; tabWorkerOff = true; };
       } catch (_) { tabWorker = null; tabWorkerOff = true; }
     }
-    const inPage = () => new Promise((res) => setTimeout(() => res(TB.transcribe(m, sr, { instrument })), 0));
+    const inPage = () => (op === 'notes' ? Promise.reject(new Error('note reading needs the worker')) : new Promise((res) => setTimeout(() => res({ ...TB.transcribe(m, sr, { instrument }), engine: 'dsp' }), 0)));
     if (!tabWorker) return inPage();
     const copy = m.slice();   /* its own buffer, handed over whole (a view would clone the entire take) */
-    return new Promise((res, rej) => { const id = ++tabSeq; tabJobs.set(id, { res, rej }); tabWorker.postMessage({ id, mono: copy, sr, instrument }, [copy.buffer]); })
+    return new Promise((res, rej) => { const id = ++tabSeq; tabJobs.set(id, { res, rej, onProgress }); tabWorker.postMessage({ id, op, mono: copy, sr, instrument, beats, key }, [copy.buffer]); })
       .catch((err) => { if (/tab worker/.test(err.message)) return inPage(); throw err; });
   }
+  // the song's beats inside a stretch of song time, in that stretch's own clock (for snapping a take's notes to the grid)
+  function beatsFor(from, to) { try { const map = engine.meterMap(); return window.BPMeter.beatsIn(map, Math.max(0, from), to).map((b) => ({ t: Math.round((b.t - from) * 10000) / 10000, beat: b.beat })); } catch (_) { return null; } }
   // read a track's takes into a tab entry and store it (newest per track wins; Undo brings the old one back)
   async function readTab(t) {
     const clips = t.clips.filter((c) => c.kind !== 'midi' && !engine.clipMuted(c) && engine.buffers.get(audioId(c)));
@@ -3504,14 +3507,15 @@
       const buf = engine.buffers.get(audioId(c)); const sr = buf.sampleRate; const i0 = Math.floor((c.trimStart || 0) * sr), i1 = Math.min(buf.length, i0 + Math.floor((engine.clipLength(c) || 0) * sr));
       if (i1 - i0 < sr * 0.1) continue;
       const m = mono(window.BPWav.audioBufferToChannels(buf).map((ch) => ch.subarray(i0, i1)));
-      const r = await tabTranscribe(m, sr, instrument);
+      const len = (i1 - i0) / sr; const k = n; const of = clips.length;
+      const r = await tabTranscribe(m, sr, instrument, { beats: beatsFor(c.start, c.start + len), key: state.song.key || null, onProgress: (p) => status(`Reading ${t.name}${of > 1 ? ` (take ${k + 1} of ${of})` : ''}… ${Math.round(p * 100)}%`, 0) });
       for (const e of r.events) events.push({ ...e, t: Math.round((e.t + c.start) * 1000) / 1000 });
       tuning += r.tuningCents; n++;
     }
     events.sort((a, b) => a.t - b.t);
     if (!events.length) return { events, empty: true, instrument };
     if (!engine.track(t.id) || !state.song) return null;   // the song closed while it was reading
-    const entry = { id: newId(), trackId: t.id, track: t.name, instrument, role: instrument === 'bass' ? 'bass' : TB.partRole(events, t.name), tuningCents: n ? Math.round(tuning / n) : 0, events, srcKey, by: me(), at: nowIso() };
+    const entry = { id: newId(), trackId: t.id, track: t.name, instrument, role: instrument === 'bass' ? 'bass' : (t.guitarRole || TB.partRole(events, t.name)), tuningCents: n ? Math.round(tuning / n) : 0, events, srcKey, by: me(), at: nowIso() };
     cchange(() => { for (const x of CB.list(state.song, 'tabs')) if (x.trackId === t.id && !x.deleted) { x.deleted = true; x.deletedBy = me(); x.deletedAt = nowIso(); } (state.song.tabs = state.song.tabs || []).push(entry); }, { label: `tab ${t.name}` });
     return entry;
   }
@@ -4420,8 +4424,20 @@
         let found = [];
         const midiTracks = harm.filter((t) => t.clips.some((c) => c.kind === 'midi')); const audioHarm = harm.filter((t) => t.instrument === 'audio');
         const sum = async (ts) => { let acc = null, sr = 48000; for (const t of ts) { const r = await engine.render({ soloTrackId: t.id, from: 0, to: len, unityMaster: true, exact: true, limiter: false }); const m = mono(r.channels); sr = r.sampleRate; if (!acc) acc = new Float32Array(m.length); for (let i = 0; i < Math.min(acc.length, m.length); i++) acc[i] += m[i]; } return acc ? { x: acc, sr } : null; };
-        const H = await sum(audioHarm.length ? audioHarm : bass); const B = bass.length && audioHarm.length ? await sum(bass) : null;
-        if (H) found = CD.detect({ audio: H.x, sr: H.sr, beats, barStarts, bassAudio: B ? B.x : null, key: state.song.key || null });
+        // chords are built from the notes actually played: every guitar / keys / bass track is read note by note (the note
+        // tracker), then the notes in each half bar are named. The older chroma reader is the fallback.
+        if (audioHarm.length || bass.length) {
+          try {
+            const notes = []; const all = [...audioHarm, ...bass];
+            for (let i = 0; i < all.length; i++) {
+              const t = all[i]; const r = await engine.render({ soloTrackId: t.id, from: 0, to: len, unityMaster: true, exact: true, limiter: false });
+              const res = await tabTranscribe(mono(r.channels), r.sampleRate, bassTrack(t) ? 'bass' : 'guitar', { op: 'notes', beats: beatsFor(0, len), key: state.song.key || null, onProgress: (p) => status(`Listening for chords… ${t.name} ${Math.round(((i + p) / all.length) * 100)}%`, 0) });
+              for (const x of res.notes || []) notes.push(x);
+            }
+            if (notes.length) found = CD.fromNotes(notes, { beats, barStarts, key: state.song.key || null });
+          } catch (err) { console.warn('chords from notes:', err); found = []; }
+        }
+        if (!found.length && (audioHarm.length || bass.length)) { const H = await sum(audioHarm.length ? audioHarm : bass); const B = bass.length && audioHarm.length ? await sum(bass) : null; if (H) found = CD.detect({ audio: H.x, sr: H.sr, beats, barStarts, bassAudio: B ? B.x : null, key: state.song.key || null }); }
         if (!found.length && midiTracks.length) {
           const notes = []; for (const t of midiTracks) for (const c of t.clips) if (c.kind === 'midi' && !engine.clipMuted(c)) for (const n of c.notes || []) { const at = c.start + n.t - (c.trimStart || 0); if (at >= c.start - 1e-6 && at < clipEnd(c)) notes.push({ t: at, d: n.d, n: n.n, v: n.v }); }
           found = CD.fromNotes(notes, { beats, barStarts, key: state.song.key || null });
@@ -5979,6 +5995,8 @@
   // "+ track" asks what you're recording and sets up type, a sensible default preset, source and arming.
   const TRACK_KINDS = {
     guitar: { name: 'Guitar', type: 'guitar', preset: 'Crunch', instrument: 'audio', arm: true },
+    rhythmGuitar: { name: 'Rhythm gtr', type: 'guitar', guitarRole: 'rhythm', preset: 'Crunch', instrument: 'audio', arm: true },
+    leadGuitar: { name: 'Lead gtr', type: 'guitar', guitarRole: 'lead', preset: 'Crunch', instrument: 'audio', arm: true },
     bass:   { name: 'Bass', type: 'bass', preset: 'Clean Round', instrument: 'audio', arm: true },
     vocals: { name: 'Vox', type: 'vocals', preset: 'Rock Lead Vox', instrument: 'audio', arm: true },
     other:  { name: 'Audio', type: 'other', preset: 'Flat', instrument: 'audio', arm: true },
@@ -6027,6 +6045,7 @@
       made = engine.addTrack(name || (nn > 1 ? `${k.name} ${nn}` : k.name));
       const patch = { type: k.type, instrument: k.instrument, gainDb: k.instrument === 'drumkit' ? -3 : -6, typeSet: true };   // picked by hand in Add track   // start with headroom so a few tracks don't pin the master
       if (k.instrument === 'drumkit') { const drum = window.BPEngine.DEFAULT_DRUM(); if (k.drum) Object.assign(drum, k.drum); if (!PR.DRUM_PATTERNS[drum.pattern]) drum.pattern = 'Rock 4/4'; if (!window.BPSynth.KITS[drum.kit]) drum.kit = 'rock'; patch.drum = drum; }
+      if (k.guitarRole) patch.guitarRole = k.guitarRole;
       engine.updateTrack(made.id, patch);
       state.selectedTrack = made.id;
       if (k.arm) state.armedTrack = made.id; else if (state.armedTrack === made.id) state.armedTrack = null;

@@ -16,7 +16,7 @@ const ROUTES = [
   ['GET', '/songs', 'Songs in the shared folder with lock status and Drive conflict copies'],
   ['POST', '/song/open', '{folder, force?} open a song (soft lock); force takes over. Opening another song saves the current one first.'],
   ['POST', '/song/close', 'save if dirty, release lock, close song'],
-  ['POST', '/song/create', '{name, template?:id (GET /templates), arrangement?:id (GET /arrangements), bpm?, timeSig?:[n,d], key?:"Em", click?:bool, tracks?:[kind] (guitar|bass|vocals|drumsMic|drums|keys|other)} — with a template: sections, tempo, starter tracks and groove are laid out'],
+  ['POST', '/song/create', '{name, template?:id (GET /templates), arrangement?:id (GET /arrangements), bpm?, timeSig?:[n,d], key?:"Em", click?:bool, tracks?:[kind] (guitar|rhythmGuitar|leadGuitar|bass|vocals|drumsMic|drums|keys|other)} — with a template: sections, tempo, starter tracks and groove are laid out'],
   ['POST', '/song/save', '{force?} save current song.json (rev++, new saveId). Returns {result:"ok"|"conflict"|"error"|"readonly", rev, dirty, conflict, error}. result:"readonly" means take over first.'],
   ['POST', '/song/reload', 're-read song.json from disk (after an external edit)'],
   ['POST', '/song/rename', '{name} rename the open song: its folder is renamed too (you must hold the song; nobody else may have it open); XP, goals and tasks carry over → {folder, name}'],
