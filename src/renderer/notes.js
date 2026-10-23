@@ -31,7 +31,7 @@
   // ---------- 2. decode ----------
   // post: { T, note: Float32Array(T*88), onset: Float32Array(T*88), contour?: Float32Array(T*264) }
   // returns [{ f0, f1, midi, amp }] (frames)
-  function decode(post, { onsetThresh = 0.5, frameThresh = 0.3, minLen = 6, energyTol = 11, minMidi = 21, maxMidi = 108, inferOnsets = true, melodia = true } = {}) {
+  function decode(post, { onsetThresh = 0.5, frameThresh = 0.3, minLen = 6, energyTol = 11, minMidi = 21, maxMidi = 108, inferOnsets = true, melodia = false } = {}) {
     const { T, note } = post; let onset = post.onset;
     const lo = Math.max(0, minMidi - MIDI0), hi = Math.min(NP - 1, maxMidi - MIDI0);
     const at = (a, t, p) => a[t * NP + p];
@@ -138,7 +138,7 @@
 
   // ---------- 3. tidy ----------
   // notes: [{f0,f1,midi,amp}] → [{t, d, midi, amp, slot?}]
-  function tidy(raw, post, { instrument = 'guitar', tuning = null, beats = null, key = null, minAmp = 0.3, overtone = 0.5, overtoneIv = [12, 19, 24, 28, 31], vote = true, keyFix = true } = {}) {
+  function tidy(raw, post, { instrument = 'guitar', tuning = null, beats = null, key = null, minAmp = 0.3, overtone = 0.5, overtoneIv = [12, 19, 24, 28, 31], vote = true, keyFix = true, ghost = 0 } = {}) {
     const tn = tuning || (instrument === 'bass' ? BASS : GUITAR); const lowM = tn[0], highM = tn[tn.length - 1] + (instrument === 'bass' ? 21 : 22);
     let notes = raw.filter((n) => n.midi >= lowM && n.midi <= highM && n.amp >= minAmp).map((n) => ({ ...n, t: frameTime(n.f0), d: frameTime(n.f1) - frameTime(n.f0) }));
     // overtones: a note an octave / twelfth / two octaves above a louder note struck at the same time, much weaker than it
@@ -155,8 +155,11 @@
     // a lead) it is the lower note's own overtone. A bass plays one note at a time anyway.
     const partnerOf = (n) => notes.find((m) => m !== n && overtoneIv.includes(n.midi - m.midi) && Math.abs(m.f0 - n.f0) <= 3 && n.f1 <= m.f1 + 6);
     const monoAround = (n) => { const w = 0.7 * FPS; let near = notes.filter((m) => Math.abs(m.f0 - n.f0) > 3 && Math.abs(m.f0 - n.f0) < w); if (near.length < 3) near = notes.filter((m) => Math.abs(m.f0 - n.f0) > 3 && Math.abs(m.f0 - n.f0) < 4 * w); if (near.length < 2) return 0.5; const ms = near.slice().sort((x, y) => x.f0 - y.f0); const groups = []; for (const m of ms) { const g = groups[groups.length - 1]; if (g && m.f0 - g.first <= 7) g.ms.push(m.midi); else groups.push({ first: m.f0, ms: [m.midi] }); } const chordal = (g) => { const lo = Math.min(...g.ms); return g.ms.some((x) => x !== lo && !overtoneIv.includes(x - lo)); }; return groups.filter((g) => !chordal(g)).length / groups.length; };
+    // a weaker note at an overtone of a note that is still ringing (it started earlier) in a single-note line: the string's
+    // own overtone, picked up late
+    const ringingUnder = (n) => notes.find((m) => m !== n && overtoneIv.includes(n.midi - m.midi) && m.f0 < n.f0 - 3 && m.f1 >= n.f0 + 2 && n.amp < ghost * m.amp);
     { const drop = new Set();
-      for (const n of notes) { const m = partnerOf(n); if (!m) continue;
+      for (const n of notes) { if (ghost && instrument !== 'bass' && ringingUnder(n) && monoAround(n) >= 0.5) { drop.add(n); continue; } const m = partnerOf(n); if (!m) continue;
         if (n.amp < overtone * m.amp) { drop.add(n); continue; }
         if (instrument === 'bass' || monoAround(n) >= 0.6) drop.add(n.amp <= 1.4 * m.amp ? n : m);   /* one of the two is the other's shadow: keep the louder (a much louder upper note means the low one was a distortion sub-tone) */ }
       notes = notes.filter((n) => !drop.has(n)); }
@@ -232,6 +235,7 @@
     return out;
   }
   // every playable way to fret an event: one note per string, strings in pitch order, a span a hand can hold
+  const FW = { low: 0.04, move: 1.5, jump: 3, strLo: 0.15, strHi: 0.1, span: 0.3, high: 0.3, relax: 0.3 };
   function fingerings(midis, tuning, { maxFret = 22, maxSpan = 4, limit = 24 } = {}) {
     const S = tuning.length; const out = [];
     const rec = (i, s0, fr) => {
@@ -240,7 +244,7 @@
       for (let s = s0; s < S; s++) { const x = midis[i] - tuning[s]; if (x < 0 || x > maxFret) continue; fr[s] = x; rec(i + 1, s + 1, fr); fr[s] = -1; }
     };
     rec(0, 0, new Array(S).fill(-1));
-    const stat = (fr) => { const f = fr.filter((x) => x > 0); const lo = f.length ? Math.min(...f) : 0, hi = f.length ? Math.max(...f) : 0; const used = fr.map((x, s) => (x >= 0 ? s : -1)).filter((s) => s >= 0); const gaps = used.length > 1 ? used[used.length - 1] - used[0] + 1 - used.length : 0; return (hi - lo) * 0.6 + lo * 0.06 + gaps * 1.2 + (hi > 15 ? 1 : 0); };
+    const stat = (fr) => { const f = fr.filter((x) => x > 0); const lo = f.length ? Math.min(...f) : 0, hi = f.length ? Math.max(...f) : 0; const used = fr.map((x, s) => (x >= 0 ? s : -1)).filter((s) => s >= 0); const gaps = used.length > 1 ? used[used.length - 1] - used[0] + 1 - used.length : 0; return (hi - lo) * FW.span + lo * FW.low + gaps * 1.2 + (hi > 15 ? FW.high : 0); };
     return out.map((fr) => ({ fr, c: stat(fr) })).sort((a, b) => a.c - b.c).slice(0, limit);
   }
   // where the fretting hand can be for a fingering: the index finger anywhere from (highest fret - 3) to the lowest fret
@@ -262,23 +266,30 @@
       }
       return { notes, f };
     });
-    const N = evs.length; const cost = []; const back = [];
-    cost[0] = cands[0].f.map((x) => x.c); back[0] = cands[0].f.map(() => -1);
+    // The hand is tracked along each path as the range of index-finger positions that still reach every note since its
+    // last shift (an open string fits anywhere); a note outside that range is a shift, costed by how far it is.
+    const N = evs.length; const cost = []; const back = []; const win = [];
+    cost[0] = cands[0].f.map((x) => x.c); back[0] = cands[0].f.map(() => -1); win[0] = cands[0].f.map((x) => handWin(x.fr));
     for (let i = 1; i < N; i++) {
-      const gap = evs[i].t - (evs[i - 1].t + evs[i - 1].d); const relax = gap > 0.6 ? 0.3 : 1;   /* time to move between phrases */
-      cost[i] = []; back[i] = [];
+      const gap = evs[i].t - (evs[i - 1].t + evs[i - 1].d); const relax = gap > 0.6 ? FW.relax : 1;   /* time to move between phrases */
+      cost[i] = []; back[i] = []; win[i] = [];
       const prev = cands[i - 1].f.length ? i - 1 : -1;
       cands[i].f.forEach((b) => {
-        let best = Infinity, bj = 0; const wb = handWin(b.fr); const sb = strs(b.fr);
+        let best = Infinity, bj = 0, bw = null; const wb = handWin(b.fr); const sb = strs(b.fr);
         (prev >= 0 ? cands[prev].f : [null]).forEach((a, j) => {
           if (a && !Number.isFinite(cost[prev][j])) return;
-          let m = 0;
-          if (a) { const d = winDist(handWin(a.fr), wb); m += d * 0.8 + (d > 3 ? 1.5 : 0); const sa = strs(a.fr); m += Math.abs(sa[0] - sb[0]) * 0.18 + Math.abs(sa[sa.length - 1] - sb[sb.length - 1]) * 0.12; }
-          const c = (a ? cost[prev][j] : 0) + m * relax; if (c < best) { best = c; bj = j; }
+          let m = 0; let w = wb;
+          if (a) {
+            const wa = win[prev][j];
+            if (!wa) w = wb; else if (!wb) w = wa;
+            else { const lo = Math.max(wa[0], wb[0]), hi = Math.min(wa[1], wb[1]); if (lo <= hi) w = [lo, hi]; else { const d = winDist(wa, wb); m += d * FW.move + (d > 3 ? FW.jump : 0); w = wb; } }
+            const sa = strs(a.fr); m += Math.abs(sa[0] - sb[0]) * FW.strLo + Math.abs(sa[sa.length - 1] - sb[sb.length - 1]) * FW.strHi;
+          }
+          const c = (a ? cost[prev][j] : 0) + m * relax; if (c < best) { best = c; bj = j; bw = gap > 0.6 ? wb : w; }
         });
-        cost[i].push(best + b.c); back[i].push(bj);
+        cost[i].push(best + b.c); back[i].push(bj); win[i].push(bw);
       });
-      if (!cands[i].f.length) { cost[i] = cands[i - 1].f.map((_, j) => cost[i - 1][j]); back[i] = cands[i - 1].f.map((_, j) => j); cands[i].f = cands[i - 1].f.map((x) => ({ ...x, skip: true })); }
+      if (!cands[i].f.length) { cost[i] = cands[i - 1].f.map((_, j) => cost[i - 1][j]); back[i] = cands[i - 1].f.map((_, j) => j); win[i] = win[i - 1].slice(); cands[i].f = cands[i - 1].f.map((x) => ({ ...x, skip: true })); }
     }
     let j = 0; let bc = Infinity; (cost[N - 1] || []).forEach((c, k) => { if (c < bc) { bc = c; j = k; } });
     const pick = new Array(N);
@@ -313,9 +324,9 @@
   // ---------- the whole thing ----------
   // post: posteriors from nmp.js. Returns the tab events the app already understands:
   // { events: [{t, d, notes, frets, mono, conf, name?, inferred?}], notes, key, tuningCents, shift }
-  function transcribe(post, { instrument = 'guitar', tuning = null, beats = null, key = null, sens = 1, tidyOpts = {} } = {}) {
+  function transcribe(post, { instrument = 'guitar', tuning = null, beats = null, key = null, sens = 1, tidyOpts = {}, decodeOpts = {} } = {}) {
     const tn = tuning || (instrument === 'bass' ? BASS : GUITAR);
-    const raw = decode(post, { onsetThresh: 0.5 / sens, frameThresh: 0.3 / sens, minLen: 4, minMidi: tn[0] - 1, maxMidi: tn[tn.length - 1] + 24 });
+    const raw = decode(post, { onsetThresh: 0.5 / sens, frameThresh: 0.3 / sens, minLen: 4, minMidi: tn[0] - 1, maxMidi: tn[tn.length - 1] + 24, ...decodeOpts });
     const cents = raw.slice(0, 400).map((n) => bendsCents(post, n)).sort((a, b) => a - b); const tuningCents = cents.length ? cents[cents.length >> 1] : 0;
     const notes = tidy(raw, post, { instrument, tuning: tn, beats, key, ...tidyOpts });
     const K = notes.key; const flats = K ? [5, 10, 3, 8, 1, 6].includes(K.minor ? mod(K.tonic + 3) : K.tonic) : false;
@@ -330,5 +341,5 @@
     });
     return { events: out, notes: notes.map((n) => ({ t: n.t, d: n.d, n: n.midi, v: Math.round(n.amp * 100) / 100 })), key: K ? `${FLAT[K.tonic]}${K.minor ? 'm' : ''}` : null, tuningCents, shift: notes.shift || 0 };
   }
-  return { decode, tidy, transcribe, events, fret, fingerings, chordName, keyFromNotes, parseKey, gridFor, frameTime, timeToFrame, evidence, FPS, SR, GUITAR, BASS };
+  return { FW, decode, tidy, transcribe, events, fret, fingerings, chordName, keyFromNotes, parseKey, gridFor, frameTime, timeToFrame, evidence, FPS, SR, GUITAR, BASS };
 });

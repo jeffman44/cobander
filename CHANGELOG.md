@@ -1,5 +1,10 @@
 # Cobander changelog
 
+## 0.18.1
+- Tabs, checked against 360 real guitar recordings with the player's actual strings and frets (GuitarSet):
+  - long, ringing notes with vibrato or a bend are no longer chopped into several repeated notes
+  - fretting follows the hand: notes stay inside the reach of where the hand already is, and it only shifts position when the music does. Given the right notes, it now picks the string the player actually used 80% of the time in chord parts and 47% in solos (was 78% and 38%); solos differ most because players pick different positions for the same line.
+
 ## 0.18.0
 - Tabs are rebuilt from the ground up. Cobander now listens for every note that rings, with a small note-tracking model that runs on your computer, and writes the part down the way a player would:
   - riffs and single-note lines come through note for note, not just the chords
