@@ -19,10 +19,15 @@ self.onmessage = async (e) => {
   const d = e.data || {};
   try {
     let result;
+    if (d.instrument === 'voice') {   /* singing: the single-pitch tracker hears it, notes.js decides what was meant */
+      const PC = self.BPPitchCheck; const sung = PC.track(d.mono, d.sr);
+      const r = self.BPNotes.fromSung(sung, { beats: d.beats || null, key: d.key || null, chords: d.chords || null });
+      postMessage({ id: d.id, ok: true, result: { events: [], notes: r.notes, key: r.key, tuningCents: 0, engine: 'pitch' } }); return;
+    }
     try {
       const { ort, session } = await tracker();
       const post = await self.BPNmp.run(ort, session, d.mono, d.sr, { onProgress: (p) => postMessage({ id: d.id, progress: p }) });
-      const r = self.BPNotes.transcribe(post, { instrument: d.instrument, beats: d.beats || null, key: d.key || null });
+      const r = self.BPNotes.transcribe(post, { instrument: d.instrument, beats: d.beats || null, key: d.key || null, chords: d.chords || null });
       result = { events: r.events, notes: r.notes, tuningCents: r.tuningCents, key: r.key, engine: 'nmp' };
     } catch (err) {
       if (d.op === 'notes') throw err;

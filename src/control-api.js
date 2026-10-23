@@ -34,6 +34,7 @@ const ROUTES = [
   ['POST', '/part/share', '{section: id|name} bounce one part (+ a bar of ring-out) with its chart into bounces/<song> - <part> <stamp>/'],
   ['POST', '/comp', '{clipId, from, to} comp: that take is the only one heard on its track between from and to (s); others play as before outside'],
   ['POST', '/workspace', '{ws: "write"|"record"|"mix"|"practice"|"band"} switch the workspace'],
+  ['POST', '/melody/from-vocal', '{trackId} hear the sung notes on a vocal track and write them as MIDI on the Melody track, snapped to the beat grid and pulled toward the key (one clip per take, replacing an earlier one from the same take) → {notes, clips[], trackId}'],
   ['POST', '/tab', '{trackId} read every live take on a guitar / bass track and write its tab (notes + chord voicings as string/fret events) onto the song → {id, instrument, tuningCents, events[], text}'],
   ['POST', '/part/stage', '{trackId|track, stage?: idea|writing|demo|tracking|editing|mixing|review|approved|null, redo?: "text"|null} set where a part is at — anyone can, no lock (it is mailed to whoever has the song) → {trackId, stage, redo}'],
   ['GET', '/part/stages', 'every track\'s part stage on the open song → {stages:[{trackId, track, stage, redo, by, at}], rollup:{total, approved, staged, redo, counts}}'],

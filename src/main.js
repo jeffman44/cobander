@@ -580,6 +580,7 @@ async function startApi() {
     'POST /workspace': ({ body }) => askRenderer('workspace', body || {}),
     'POST /chords/detect': ({ body }) => askRenderer('chordsDetect', body || {}, 600000),
     'POST /tab': ({ body }) => askRenderer('tabTrack', body || {}, 600000),
+    'POST /melody/from-vocal': ({ body }) => askRenderer('melodyFromVocal', body || {}, 600000),
     'GET /tabs': () => askRenderer('tabs', {}),
     'POST /part/stage': ({ body }) => askRenderer('partStage', body || {}),
     'GET /part/stages': () => askRenderer('partStages', {}),

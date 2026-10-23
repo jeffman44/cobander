@@ -1237,6 +1237,10 @@ async function until(fn, ms = 20000, what = 'condition') { const end = Date.now(
       const pc = await jeff.post('/pitch/check', { trackId: tr('Vox').id });
       assert.deepEqual(pc.notes.map((n) => n.flag), ['ok', 'ok', 'flat', 'ok'], JSON.stringify(pc.notes));
       assert.ok(await jeff.evalJs(`document.querySelectorAll('.pitch-mark.flat').length`) >= 1, 'flagged on the take');
+      // the sung line as notes on the Melody track: the flat B still reads as B, every note on a 16th
+      { const mf = await jeff.post('/melody/from-vocal', { trackId: tr('Vox').id }); const ns = mf.clips[0].notes;
+        assert.deepEqual(ns.map((n) => n.n), [67, 69, 71, 72], JSON.stringify(ns)); ns.forEach((n, k) => { assert.ok(Math.abs(mf.clips[0].start + n.t - (0.5 + k * 0.6)) < 0.07, `note ${k} at ${n.t}`); assert.ok(Math.abs(n.t / 0.125 - Math.round(n.t / 0.125)) < 1e-3, 'on a 16th'); });
+        }
       // phone page: on, the page and its live state answer on the network port with the key
       await jeff.evalJs(`window.cobander.phone.start().then(() => true)`);
       const ph = await jeff.get('/phone'); assert.ok(ph.on);

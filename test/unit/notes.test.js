@@ -112,3 +112,21 @@ test('a bass plays one note at a time and its overtones are not notes', () => {
   const r = N.transcribe(postWith(notes, 260), { instrument: 'bass' });
   assert.deepEqual(r.notes.map((x) => x.n), [28, 28, 35, 28, 31, 31, 33, 35]); assert.ok(r.events.every((e) => e.frets.length === 4));
 });
+
+// ---------- singing ----------
+function sing(buf, at, dur, midi, { detune = 0, sr = SR } = {}) {
+  const n = Math.floor(dur * sr), a0 = Math.floor(at * sr); let ph = 0;
+  for (let i = 0; i < n && a0 + i < buf.length; i++) {
+    const t = i / sr; const cents = detune + 35 * Math.sin(2 * Math.PI * 5.5 * t) * Math.min(1, Math.max(0, (t - 0.15) / 0.2)) - 110 * Math.exp(-t / 0.05);
+    const f = mtof(midi + cents / 100); ph += (2 * Math.PI * f) / sr; let v = 0;
+    for (let h = 1; h <= 12; h++) { const fh = f * h; const a = Math.exp(-(((fh - 700) / 160) ** 2)) + 0.6 * Math.exp(-(((fh - 1200) / 220) ** 2)) + 0.25 * Math.exp(-(((fh - 2500) / 300) ** 2)) + 0.02; v += (a * Math.sin(h * ph)) / Math.pow(h, 0.3); }
+    buf[a0 + i] += 0.2 * v * Math.min(1, t / 0.03) * Math.min(1, (dur - t) / 0.05);
+  }
+}
+test('a sung line comes back as the notes meant: vibrato and scoops ignored, on the beat, in the key', () => {
+  const PC = require('../../src/renderer/pitchcheck.js');
+  const mel = [[0, 1, 55], [1, 1, 57], [2, 2, 59], [4, 1, 60], [5, 1, 59], [6, 2, 57], [8, 0.5, 55], [8.5, 0.5, 57], [9, 1, 59], [10, 2, 62]]; const B = 0.5;
+  const buf = new Float32Array(SR * 7); mel.forEach(([b, d, m], k) => sing(buf, 0.5 + b * B + (k % 2 ? 0.03 : -0.02), d * B * 0.92, m, { detune: k % 3 === 0 ? 22 : -18 }));
+  const r = N.fromSung(PC.track(buf, SR), { beats: beatsAt(120, 0.5, 7), key: 'G' });
+  assert.deepEqual(r.notes.map((x) => [x.t, x.n]), mel.map(([b, , m]) => [0.5 + b * B, m]), JSON.stringify(r.notes));
+});

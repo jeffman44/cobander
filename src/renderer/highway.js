@@ -123,6 +123,7 @@
     ctx.fillStyle = colors.text;
     for (let c = 0; c < cols; c++) { const f = frets[c], cx = x + cw * (c + 1); if (f < 0) ctx.fillText('x', cx - 3, top - 4); else if (f === 0) ctx.fillText('o', cx - 3, top - 4); else { const yy = top + rh * (f - base + 0.5); ctx.beginPath(); ctx.arc(cx, yy, Math.min(cw, rh) * 0.32, 0, 6.2832); ctx.fill(); } }
   }
+  const autoLA = new WeakMap();
   function draw(ctx, { w, h, now = 0, events: evs = [], lookahead = 4, lanes = 1, hitY = null, labels = null, colors = null, lookback = 0.6 } = {}) {
     const C = colors ? { ...DEF_COLORS, ...colors } : DEF_COLORS; const HY = hitY == null ? h * 0.8 : hitY;
     const laneW = w / Math.max(1, lanes);
@@ -132,10 +133,22 @@
     for (let l = 1; l < lanes; l++) { const x = laneW * l; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
     if (labels) { ctx.fillStyle = C.muted; ctx.font = '12px ui-monospace, Menlo, monospace'; for (let l = 0; l < lanes; l++) ctx.fillText(String(labels[l] || ''), laneW * l + 4, h - 6); }
     ctx.strokeStyle = C.hit; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, HY); ctx.lineTo(w, HY); ctx.stroke();
+    // 'auto': as far ahead as keeps the part's busy stretches readable — consecutive notes at least ~34 px apart
+    // (a 16th-note riff spreads out and moves faster; a slow strum shows more of what's coming)
+    if ((lookahead === 'auto' || lookahead == null) && autoLA.has(evs) && autoLA.get(evs).hy === HY) lookahead = autoLA.get(evs).la;
+    if (lookahead === 'auto' || lookahead == null) {
+      const ts = evs.map((e) => e.t);   /* the whole part, so the speed stays put through the song */
+      const gaps = []; const u = [...new Set(ts.map((t) => Math.round(t * 1000)))].sort((a, b) => a - b); for (let i = 1; i < u.length; i++) gaps.push((u[i] - u[i - 1]) / 1000);
+      gaps.sort((a, b) => a - b); const g = gaps.length ? gaps[Math.floor(gaps.length * 0.25)] : 0.5;
+      lookahead = Math.max(1.1, Math.min(4, (HY * g) / 34)); autoLA.set(evs, { la: lookahead, hy: HY });
+    }
     const pxPerSec = HY / lookahead;
+    // each note's block runs only until the next note on its lane (a ringing note doesn't paint over the next one)
+    const nextOn = new Map(); { const byLane = new Map(); evs.forEach((e, i) => { const l = e.lane || 0; if (!byLane.has(l)) byLane.set(l, []); byLane.get(l).push(i); }); for (const list of byLane.values()) { list.sort((a, b) => evs[a].t - evs[b].t); for (let k = 0; k + 1 < list.length; k++) nextOn.set(list[k], evs[list[k + 1]].t); } }
     for (let i = 0; i < evs.length; i++) {
       const e = evs[i]; const dt = e.t - now; if (dt > lookahead || dt + (e.d || 0.25) < -lookback) continue;
-      const y1 = HY - dt * pxPerSec, len = Math.max(18, Math.min(e.d || 0.25, lookahead) * pxPerSec), y0 = y1 - len;
+      const room = nextOn.has(i) ? nextOn.get(i) - e.t : Infinity; const d = Math.min(e.d || 0.25, lookahead, room * 0.85);
+      const y1 = HY - dt * pxPerSec, len = Math.max(14, Math.min(d * pxPerSec, Math.max(14, room * pxPerSec - 6))), y0 = y1 - len;
       const hit = Math.abs(dt) <= 0.08 || (dt < 0 && dt + (e.d || 0.25) > 0);
       const lx = laneW * (e.lane || 0) + 4, lw = laneW - 8;
       ctx.fillStyle = hit ? C.blockHit : C.block; ctx.globalAlpha = dt < 0 ? 0.55 : 1;

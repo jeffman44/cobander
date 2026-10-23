@@ -2162,7 +2162,7 @@
       ...lockItems(t),
       { label: `Part stage${(partStageOf(t) || {}).stage ? `: ${CB.stageInfo(partStageOf(t).stage).label}` : ''}`, sub: partStageItems(t) },
       { label: state.armedTrack === t.id ? 'Disarm' : 'Arm for recording', action: () => { state.armedTrack = state.armedTrack === t.id ? null : t.id; renderTracks(); }, disabled: ro() || t.instrument === 'drumkit' },
-      ...(t.instrument === 'audio' && t.clips.length && isVocalTrack(t) ? [{ label: '🎤 Lyrics from this track (speech-to-text)', action: () => transcribeTrack(t), disabled: !!asrBusy }] : []),
+      ...(t.instrument === 'audio' && t.clips.length && isVocalTrack(t) ? [{ label: '🎤 Lyrics from this track (speech-to-text)', action: () => transcribeTrack(t), disabled: !!asrBusy }, { label: '🎵 Melody from this track (sung notes → the Melody track, on the beat and in key)', action: () => melodyFromVocal(t).catch(fail), disabled: ro() }] : []),
       ...(harmonicTrack(t) || bassTrack(t) ? [
         { label: '🎸 Chords & tabs for this track', sub: [
           { title: 'Show the chart moved for a capo / another key (nothing is re-tuned)' },
@@ -3481,7 +3481,7 @@
   const tabSrcKey = (t) => t.clips.filter((c) => c.kind !== 'midi' && !engine.clipMuted(c)).map((c) => `${audioId(c)}@${c.start}:${c.trimStart || 0}:${c.trimEnd || 0}`).join(',');
   // tab reading runs in a worker (tab-worker.js) so Practice keeps scrolling; the page thread only if it can't start
   let tabWorker = null, tabWorkerOff = false, tabSeq = 0; const tabJobs = new Map();
-  function tabTranscribe(m, sr, instrument, { beats = null, key = null, op = 'tab', onProgress = null } = {}) {
+  function tabTranscribe(m, sr, instrument, { beats = null, key = null, chords = null, op = 'tab', onProgress = null } = {}) {
     if (!tabWorker && !tabWorkerOff && typeof Worker !== 'undefined') {
       try {
         tabWorker = new Worker('tab-worker.js');
@@ -3492,11 +3492,41 @@
     const inPage = () => (op === 'notes' ? Promise.reject(new Error('note reading needs the worker')) : new Promise((res) => setTimeout(() => res({ ...TB.transcribe(m, sr, { instrument }), engine: 'dsp' }), 0)));
     if (!tabWorker) return inPage();
     const copy = m.slice();   /* its own buffer, handed over whole (a view would clone the entire take) */
-    return new Promise((res, rej) => { const id = ++tabSeq; tabJobs.set(id, { res, rej, onProgress }); tabWorker.postMessage({ id, op, mono: copy, sr, instrument, beats, key }, [copy.buffer]); })
+    return new Promise((res, rej) => { const id = ++tabSeq; tabJobs.set(id, { res, rej, onProgress }); tabWorker.postMessage({ id, op, mono: copy, sr, instrument, beats, key, chords }, [copy.buffer]); })
       .catch((err) => { if (/tab worker/.test(err.message)) return inPage(); throw err; });
   }
   // the song's beats inside a stretch of song time, in that stretch's own clock (for snapping a take's notes to the grid)
+  function chordsFor(from, to) { try { return liveChords().filter((c) => c.time >= from - 8 && c.time < to).map((c) => ({ time: Math.round((c.time - from) * 1000) / 1000, chord: c.chord })); } catch (_) { return null; } }
   function beatsFor(from, to) { try { const map = engine.meterMap(); return window.BPMeter.beatsIn(map, Math.max(0, from), to).map((b) => ({ t: Math.round((b.t - from) * 10000) / 10000, beat: b.beat })); } catch (_) { return null; } }
+  // A sung take → the melody as notes on the Melody track: the note tracker hears it, and the notes are pulled onto the
+  // beat grid and toward the key (vibrato and scoops become the note being aimed at). Undo takes it back.
+  async function melodyFromVocal(t) {
+    if (!state.folder || !t) return null; if (ro()) { status('Read-only — take over first.'); return null; }
+    const clips = t.clips.filter((c) => c.kind !== 'midi' && !engine.clipMuted(c) && engine.buffers.get(audioId(c)));
+    if (!clips.length) { status('No sung takes on that track yet.'); return null; }
+    const made = []; let k = 0;
+    for (const c of clips) {
+      const buf = engine.buffers.get(audioId(c)); const sr = buf.sampleRate; const i0 = Math.floor((c.trimStart || 0) * sr), i1 = Math.min(buf.length, i0 + Math.floor((engine.clipLength(c) || 0) * sr));
+      if (i1 - i0 < sr * 0.3) continue; const len = (i1 - i0) / sr;
+      const m = mono(window.BPWav.audioBufferToChannels(buf).map((ch) => ch.subarray(i0, i1)));
+      const r = await tabTranscribe(m, sr, 'voice', { op: 'notes', beats: beatsFor(c.start, c.start + len), key: state.song.key || null, chords: chordsFor(c.start, c.start + len), onProgress: (p) => status(`Hearing the melody in ${t.name}${clips.length > 1 ? ` (take ${k + 1} of ${clips.length})` : ''}… ${Math.round(p * 100)}%`, 0) });
+      k++;
+      const notes = (r.notes || []).filter((n) => n.t >= 0 && n.t < len).map((n) => ({ t: Math.round(n.t * 1000) / 1000, d: Math.max(0.06, Math.round(Math.min(n.d, len - n.t) * 1000) / 1000), n: n.n, v: Math.max(0.5, Math.min(1, n.v || 0.8)) }));
+      if (notes.length) made.push({ start: c.start, duration: len, notes, from: c.name || 'take' });
+    }
+    if (!made.length) { status(`Didn't hear a sung melody on ${t.name}.`, 7000); return null; }
+    const did = change(() => {
+      const mt = melodyTrack(true);
+      for (const x of made) {
+        for (const c of mt.clips.filter((c) => c.fromVocal && Math.abs(c.start - x.start) < 1e-3)) { mt.clips = mt.clips.filter((y) => y !== c); trashClip(mt, c); }
+        mt.clips.push({ id: newId(), kind: 'midi', name: `melody · from ${t.name}`, start: x.start, duration: x.duration, trimStart: 0, trimEnd: 0, gainDb: 0, fadeIn: 0, fadeOut: 0, mute: false, takenBy: me(), takenAt: nowIso(), notes: clipNotes(x.notes), fromVocal: t.id });
+      }
+      state.selectedTrack = mt.id;
+    }, { label: `melody from ${t.name}` });
+    if (!did) { status('Could not add the melody (read-only or A/B).'); return null; }
+    const n = made.reduce((a, x) => a + x.notes.length, 0); renderAll(); status(`${n} sung notes → the Melody track (on the beat, in ${state.song.key || 'the key heard'}). ${MOD}+Z takes it back.`, 9000);
+    return { notes: n, clips: made.length, trackId: melodyTrack(false).id };
+  }
   // read a track's takes into a tab entry and store it (newest per track wins; Undo brings the old one back)
   async function readTab(t) {
     const clips = t.clips.filter((c) => c.kind !== 'midi' && !engine.clipMuted(c) && engine.buffers.get(audioId(c)));
@@ -3508,7 +3538,7 @@
       if (i1 - i0 < sr * 0.1) continue;
       const m = mono(window.BPWav.audioBufferToChannels(buf).map((ch) => ch.subarray(i0, i1)));
       const len = (i1 - i0) / sr; const k = n; const of = clips.length;
-      const r = await tabTranscribe(m, sr, instrument, { beats: beatsFor(c.start, c.start + len), key: state.song.key || null, onProgress: (p) => status(`Reading ${t.name}${of > 1 ? ` (take ${k + 1} of ${of})` : ''}… ${Math.round(p * 100)}%`, 0) });
+      const r = await tabTranscribe(m, sr, instrument, { beats: beatsFor(c.start, c.start + len), key: state.song.key || null, chords: instrument === 'bass' ? chordsFor(c.start, c.start + len) : null, onProgress: (p) => status(`Reading ${t.name}${of > 1 ? ` (take ${k + 1} of ${of})` : ''}… ${Math.round(p * 100)}%`, 0) });
       for (const e of r.events) events.push({ ...e, t: Math.round((e.t + c.start) * 1000) / 1000 });
       tuning += r.tuningCents; n++;
     }
@@ -4908,8 +4938,10 @@
         if (engine.clipMuted(c) || c.kind === 'midi') continue; const buf = engine.buffers.get(audioId(c)); if (!buf) continue;
         const sr = buf.sampleRate; const i0 = Math.floor((c.trimStart || 0) * sr), i1 = Math.min(buf.length, i0 + Math.floor((engine.clipLength(c) || 0) * sr));
         const m = mono(window.BPWav.audioBufferToChannels(buf).map((ch) => ch.subarray(i0, i1)));
-        const pts = PC.track(m, sr, { minHz: 28, maxHz: 500 });
-        for (const n of HW.notesFromPitchTrack(pts, { minDur: 0.09 })) out.push({ t: n.t + c.start, d: n.d, midi: n.midi });
+        const len = (i1 - i0) / sr; let read = null;
+        try { read = await tabTranscribe(m, sr, 'bass', { op: 'notes', beats: beatsFor(c.start, c.start + len), key: state.song.key || null, chords: chordsFor(c.start, c.start + len) }); } catch (_) { read = null; }
+        if (read && read.notes && read.notes.length) { for (const n of read.notes) out.push({ t: n.t + c.start, d: n.d, midi: n.n }); }
+        else { const pts = PC.track(m, sr, { minHz: 28, maxHz: 500 }); for (const n of HW.notesFromPitchTrack(pts, { minDur: 0.09 })) out.push({ t: n.t + c.start, d: n.d, midi: n.midi }); }
         await new Promise((r) => setTimeout(r, 0));
       }
       out.sort((x, y) => x.t - y.t); hw.bassNotes = HW.bassTab(out); hw.bassKey = key; return hw.bassNotes;
@@ -4961,7 +4993,7 @@
     if (!hw.ctx) { hw.ctx = cv.getContext('2d'); }
     const ctx = hw.ctx; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const events = hwEvents(mode, t); const lanes = mode === 'chords' ? 1 : (mode === 'bass' || hw.mode === 'bass') ? 4 : 6;
-    HW.draw(ctx, { w: W, h: H, now: t, events, lookahead: 4, lanes, labels: lanes === 4 ? HW.BASS.labels || ['E', 'A', 'D', 'G'] : lanes === 6 ? HW.GUITAR.labels || ['E', 'A', 'D', 'G', 'B', 'e'] : null });
+    HW.draw(ctx, { w: W, h: H, now: t, events, lookahead: lanes > 1 ? 'auto' : 4, lanes, labels: lanes === 4 ? HW.BASS.labels || ['E', 'A', 'D', 'G'] : lanes === 6 ? HW.GUITAR.labels || ['E', 'A', 'D', 'G', 'B', 'e'] : null });
   }
   $('#k-tabedit').addEventListener('click', () => { const v = $('#k-along').value; const t = engine.track(v.slice(4)); if (t) openTabEditor(t, karaTime()).catch(fail); });
   $('#k-along').addEventListener('change', (e) => { hw.key = ''; try { localStorage.setItem('bp.kAlong', e.target.value); } catch (_) {} e.target.blur(); });
@@ -7653,6 +7685,7 @@
       }
       case 'workspace': { if (args.ws) setWorkspace(String(args.ws)); return { ws: state.ws, practice: kara.open }; }
       case 'chartAll': return chartAllSongs({ interactive: false });
+      case 'melodyFromVocal': { writable(); const t = engine.track(args.trackId); if (!t) throw new Error('no such track'); const r = await melodyFromVocal(t); if (!r) throw new Error('no sung notes heard'); const mt = engine.track(r.trackId); return { ...r, clips: mt.clips.filter((c) => c.fromVocal === t.id).map((c) => ({ id: c.id, start: c.start, notes: c.notes })) }; }
       case 'tabTrack': { writable(); const t = engine.track(args.trackId); if (!t) throw new Error('no such track'); await tabTrack(t, { force: true }); const tb = tabFor(t.id); if (!tb) throw new Error('no notes heard'); return { ...tb, text: tabsText(0) }; }
       case 'partStage': { need(); const t = engine.track(args.trackId) || engine.tracks.find((x) => args.track && x.name.toLowerCase() === String(args.track).toLowerCase()); if (!t) throw new Error('trackId or track (name) required'); const o = {}; if (args.stage !== undefined) { if (args.stage && !CB.STAGE_KEYS.includes(args.stage)) throw new Error(`stage must be ${CB.STAGE_KEYS.join(' | ')} | null`); o.stage = args.stage || null; } if (args.redo !== undefined) o.redo = args.redo || null; if (!Object.keys(o).length) throw new Error('stage or redo required'); if (!setPartStageUI(t, o)) throw new Error('could not set the stage'); const e = partStageOf(t) || {}; return { trackId: t.id, stage: e.stage || null, redo: e.redo || null }; }
       case 'partStages': { need(); return { stages: engine.tracks.map((t) => { const e = partStageOf(t) || {}; return { trackId: t.id, track: t.name, stage: e.stage || null, redo: e.redo || null, by: e.by || null, at: e.at || null }; }), rollup: CB.stageRollup(state.song) }; }

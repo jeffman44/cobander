@@ -1,5 +1,10 @@
 # Cobander changelog
 
+## 0.18.2
+- 🎵 Melody from a vocal: right-click a vocal track → Melody from this track. The sung line is written as notes on the Melody track — vibrato and the scoop into a note are read as the note being aimed at, a note between two is pulled to the one in the key, and every note lands on the beat. Undo takes it back.
+- Practice play-along: tab notes are spread out and move faster when a part is busy (a 16th-note riff no longer arrives as one block), and a ringing note no longer paints over the next one on its string.
+- The bass play-along reads the bass takes with the same note tracker as the tabs, and the bass reader knows the song's chords.
+
 ## 0.18.1
 - Tabs, checked against 360 real guitar recordings with the player's actual strings and frets (GuitarSet):
   - long, ringing notes with vibrato or a bend are no longer chopped into several repeated notes
