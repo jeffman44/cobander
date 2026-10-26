@@ -1,21 +1,22 @@
-MIT License
+Cobander — proprietary software license
 
-Copyright (c) 2026 the Cobander authors
+Copyright (c) 2026 the Cobander authors. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Cobander is not open source. You may download, install and use the Cobander application, as released at
+https://cobander.com and https://github.com/jeffman44/cobander/releases, for your own and your band's music, under the
+terms at https://cobander.com/terms.html. A license key, where you have one, lifts the free version's limits as those
+terms describe.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+You may not copy, modify, redistribute, sell, rent or sublicense the application or its source code, or build a
+product from them, except where the law allows it regardless of this license.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Third-party parts keep their own licenses, shipped alongside them: Electron, ONNX Runtime and whisper.cpp (MIT), the
+Basic Pitch note model (Apache-2.0), OpenMoji icons (CC BY-SA 4.0), game-icons.net icons (CC BY 3.0) and the Liberated
+Pixel Cup sprites (CC BY-SA 3.0). See the credits files in src/renderer.
+
+Versions of Cobander released before 0.19.2 were published under the MIT License, and those copies stay under it.
