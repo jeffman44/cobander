@@ -2,7 +2,7 @@
 
 > Cobander is free songwriting and recording software for Windows and Mac, built for bands (up to 8 people). Everyone records and writes into the same song from their own computer; songs sync through the Google Drive, OneDrive, iCloud Drive or Dropbox folder the band already shares. No Cobander server, no accounts, no subscription. Every take, lyric, chord and practice minute earns XP, so the band levels up as it works.
 
-Free version: every feature, one song per band folder. A one-time license per band (not per person) unlocks unlimited songs.
+Free version: every feature, every song, forever. Roadie ($10 once, per person) puts your name, character and scores on your band's board; VIP ($60 once) covers a whole band of up to 8.
 
 ## Main pages
 - [Home](https://cobander.com/): what Cobander does and downloads
