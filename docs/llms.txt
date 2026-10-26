@@ -1,0 +1,34 @@
+# Cobander
+
+> Cobander is free songwriting and recording software for Windows and Mac, built for bands (up to 8 people). Everyone records and writes into the same song from their own computer; songs sync through the Google Drive, OneDrive, iCloud Drive or Dropbox folder the band already shares. No Cobander server, no accounts, no subscription. Every take, lyric, chord and practice minute earns XP, so the band levels up as it works.
+
+Free version: every feature, one song per band folder. A one-time license per band (not per person) unlocks unlimited songs.
+
+## Main pages
+- [Home](https://cobander.com/): what Cobander does and downloads
+- [User manual](https://cobander.com/manual/)
+- [Write songs remotely](https://cobander.com/band-songwriting-app/): Cobander lets your band write and record songs together from different houses. Riffs, takes, chords and lyrics sync through the Google Drive, OneDrive, iCloud or Dropbox folder you already share. Free to try.
+- [Free DAW for bands](https://cobander.com/free-daw-for-bands/): Cobander is a free recording app made for bands, not solo producers: multitrack recording, punch-ins, comping, mixing and practice, shared through your band's cloud folder. Windows and Mac.
+- [Lyrics from a vocal take](https://cobander.com/lyrics-from-vocal-recording/): Sing the take and Cobander types out the lyrics and pins each word to when you sang it — on your own computer. Your band gets a lyric sheet, a karaoke view and a chart from one vocal take.
+- [Practice your songs](https://cobander.com/band-practice-app/): Practice your band's own songs at home: lyrics and chords that follow the song, loops, slow-down without pitch change, a note highway, and play-along with your own part taken out.
+- [Find your song's key](https://cobander.com/find-the-key-of-a-song/): Cobander listens to your band's takes and tells you what key the song is in — then moves the whole song, recordings included, to a key that fits your singer. Runs on your own computer.
+- [Chords from a recording](https://cobander.com/chords-from-a-recording/): Record the guitar, keys or bass and Cobander drafts the chords onto the song's chord lane, bar by bar, from the notes actually played. Edit, transpose and print the chart for the band.
+- [Song structure planner](https://cobander.com/song-structure-planner/): Start a song from a style and a structure, lay out verses, choruses and bridges on the timeline, drag them around, and get a drum part to write over — then record into it with your band.
+- [Melody from a vocal](https://cobander.com/melody-from-vocal/): Sing the line and Cobander writes it down as notes on the song's melody track, in key and on the beat — or type lyrics and get a melody to try. Runs on your own computer.
+- [Free recording software](https://cobander.com/free-recording-software/): Cobander is free multitrack recording software built for bands writing songs together: each member records from home into the same song through your shared cloud folder. Unlimited tracks, lossless takes, punch-ins, comping, a mixer, tuner and click. No trial, no watermark, no subscription.
+- [Free songwriting software](https://cobander.com/free-songwriting-software/): Free songwriting software that gets the whole band writing the same song: lyrics, chords, structure, melody and demo takes in one place, synced through your shared cloud folder. Windows and Mac.
+- [Home recording for beginners](https://cobander.com/home-recording-for-beginners/): A plain-English guide to recording music at home: the gear you actually need, setting levels, recording to a click, fixing mistakes, and mixing a demo — with free software.
+- [Online music collaboration](https://cobander.com/online-music-collaboration/): Make music with people in other houses or other cities. Cobander syncs songs, takes, lyrics and notes through the Google Drive, OneDrive, iCloud or Dropbox folder you already share — no new account, no upload limits.
+- [Your band, gamified](https://cobander.com/gamified-band-practice/): Cobander turns writing, recording and practicing with your band into a game: XP for every take, lyric and practice minute, 100 levels, achievements, a band level and boss battles for your next show. Free for Windows and Mac.
+
+## Free tools
+- [Chord transposer & capo](https://cobander.com/chord-transposer/): Paste a chord chart or a progression and move it up or down by half steps. Lyrics stay where they are. Plus a capo calculator: which shapes to play for any key. Free, no sign-up.
+- [Key finder from chords](https://cobander.com/key-finder/): Type the chords of your song and find its key, with Roman numeral analysis (I–V–vi–IV) and any chords borrowed from outside the key. Free, works in your browser.
+- [Tap tempo BPM](https://cobander.com/tap-tempo/): Tap along to find a song's BPM, then get the delay times in milliseconds for quarter, eighth, dotted eighth and triplet notes. Free, works on phone and desktop.
+- [Song structure builder](https://cobander.com/song-structure-builder/): Lay out your song's sections — intro, verse, pre-chorus, chorus, bridge, outro — with bar counts, and see when each part starts and how long the song runs at your tempo. Free.
+
+## Guides
+- [Write a song with your band](https://cobander.com/how-to-write-a-song-with-your-band/): A practical way for bands to write songs together: start from one idea, settle the structure early, split the work, and keep everyone on the same version of the song.
+- [Record a band demo at home](https://cobander.com/how-to-record-a-band-demo-at-home/): Record a good band demo at home with basic gear: what you need, which instrument to record first, how to set levels, and how to get a rough mix the band can share.
+- [Song structure templates](https://cobander.com/song-structure-templates/): The common song structures — verse–chorus, verse–pre-chorus–chorus, AABA, 12-bar blues and more — with typical bar counts, what each section does, and when to break the rules.
+- [Common chord progressions](https://cobander.com/common-chord-progressions/): The chord progressions behind countless rock, pop, punk and blues songs — I–V–vi–IV, vi–IV–I–V, I–IV–V, ii–V–I, the 12-bar blues and more — with examples and how to use them.

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Song Structure Builder — Plan Verses, Choruses &amp; Song Length | Cobander</title>
+<meta name="description" content="Lay out your song&#x27;s sections — intro, verse, pre-chorus, chorus, bridge, outro — with bar counts, and see when each part starts and how long the song runs at your tempo. Free.">
+<link rel="canonical" href="https://cobander.com/song-structure-builder/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cobander">
+<meta property="og:url" content="https://cobander.com/song-structure-builder/">
+<meta property="og:title" content="Song Structure Builder — Plan Verses, Choruses &amp; Song Length | Cobander">
+<meta property="og:description" content="Lay out your song&#x27;s sections — intro, verse, pre-chorus, chorus, bridge, outro — with bar counts, and see when each part starts and how long the song runs at your tempo. Free.">
+<meta property="og:image" content="https://cobander.com/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Song Structure Builder — Plan Verses, Choruses &amp; Song Length | Cobander">
+<meta name="twitter:description" content="Lay out your song&#x27;s sections — intro, verse, pre-chorus, chorus, bridge, outro — with bar counts, and see when each part starts and how long the song runs at your tempo. Free.">
+<meta name="twitter:image" content="https://cobander.com/img/og.jpg">
+<link rel="icon" href="../icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../site.css">
+<script type="application/ld+json">[{"@context": "https://schema.org", "@type": "WebApplication", "name": "Song structure builder", "url": "https://cobander.com/song-structure-builder/", "description": "Lay out your song's sections — intro, verse, pre-chorus, chorus, bridge, outro — with bar counts, and see when each part starts and how long the song runs at your tempo. Free.", "applicationCategory": "MultimediaApplication", "operatingSystem": "Any (web browser)", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Cobander", "url": "https://cobander.com/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Cobander", "item": "https://cobander.com/"}, {"@type": "ListItem", "position": 2, "name": "Free tools", "item": "https://cobander.com/tools/"}, {"@type": "ListItem", "position": 3, "name": "Song structure builder", "item": "https://cobander.com/song-structure-builder/"}]}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How is the song length worked out?", "acceptedAnswer": {"@type": "Answer", "text": "Bars × beats per bar × 60 ÷ BPM, added up across the sections."}}, {"@type": "Question", "name": "Can I use odd time signatures?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Set beats per bar to 3 for 3/4, 6 for 6/8 counted in eighths, and so on."}}, {"@type": "Question", "name": "Does it save my song?", "acceptedAnswer": {"@type": "Answer", "text": "No — copy the text when you are done. In the Cobander app, the structure is saved in the song with the recordings."}}]}]</script>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <a class="mark" href="../"><b>COBANDER</b><span class="seal"><img src="../icons/gi-delapouite-noodles.svg" alt="" width="17" height="17"></span></a>
+  <div class="links"><a href="../tools/">Free tools</a><a href="../guides/">Guides</a><a href="../manual/">Manual</a></div>
+</nav>
+<main>
+<h1>Song structure builder</h1>
+<p class="lead">Start from a common song form, then change sections, bar counts and tempo. You see where each part starts and how long the whole song runs — handy for setlists and for telling the band what comes next.</p>
+
+
+<div class="tool">
+  <div class="row"><label class="inline">Start from <select id="sb-tpl"></select></label><label class="inline">Tempo <input id="sb-bpm" type="number" min="30" max="300" value="120"> BPM</label><label class="inline">Beats per bar <input id="sb-bpb" type="number" min="1" max="12" value="4"></label></div>
+  <div class="strip" id="sb-strip" aria-hidden="true"></div>
+  <p class="big small" id="sb-sum"></p>
+  <ol class="sb" id="sb-list"></ol>
+  <div class="row"><select id="sb-new" aria-label="Section to add"><option>Verse</option><option>Pre-chorus</option><option>Chorus</option><option>Bridge</option><option>Breakdown</option><option>Solo</option><option>Intro</option><option>Outro</option><option>Instrumental</option></select><button type="button" class="btn cool" id="sb-add">Add section</button></div>
+  <label for="sb-text">As text</label>
+  <textarea id="sb-text" rows="8" readonly></textarea>
+  <div class="row"><button type="button" class="btn hot" id="sb-copy">Copy</button></div>
+</div>
+<h2>Bars, beats and song length</h2>
+<p>A bar of 4/4 is four beats. At 120 BPM a beat is half a second, so a bar is two seconds and an 8-bar verse is 16 seconds. Most sections are 4, 8 or 16 bars long; the 12-bar blues is the famous exception.</p>
+<p>See the <a href="../song-structure-templates/">song structure templates guide</a> for what each section does and when to break the rules.</p>
+
+<section class="endcta"><h2>Write it with the whole band</h2><p>Cobander is free songwriting and recording software that keeps your band on the same song: everyone records and writes from their own computer through the folder you already share, with chords, lyrics and structure on one timeline — and the band levels up as you go.</p><div class="cta"><a class="btn hot" href="https://takeout.cobander.com/download/win">Download for Windows</a><a class="btn hot" href="https://takeout.cobander.com/download/mac-arm64">Download for Mac</a></div><p class="fine">Free — the whole app, one song per band. Windows and Mac. <a href="../">More about Cobander</a>.</p></section>
+<section class="faq"><h2>Questions</h2><h3>How is the song length worked out?</h3><p>Bars × beats per bar × 60 ÷ BPM, added up across the sections.</p><h3>Can I use odd time signatures?</h3><p>Yes. Set beats per bar to 3 for 3/4, 6 for 6/8 counted in eighths, and so on.</p><h3>Does it save my song?</h3><p>No — copy the text when you are done. In the Cobander app, the structure is saved in the song with the recordings.</p></section>
+<h2>Free tools</h2><ul class="more"><li><a href="../chord-transposer/">Chord transposer &amp; capo</a></li><li><a href="../key-finder/">Key finder from chords</a></li><li><a href="../tap-tempo/">Tap tempo BPM</a></li></ul>
+<h2>Guides</h2><ul class="more"><li><a href="../how-to-write-a-song-with-your-band/">Write a song with your band</a></li><li><a href="../how-to-record-a-band-demo-at-home/">Record a band demo at home</a></li><li><a href="../song-structure-templates/">Song structure templates</a></li><li><a href="../common-chord-progressions/">Common chord progressions</a></li></ul>
+</main>
+<footer><p><a href="../">Cobander</a> · <a href="../manual/">User manual</a> · <a href="../terms.html">Terms &amp; privacy</a> · <a href="mailto:noods@cobander.com">noods@cobander.com</a></p></footer>
+</div>
+<script src="../tools.js" defer></script>
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "3504ac4a74f54ff9a3871fef99121b79"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

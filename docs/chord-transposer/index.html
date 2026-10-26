@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chord Transposer &amp; Capo Calculator — Free Online Tool | Cobander</title>
+<meta name="description" content="Paste a chord chart or a progression and move it up or down by half steps. Lyrics stay where they are. Plus a capo calculator: which shapes to play for any key. Free, no sign-up.">
+<link rel="canonical" href="https://cobander.com/chord-transposer/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cobander">
+<meta property="og:url" content="https://cobander.com/chord-transposer/">
+<meta property="og:title" content="Chord Transposer &amp; Capo Calculator — Free Online Tool | Cobander">
+<meta property="og:description" content="Paste a chord chart or a progression and move it up or down by half steps. Lyrics stay where they are. Plus a capo calculator: which shapes to play for any key. Free, no sign-up.">
+<meta property="og:image" content="https://cobander.com/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Chord Transposer &amp; Capo Calculator — Free Online Tool | Cobander">
+<meta name="twitter:description" content="Paste a chord chart or a progression and move it up or down by half steps. Lyrics stay where they are. Plus a capo calculator: which shapes to play for any key. Free, no sign-up.">
+<meta name="twitter:image" content="https://cobander.com/img/og.jpg">
+<link rel="icon" href="../icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../site.css">
+<script type="application/ld+json">[{"@context": "https://schema.org", "@type": "WebApplication", "name": "Chord transposer and capo calculator", "url": "https://cobander.com/chord-transposer/", "description": "Paste a chord chart or a progression and move it up or down by half steps. Lyrics stay where they are. Plus a capo calculator: which shapes to play for any key. Free, no sign-up.", "applicationCategory": "MultimediaApplication", "operatingSystem": "Any (web browser)", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Cobander", "url": "https://cobander.com/"}}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Cobander", "item": "https://cobander.com/"}, {"@type": "ListItem", "position": 2, "name": "Free tools", "item": "https://cobander.com/tools/"}, {"@type": "ListItem", "position": 3, "name": "Chord transposer & capo", "item": "https://cobander.com/chord-transposer/"}]}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does it change the lyrics?", "acceptedAnswer": {"@type": "Answer", "text": "No. Only lines made mostly of chord names are changed."}}, {"@type": "Question", "name": "Which chords does it understand?", "acceptedAnswer": {"@type": "Answer", "text": "Any root A–G with sharps or flats, plus minor, 7, maj7, sus, add, dim, aug, power chords (5) and slash chords like D/F#."}}, {"@type": "Question", "name": "How does the capo calculator work?", "acceptedAnswer": {"@type": "Answer", "text": "It lists the open-shape keys (C, G, D, A, E, or Am, Em, Dm) that reach the key you want with a capo at fret 7 or lower."}}]}]</script>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <a class="mark" href="../"><b>COBANDER</b><span class="seal"><img src="../icons/gi-delapouite-noodles.svg" alt="" width="17" height="17"></span></a>
+  <div class="links"><a href="../tools/">Free tools</a><a href="../guides/">Guides</a><a href="../manual/">Manual</a></div>
+</nav>
+<main>
+<h1>Chord transposer and capo calculator</h1>
+<p class="lead">Paste chords — a progression or a whole chart with lyrics under it — and move them to a key that suits your singer. Lyric lines are left alone, and the chords keep their place above the words.</p>
+
+
+<div class="tool">
+  <label for="tr-in">Your chords</label>
+  <textarea id="tr-in" rows="7" spellcheck="false">G       D        Em      C
+Somebody wrote this in a key nobody can sing
+G       D        C
+So move it down a step or two</textarea>
+  <div class="row">
+    <button type="button" class="btn cool" id="tr-down" aria-label="Down a half step">− ½ step</button>
+    <span class="readout" id="tr-n">0</span>
+    <button type="button" class="btn cool" id="tr-up" aria-label="Up a half step">+ ½ step</button>
+    <button type="button" class="btn cool" id="tr-reset">Reset</button>
+    <label class="inline">Spell as <select id="tr-spell"><option value="auto">Auto (by key)</option><option value="sharps">Sharps</option><option value="flats">Flats</option></select></label>
+  </div>
+  <p class="fine">Key: <b id="tr-key">—</b></p>
+  <label for="tr-out">Transposed</label>
+  <textarea id="tr-out" rows="7" readonly spellcheck="false"></textarea>
+  <div class="row"><button type="button" class="btn hot" id="tr-copy">Copy</button></div>
+</div>
+<h2>Capo calculator</h2>
+<p>Want the song to sound in one key but play easy open shapes? Pick the key it should sound in.</p>
+<div class="tool">
+  <div class="row"><label class="inline">Sounds in <select id="capo-key"></select></label><label class="inline"><select id="capo-mode"><option value="">major</option><option value="m">minor</option></select></label></div>
+  <ul class="capo" id="capo-out"></ul>
+</div>
+<h2>How the transposer reads your chart</h2>
+<p>A line counts as a chord line when most of what is on it are chord names (G, D/F#, Em7, Cadd9, Bbsus4, F#m7b5…). Those chords move; every other line — lyrics, section names, notes — is left exactly as you typed it. Bar lines like <code>| G | D |</code> are fine.</p>
+<p>Moving up 12 half steps lands back on the same key, so the transposer stops at 11 either way. Sharps or flats are picked from the new key (F, B♭, E♭, A♭ and D♭ get flats) unless you choose one.</p>
+<h2>How many half steps?</h2>
+<p>Two half steps is one whole step: G to A, or C to D. A singer who strains on the high notes usually wants the song one or two half steps lower; three or more changes the character of the song, so try it with the band before you commit.</p>
+
+<section class="endcta"><h2>Write it with the whole band</h2><p>Cobander is free songwriting and recording software that keeps your band on the same song: everyone records and writes from their own computer through the folder you already share, with chords, lyrics and structure on one timeline — and the band levels up as you go.</p><div class="cta"><a class="btn hot" href="https://takeout.cobander.com/download/win">Download for Windows</a><a class="btn hot" href="https://takeout.cobander.com/download/mac-arm64">Download for Mac</a></div><p class="fine">Free — the whole app, one song per band. Windows and Mac. <a href="../">More about Cobander</a>.</p></section>
+<section class="faq"><h2>Questions</h2><h3>Does it change the lyrics?</h3><p>No. Only lines made mostly of chord names are changed.</p><h3>Which chords does it understand?</h3><p>Any root A–G with sharps or flats, plus minor, 7, maj7, sus, add, dim, aug, power chords (5) and slash chords like D/F#.</p><h3>How does the capo calculator work?</h3><p>It lists the open-shape keys (C, G, D, A, E, or Am, Em, Dm) that reach the key you want with a capo at fret 7 or lower.</p></section>
+<h2>Free tools</h2><ul class="more"><li><a href="../key-finder/">Key finder from chords</a></li><li><a href="../tap-tempo/">Tap tempo BPM</a></li><li><a href="../song-structure-builder/">Song structure builder</a></li></ul>
+<h2>Guides</h2><ul class="more"><li><a href="../how-to-write-a-song-with-your-band/">Write a song with your band</a></li><li><a href="../how-to-record-a-band-demo-at-home/">Record a band demo at home</a></li><li><a href="../song-structure-templates/">Song structure templates</a></li><li><a href="../common-chord-progressions/">Common chord progressions</a></li></ul>
+</main>
+<footer><p><a href="../">Cobander</a> · <a href="../manual/">User manual</a> · <a href="../terms.html">Terms &amp; privacy</a> · <a href="mailto:noods@cobander.com">noods@cobander.com</a></p></footer>
+</div>
+<script src="../tools.js" defer></script>
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "3504ac4a74f54ff9a3871fef99121b79"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
