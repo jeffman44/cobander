@@ -131,6 +131,11 @@
   .roadies ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 18px; }
   .roadies li { font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: 1px; padding: 8px 16px; border: 2px solid var(--noodle); border-radius: 10px; color: var(--white); }
   .roadies li a { color: inherit; text-decoration: none; } .roadies li a:hover { color: var(--noodle); }
+  /* a VIP with a photo and a song gets a card */
+  .roadies li.card { display: flex; flex-direction: column; gap: 8px; padding: 10px; width: min(300px, 100%); font-size: 22px; }
+  .roadies li.card img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; display: block; }
+  .roadies li.card .song { font-family: inherit; font-weight: 400; font-size: 13px; letter-spacing: 0; color: #cfd3dc; }
+  .roadies li.card audio { width: 100%; height: 32px; }
   /* setup + faq */
   .setup { padding: 20px 0 40px; }
   .setup ol { padding-left: 22px; max-width: 62ch; } .setup li { margin: 6px 0; }
@@ -279,7 +284,7 @@
   </footer>
 </div>
 <script>
-  fetch('roadies.json', { cache: 'no-cache' }).then((r) => r.json()).then((list) => { if (!Array.isArray(list) || !list.length) return; const ul = document.getElementById('roadies-list'); for (const b of list) { const li = document.createElement('li'); if (b.url) { const a = document.createElement('a'); a.href = b.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = b.band; li.append(a); } else li.textContent = b.band; ul.append(li); } document.getElementById('roadies').hidden = false; }).catch(() => {});
+  fetch('roadies.json', { cache: 'no-cache' }).then((r) => r.json()).then((list) => { if (!Array.isArray(list) || !list.length) return; const ul = document.getElementById('roadies-list'); for (const b of list) { const li = document.createElement('li'); const name = document.createElement('span'); if (b.url) { const a = document.createElement('a'); a.href = b.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = b.band; name.append(a); } else name.textContent = b.band; if (b.photo || (b.song && b.song.url)) { li.className = 'card'; if (b.photo) { const im = document.createElement('img'); im.src = b.photo; im.alt = b.band; im.loading = 'lazy'; li.append(im); } li.append(name); if (b.song && b.song.url) { const s = document.createElement('div'); s.className = 'song'; s.textContent = `♪ ${b.song.title || ''}`; const au = document.createElement('audio'); au.controls = true; au.preload = 'none'; au.src = b.song.url; li.append(s, au); } } else li.append(name); ul.append(li); } document.getElementById('roadies').hidden = false; }).catch(() => {});
   // Download buttons point at this visitor's platform (Mac can't tell Apple silicon from Intel from a browser; arm64 is the default, Intel is in the list)
   // Both download buttons stay put (Windows and Mac); on a phone they explain instead of downloading.
   { const mobile = /Android|iPhone|iPad/.test(navigator.userAgent);
