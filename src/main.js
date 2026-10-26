@@ -599,7 +599,7 @@ async function startApi() {
     'POST /latency/measure': ({ body }) => askRenderer('measureLatency', body || {}),
     'POST /update': async ({ body }) => { if (!updater) throw new Error('updater not running'); if (body && body.install) { updater.install(); return { installing: true }; } return updater.check({ force: true }); },
     'POST /quest': ({ body }) => askRenderer('questSet', body || {}),
-    'POST /chart/all': () => askRenderer('chartAll', {}),
+    'POST /chart/all': () => askRenderer('chartAll', {}, 900000),   /* every song's tracks through the note reader: minutes on a real library */
     'POST /sections': ({ body }) => askRenderer('sections', body),
     'POST /chords': ({ body }) => askRenderer('chords', body),
     'POST /lyrics': ({ body }) => askRenderer('lyrics', body),
