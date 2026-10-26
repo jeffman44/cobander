@@ -1,5 +1,10 @@
 # Cobander changelog
 
+## 0.19.1
+- Tabs from distorted guitar: when a part is built on power chords, a chord the distortion half-buried — the root lost under the fifth and octave, or the fifth and octave lost over a loud root — is written as the whole power chord (e.g. x-3-5-5) wherever the recording backs the missing notes. Clean guitar is left alone. On a test set of distorted power-chord riffs, notes found went from 69% to 88%.
+- Notes struck together stay together: a strum the note reader heard a few milliseconds apart is snapped to one beat as one chord, not split across two 16ths.
+- A band tuned to itself, off A440 (up to about 45 cents sharp or flat), is now read in tune: Cobander hears how far off the recording is and listens again at the corrected pitch. Before, notes came apart badly once a recording was more than about 25 cents off.
+
 ## 0.19.0
 - 🥁 Drums to MIDI: right-click a drum track → Drums to MIDI. The hits are read off the recording — kick, snare, hi-hat, open hat / ride and crash — snapped to the beat, and written as a drum part on a new drum-machine track you can edit hit by hit, re-kit, or export as MIDI. Layer it under the recording or replace the recording with it. Bars that repeat back each other up: a hat buried under a crash is filled in from the bars around it.
 - No more stand-in characters flashing up when Cobander starts: avatars appear once the band's real characters are loaded, and the song list follows them.

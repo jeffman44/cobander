@@ -130,3 +130,19 @@ test('a sung line comes back as the notes meant: vibrato and scoops ignored, on 
   const r = N.fromSung(PC.track(buf, SR), { beats: beatsAt(120, 0.5, 7), key: 'G' });
   assert.deepEqual(r.notes.map((x) => [x.t, x.n]), mel.map(([b, , m]) => [0.5 + b * B, m]), JSON.stringify(r.notes));
 });
+
+test('tuning offset: where the contour energy sits between the 1/3-semitone bins', () => {
+  const T = 50, C = 264; const mk = (phase) => { const contour = new Float32Array(T * C); for (let t = 0; t < T; t++) for (const m of [43, 50, 55]) contour[t * C + (m - 21) * 3 + 1 + phase] = 0.9; return { T, contour }; };
+  assert.strictEqual(N.tuningOffset(mk(0)), 0);
+  assert.strictEqual(N.tuningOffset(mk(1)), 33);
+  assert.strictEqual(N.tuningOffset(mk(-1)), -33);
+});
+
+test('power chord root: a fourth on top gets the root under it only when the recording backs it', () => {
+  const T = 100; const post = { T, note: new Float32Array(T * NP), onset: new Float32Array(T * NP) };
+  const f0 = N.timeToFrame(0.2); for (let t = f0; t < f0 + 20; t++) post.note[t * NP + (48 - 21)] = 0.4; post.onset[f0 * NP + (48 - 21)] = 0.3;
+  const evs = [{ t: 0.2, d: 0.2, notes: [55, 60], amps: { 55: 0.6, 60: 0.6 } }, { t: 0.6, d: 0.2, notes: [57, 62], amps: {} }];
+  assert.strictEqual(N.powerRoots(evs, post, 40), 1);
+  assert.deepStrictEqual(evs[0].notes, [48, 55, 60]);
+  assert.deepStrictEqual(evs[1].notes, [57, 62]);   // no evidence for D3: left as the inverted fifth it may well be
+});

@@ -82,6 +82,14 @@
     for (let t = n.f0; t < Math.min(n.f1, post.T); t++) { let best = -1, bi = 0; for (let d = -2; d <= 2; d++) { const j = c + d; if (j < 0 || j >= C) continue; const v = post.contour[t * C + j]; if (v > best) { best = v; bi = d; } } vals.push(bi); }
     if (!vals.length) return 0; vals.sort((a, b) => a - b); return Math.round((vals[vals.length >> 1] * 100) / 3);
   }
+  // how far the whole recording sits off A=440, in cents (-50..50): the circular mean of where the pitch contour's energy
+  // falls between the three 1/3-semitone bins of each semitone. A band tuned to itself 30-40 cents off makes the tracker
+  // split every note between two keys; the reader re-runs it on audio declared at a corrected rate.
+  function tuningOffset(post) {
+    if (!post.contour) return 0; const C = 264; let sx = 0, sy = 0;
+    for (let t = 0; t < post.T; t++) for (let b = 0; b < C; b++) { const v = post.contour[t * C + b]; if (v < 0.3) continue; const a = (2 * Math.PI * ((((b - 1) % 3) + 3) % 3)) / 3; sx += v * Math.cos(a); sy += v * Math.sin(a); }
+    return sx || sy ? Math.round((Math.atan2(sy, sx) / (2 * Math.PI)) * 100) : 0;
+  }
   // how strongly `midi` is sounding over frames [f0, f1) (mean of the frame posterior) — the evidence check
   function evidence(post, midi, f0, f1) {
     const p = midi - MIDI0; if (p < 0 || p >= NP) return 0; let s = 0, n = 0, mx = 0;
@@ -181,8 +189,11 @@
     const G = beats && beats.length > 2 ? gridFor(notes, beats) : null; let sh = 0;
     if (G) {
       sh = gridShift(notes, G.slots); const S = G.slots;
+      // notes struck together (a strum, a chord the tracker heard a few ms apart) snap as one: to the slot nearest their mean
+      const byT = notes.slice().sort((a, b) => a.t - b.t); const at = new Map(); const gw = Math.min(0.07, 0.8 * (S.length > 1 ? S[1].t - S[0].t : 0.1));
+      for (let i = 0; i < byT.length;) { let k = i + 1; while (k < byT.length && byT[k].t - byT[i].t < gw && (byT[k].t - byT[i].t < 0.035 || byT.slice(i, k).every((o) => o.t + o.d > byT[k].t + 0.03 && o.midi !== byT[k].midi))) k++; const g = byT.slice(i, k); const m = g.reduce((x, n) => x + n.t, 0) / g.length; for (const n of g) at.set(n, m); i = k; }
       for (const n of notes) {
-        const j = nearestSlot(S, n.t - sh); const off = Math.abs(S[j].t - (n.t - sh)); const step = j + 1 < S.length ? S[j + 1].t - S[j].t : S[j].t - S[j - 1].t;
+        const tn = at.get(n); const j = nearestSlot(S, tn - sh); const off = Math.abs(S[j].t - (tn - sh)); const step = j + 1 < S.length ? S[j + 1].t - S[j].t : S[j].t - S[j - 1].t;
         if (off <= step * 0.55) { const end = n.t + n.d - sh; const je = Math.max(j + 1, nearestSlot(S, end)); n.slot = j; n.t = S[j].t; n.d = Math.max(step * 0.9, (je < S.length ? S[je].t : end) - S[j].t); }
       }
       notes.shift = sh;
@@ -293,6 +304,35 @@
     for (const n of sorted) { const e = out[out.length - 1]; if (e && (n.slot != null && e.slot != null ? n.slot === e.slot : Math.abs(n.t - e.t) < 0.03) && !e.notes.includes(n.midi)) { e.notes.push(n.midi); e.amps[n.midi] = n.amp; e.d = Math.max(e.d, n.d); e.amp = Math.max(e.amp, n.amp); e.inferred = e.inferred && n.inferred; continue; } out.push({ t: n.t, d: n.d, notes: [n.midi], amps: { [n.midi]: n.amp }, slot: n.slot, amp: n.amp, inferred: !!n.inferred }); }
     for (const e of out) e.notes.sort((a, b) => a - b);
     return out;
+  }
+  // Through distortion the tracker loses parts of a power chord: the root under its fifth and octave, or the fifth and
+  // octave over a loud root. In a part built on power chords (a third of its events hold a fifth or a fourth), an event
+  // of one or two notes that is part of one is completed — root, fifth, octave — wherever the recording backs the missing
+  // note (its note evidence over the event and an attack at its start). A fourth on top stays as played when the root
+  // under it isn't there: it may be an inverted fifth.
+  // how distorted the guitar sounds, as the tracker hears it: while a note is clearly sounding, how many other keys sit just
+  // above the posterior floor (0.1-0.3). Clean / mic'd guitar ~30, crunch and high gain ~38-46 (GuitarSet through amps,
+  // real band takes).
+  function haze(post) {
+    let act = 0, h = 0;
+    for (let t = 0; t < post.T; t++) { let strong = 0, mid = 0; for (let p = 15; p < 70; p++) { const v = post.note[t * NP + p]; if (v > 0.3) strong++; else if (v > 0.1) mid++; } if (strong) { act++; h += mid; } }
+    return act ? h / act : 0;
+  }
+  function powerRoots(evs, post, lo, { ev = 0.22, on = 0.15, fill = 0.12, fillOn = 0.08 } = {}) {
+    const pc = (e) => e.notes.some((x, i) => e.notes.slice(i + 1).some((y) => y - x === 7 || y - x === 5));
+    const share = evs.length ? evs.filter(pc).length / evs.length : 0; let n = 0;
+    const add = (e, m) => { if (e.notes.includes(m)) return; e.notes.push(m); e.notes.sort((x, y) => x - y); e.amps = e.amps || {}; e.amps[m] = Math.min(...Object.values(e.amps).concat([0.5])); e.rooted = true; n++; };
+    for (const e of evs) {
+      if (e.notes.length > 3) continue; const f0 = timeToFrame(e.t), f1 = Math.max(f0 + 2, timeToFrame(e.t + e.d));
+      const backed = (m, a, b) => m >= lo && evidence(post, m, f0, f1) >= a && onsetEvidence(post, m, f0) >= b;
+      const [x, y] = e.notes;
+      if (y != null && y - x === 5) { if (backed(x - 7, ev, on)) add(e, x - 7); continue; }
+      if (share < 0.33) continue;
+      let r = null; if (y == null && backed(x - 7, ev, on)) { add(e, x - 7); r = x - 7; } else if (y == null && x < 52) r = x; else if (y != null && (y - x === 7 || y - x === 12)) r = x;
+      if (r == null) continue;
+      for (const m of [r + 7, r + 12]) if (backed(m, fill, fillOn)) add(e, m);
+    }
+    return n;
   }
   // every playable way to fret an event: one note per string, strings in pitch order, a span a hand can hold
   const FW = { low: 0.04, move: 1.5, jump: 3, strLo: 0.15, strHi: 0.1, span: 0.3, high: 0.3, relax: 0.3 };
@@ -470,14 +510,14 @@
   // { events: [{t, d, notes, frets, mono, conf, name?, inferred?}], notes, key, tuningCents, shift }
   function transcribe(post, { instrument = 'guitar', tuning = null, beats = null, key = null, chords = null, sens = 1, tidyOpts = {}, decodeOpts = {}, shapes = false, loose = null } = {}) {
     const tn = tuning || (instrument === 'bass' ? BASS : GUITAR);
-    const dopt = instrument === 'voice' ? { onsetThresh: 0.45 / sens, frameThresh: 0.3 / sens, minLen: 7, minMidi: 36, maxMidi: 84, ...decodeOpts } : { onsetThresh: 0.5 / sens, frameThresh: 0.3 / sens, minLen: 4, minMidi: tn[0] - 1, maxMidi: tn[tn.length - 1] + 24, ...decodeOpts };
+    const dopt = instrument === 'voice' ? { onsetThresh: 0.45 / sens, frameThresh: 0.3 / sens, minLen: 7, minMidi: 36, maxMidi: 84, ...decodeOpts } : { onsetThresh: 0.6 / sens, frameThresh: 0.3 / sens, minLen: 4, minMidi: tn[0] - 1, maxMidi: tn[tn.length - 1] + 24, ...decodeOpts };
     const raw = decode(post, dopt);
     // the faint notes too (a strum through distortion buries the inner strings): they only survive if the music backs them
     if (loose) { const L = decode(post, { ...dopt, onsetThresh: loose.onset, frameThresh: loose.frame }); for (const n of L) if (!raw.some((m) => m.midi === n.midi && Math.abs(m.f0 - n.f0) <= 4)) raw.push({ ...n, weak: true }); }
     const cents = raw.slice(0, 400).map((n) => bendsCents(post, n)).sort((a, b) => a - b); const tuningCents = cents.length ? cents[cents.length >> 1] : 0;
     const notes = tidy(raw, post, { instrument, tuning: tn, beats, key, chords, ...tidyOpts });
     const K = notes.key; const flats = K ? [5, 10, 3, 8, 1, 6].includes(K.minor ? mod(K.tonic + 3) : K.tonic) : false;
-    const evs = events(notes); if (shapes && instrument !== 'bass' && instrument !== 'voice') snapShapes(evs, post, { tuning: tn, shift: notes.shift || 0 }); const fr = fret(evs, tn);
+    const evs = events(notes); const hz = haze(post); if (instrument !== 'bass' && instrument !== 'voice' && tidyOpts.powerRoots !== false && (hz >= 37 || tidyOpts.powerRoots === true)) powerRoots(evs, post, tn[0]); if (shapes && instrument !== 'bass' && instrument !== 'voice') snapShapes(evs, post, { tuning: tn, shift: notes.shift || 0 }); const fr = fret(evs, tn);
     const out = [];
     evs.forEach((e, i) => {
       const f = fr[i]; if (!f || !f.fr) return;
@@ -489,5 +529,5 @@
     const flat = evs.some((e) => e.shaped) ? [] : notes.map((n) => ({ t: n.t, d: n.d, n: n.midi, v: Math.round(n.amp * 100) / 100 })); if (!flat.length) evs.forEach((e) => { for (const m of e.notes) flat.push({ t: e.t, d: e.d, n: m, v: Math.round(((e.amps && e.amps[m]) || e.amp || 0.5) * 100) / 100 }); });
     return { events: out, notes: flat, key: K ? `${FLAT[K.tonic]}${K.minor ? 'm' : ''}` : null, tuningCents, shift: notes.shift || 0 };
   }
-  return { FW, MAG, chordTones, magnetize, fromSung, sungSegments, decode, tidy, transcribe, events, fret, fingerings, chordName, keyFromNotes, parseKey, gridFor, frameTime, timeToFrame, evidence, FPS, SR, GUITAR, BASS };
+  return { FW, MAG, tuningOffset, haze, powerRoots, chordTones, magnetize, fromSung, sungSegments, decode, tidy, transcribe, events, fret, fingerings, chordName, keyFromNotes, parseKey, gridFor, frameTime, timeToFrame, evidence, FPS, SR, GUITAR, BASS };
 });

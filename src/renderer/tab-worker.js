@@ -30,9 +30,16 @@ self.onmessage = async (e) => {
     }
     try {
       const { ort, session } = await tracker();
-      const post = await self.BPNmp.run(ort, session, d.mono, d.sr, { onProgress: (p) => postMessage({ id: d.id, progress: p }) });
-      const r = self.BPNotes.transcribe(post, { instrument: d.instrument, beats: d.beats || null, key: d.key || null, chords: d.chords || null });
-      result = { events: r.events, notes: r.notes, tuningCents: r.tuningCents, key: r.key, engine: 'nmp' };
+      let post = await self.BPNmp.run(ort, session, d.mono, d.sr, { onProgress: (p) => postMessage({ id: d.id, progress: p * 0.6 }) });
+      // a band tuned to itself 15-45 cents off A440 makes the tracker split every note between two keys: hear it again
+      // with the audio declared at the rate that puts it on pitch, and scale the times back (k = apparent / real)
+      const off = self.BPNotes.tuningOffset(post); let k = 1;
+      if (Math.abs(off) > 10) { const sr2 = d.sr / 2 ** (off / 1200); k = d.sr / sr2; post = await self.BPNmp.run(ort, session, d.mono, sr2, { onProgress: (p) => postMessage({ id: d.id, progress: 0.6 + p * 0.4 }) }); }
+      const beats = d.beats ? d.beats.map((b) => ({ ...b, t: b.t * k })) : null;
+      const r = self.BPNotes.transcribe(post, { instrument: d.instrument, beats, key: d.key || null, chords: d.chords ? d.chords.map((c) => ({ ...c, ...(c.t != null ? { t: c.t * k } : {}), ...(c.time != null ? { time: c.time * k } : {}), ...(c.end != null ? { end: c.end * k } : {}), ...(c.duration != null ? { duration: c.duration * k } : {}) })) : null });
+      const back = (x) => Math.round((x / k) * 1000) / 1000;
+      if (k !== 1) { for (const e of r.events) { e.t = back(e.t); e.d = back(e.d); } for (const n of r.notes) { n.t = back(n.t); n.d = back(n.d); } }
+      result = { events: r.events, notes: r.notes, tuningCents: off, key: r.key, engine: 'nmp' };
     } catch (err) {
       if (d.op === 'notes') throw err;
       const r = self.BPTab.transcribe(d.mono, d.sr, { instrument: d.instrument });
