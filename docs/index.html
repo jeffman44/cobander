@@ -69,7 +69,7 @@
   .pitch { padding: 40px 0 10px; }
   .pitch p { font-size: 19px; }
   .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 26px 0 10px; }
-  .herofig { margin: 30px 0 0; } .herofig img { width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 30px 60px rgba(0,0,0,.5); }
+  .herofig { margin: 30px 0 0; } .herofig video { width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 30px 60px rgba(0,0,0,.5); background: #000; } .herofig figcaption { margin-top: 8px; font-size: .9em; color: var(--muted, #999); text-align: center; } .herofig img { width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 30px 60px rgba(0,0,0,.5); }
   picture { display: contents; } picture source { display: none; }
   .shots figure { margin: 0; }
   .shots img { width: 100%; height: auto; display: block; border-radius: 10px; border: 1px solid var(--line); }
@@ -176,7 +176,7 @@
     <p class="fine dl-notes">Free to download — the whole app, every song, forever. Mac with an Intel chip? <a href="https://takeout.cobander.com/download/mac-x64">Intel Mac download</a>.<br>First launch: Windows may say "Windows protected your PC" → <b>More info → Run anyway</b>. Mac says it can't check the app → <b>Done</b>, then <b>System Settings → Privacy &amp; Security → Open Anyway</b>.</p>
     <span class="muted">Windows &amp; Mac · no server · no accounts · no subscription</span>
     </div>
-    <figure class="herofig"><picture><source type="image/webp" srcset="img/mix-640.webp 640w, img/mix-960.webp 960w, img/mix-1280.webp 1280w" sizes="(max-width: 1040px) calc(100vw - 40px), 1000px"><img src="img/mix.jpg" alt="Cobander's Mix workspace: the song timeline with a console of faders below and Track FX on the right" width="1280" height="793" decoding="async"></picture></figure>
+    <figure class="herofig"><video src="img/demo.mp4" poster="img/demo-poster.jpg" controls muted playsinline preload="metadata" width="1280" height="800" aria-label="One-minute walk through Cobander: writing, recording, mixing, practice and the band page"></video><figcaption>One minute of Cobander, start to finish.</figcaption></figure>
   </header>
 
   <section class="pitch">
@@ -215,6 +215,10 @@
 
   <section class="does" id="does">
     <h2>What it does</h2>
+    <div class="shots two">
+      <figure><picture><source type="image/webp" srcset="img/write-640.webp 640w, img/write-960.webp 960w, img/write-1280.webp 1280w" sizes="(max-width: 1040px) calc(50vw - 27px), 493px"><img src="img/write.jpg" alt="Write: the song timeline with parts, a chord lane, lyrics and everyone's takes" width="1280" height="793" loading="lazy" decoding="async"></picture><figcaption>Write: parts, chords, words and everyone's takes on one timeline.</figcaption></figure>
+      <figure><picture><source type="image/webp" srcset="img/mix-640.webp 640w, img/mix-960.webp 960w, img/mix-1280.webp 1280w" sizes="(max-width: 1040px) calc(50vw - 27px), 493px"><img src="img/mix.jpg" alt="Mix: a console of faders under the timeline, Track FX on the right" width="1280" height="793" loading="lazy" decoding="async"></picture><figcaption>Mix: a real console, Auto mix and Auto master when you'd rather not.</figcaption></figure>
+    </div>
     <ul>
       <li><b><i class="om" style="background-image:url(icons/om-270D.svg)"></i>Write</b><span>Parts (intro, verse, chorus…), a chord lane, lyrics pinned where they're sung — speech-to-text runs on your computer — notes on the timeline, a parts bin, your own noodle pad for riffs.</span></li>
       <li><b><i class="om" style="background-image:url(icons/om-23FA.svg)"></i>Record</b><span>Arm a track, hit R. Lossless takes, punch in to fix one bar, keep several takes and comp the best bits, a tuner, a drum machine, MIDI guitar / bass / keys for sketching without a mic.</span></li>
