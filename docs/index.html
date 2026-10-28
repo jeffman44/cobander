@@ -288,12 +288,11 @@
   { const mobile = /Android|iPhone|iPad/.test(navigator.userAgent);
     if (mobile) for (const a of document.querySelectorAll('a.dl')) a.addEventListener('click', (e) => { e.preventDefault(); alert('Cobander runs on Windows and Mac. Open cobander.com on that computer.'); }); }
   // Storefront: Lemon Squeezy only (Ko-fi/Venmo are the tip jar). Roadie carries checkout[custom][name], VIP checkout[custom][band].
-  // LS_LIVE flips to true once the store is out of test mode (swap in the live-mode links!) — until then Purchase reads
-  // "Licenses open soon" and does nothing, except with ?lstest in the URL, which uses the test-mode links (fake cards).
+  // LS_LIVE = true: the store is live. ?lstest in the URL still uses the test-mode links (fake cards) for checking the pipeline.
   // Roadie ($10, per person; custom field `name`) and VIP ($60, per band; custom field `band`).
-  const LS_LIVE = false, LS_TEST = /[?&]lstest\b/.test(location.search);
-  const LS_ROADIE = LS_LIVE ? null : LS_TEST ? 'https://cobander.lemonsqueezy.com/checkout/buy/7c54153d-bb01-4d4f-a98f-24335f9b550c' : null;   // $10 Roadie
-  const LS_VIP = LS_LIVE ? null : LS_TEST ? 'https://cobander.lemonsqueezy.com/checkout/buy/217e75e6-9c21-41e9-8600-6adc8926cb72' : null;      // $60 VIP
+  const LS_LIVE = true, LS_TEST = /[?&]lstest\b/.test(location.search);
+  const LS_ROADIE = LS_TEST ? 'https://cobander.lemonsqueezy.com/checkout/buy/7c54153d-bb01-4d4f-a98f-24335f9b550c' : LS_LIVE ? 'https://cobander.lemonsqueezy.com/checkout/buy/66b7e820-5d15-4c7e-baaa-ea0891503d9d' : null;   // $10 Roadie
+  const LS_VIP = LS_TEST ? 'https://cobander.lemonsqueezy.com/checkout/buy/217e75e6-9c21-41e9-8600-6adc8926cb72' : LS_LIVE ? 'https://cobander.lemonsqueezy.com/checkout/buy/daa0eaeb-78af-453e-8a4b-efa23c9b3178' : null;      // $60 VIP
   const buy = document.getElementById('buy'), band = document.getElementById('band'), pname = document.getElementById('pname'); let amt = 10;
   if (!LS_ROADIE) { buy.classList.add('soon'); buy.removeAttribute('target'); buy.insertAdjacentHTML('afterend', '<span class="fine soon-note">Licenses open soon. Grab the free version now — it\'s the whole app, every song.</span>'); }
   const vip = () => amt >= 60;
